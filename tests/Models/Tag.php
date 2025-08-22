@@ -1,10 +1,10 @@
 <?php
 
-namespace Said\Nadota\Tests\Models;
+namespace SchoolAid\Nadota\Tests\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Said\Nadota\Tests\Database\Factories\TagFactory;
+use SchoolAid\Nadota\Tests\Database\Factories\TagFactory;
 
 class Tag extends Model
 {

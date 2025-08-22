@@ -1,26 +1,26 @@
 <?php
 
-namespace Said\Nadota\Providers;
+namespace SchoolAid\Nadota\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Said\Nadota\Contracts\MenuServiceInterface;
-use Said\Nadota\Contracts\ResourceAuthorizationInterface;
-use Said\Nadota\Contracts\ResourceIndexInterface;
-use Said\Nadota\Contracts\ResourceCreateInterface;
-use Said\Nadota\Contracts\ResourceStoreInterface;
-use Said\Nadota\Contracts\ResourceShowInterface;
-use Said\Nadota\Contracts\ResourceEditInterface;
-use Said\Nadota\Contracts\ResourceUpdateInterface;
-use Said\Nadota\Contracts\ResourceDestroyInterface;
-use Said\Nadota\Http\Services\MenuService;
-use Said\Nadota\Http\Services\ResourceAuthorizationService;
-use Said\Nadota\Http\Services\ResourceIndexService;
-use Said\Nadota\Http\Services\ResourceCreateService;
-use Said\Nadota\Http\Services\ResourceStoreService;
-use Said\Nadota\Http\Services\ResourceShowService;
-use Said\Nadota\Http\Services\ResourceEditService;
-use Said\Nadota\Http\Services\ResourceUpdateService;
-use Said\Nadota\Http\Services\ResourceDestroyService;
+use SchoolAid\Nadota\Contracts\MenuServiceInterface;
+use SchoolAid\Nadota\Contracts\ResourceAuthorizationInterface;
+use SchoolAid\Nadota\Contracts\ResourceIndexInterface;
+use SchoolAid\Nadota\Contracts\ResourceCreateInterface;
+use SchoolAid\Nadota\Contracts\ResourceStoreInterface;
+use SchoolAid\Nadota\Contracts\ResourceShowInterface;
+use SchoolAid\Nadota\Contracts\ResourceEditInterface;
+use SchoolAid\Nadota\Contracts\ResourceUpdateInterface;
+use SchoolAid\Nadota\Contracts\ResourceDestroyInterface;
+use SchoolAid\Nadota\Http\Services\MenuService;
+use SchoolAid\Nadota\Http\Services\ResourceAuthorizationService;
+use SchoolAid\Nadota\Http\Services\ResourceIndexService;
+use SchoolAid\Nadota\Http\Services\ResourceCreateService;
+use SchoolAid\Nadota\Http\Services\ResourceStoreService;
+use SchoolAid\Nadota\Http\Services\ResourceShowService;
+use SchoolAid\Nadota\Http\Services\ResourceEditService;
+use SchoolAid\Nadota\Http\Services\ResourceUpdateService;
+use SchoolAid\Nadota\Http\Services\ResourceDestroyService;
 
 class ServiceBindingServiceProvider extends ServiceProvider
 {

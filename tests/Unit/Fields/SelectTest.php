@@ -1,6 +1,6 @@
 <?php
 
-use Said\Nadota\Http\Fields\Select;
+use SchoolAid\Nadota\Http\Fields\Select;
 
 it('can be instantiated', function () {
     $field = Select::make('Status', 'status');

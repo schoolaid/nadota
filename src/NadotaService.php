@@ -1,5 +1,5 @@
 <?php
-namespace Said\Nadota;
+namespace SchoolAid\Nadota;
 
 class NadotaService
 {

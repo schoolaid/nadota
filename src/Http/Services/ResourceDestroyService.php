@@ -1,10 +1,10 @@
 <?php
 
-namespace Said\Nadota\Http\Services;
+namespace SchoolAid\Nadota\Http\Services;
 
 use Illuminate\Http\JsonResponse;
-use Said\Nadota\Contracts\ResourceDestroyInterface;
-use Said\Nadota\Http\Requests\NadotaRequest;
+use SchoolAid\Nadota\Contracts\ResourceDestroyInterface;
+use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 
 class ResourceDestroyService implements ResourceDestroyInterface
 {

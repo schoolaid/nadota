@@ -1,13 +1,13 @@
 <?php
 
-namespace Said\Nadota\Tests\Resources;
+namespace SchoolAid\Nadota\Tests\Resources;
 
-use Said\Nadota\Http\Fields\Input;
-use Said\Nadota\Http\Fields\DateTime;
-use Said\Nadota\Http\Fields\Toggle;
-use Said\Nadota\Http\Requests\NadotaRequest;
-use Said\Nadota\Resource;
-use Said\Nadota\Tests\Models\TestModel;
+use SchoolAid\Nadota\Http\Fields\Input;
+use SchoolAid\Nadota\Http\Fields\DateTime;
+use SchoolAid\Nadota\Http\Fields\Toggle;
+use SchoolAid\Nadota\Http\Requests\NadotaRequest;
+use SchoolAid\Nadota\Resource;
+use SchoolAid\Nadota\Tests\Models\TestModel;
 
 class TestResource extends Resource
 {

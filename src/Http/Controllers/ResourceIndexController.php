@@ -1,13 +1,13 @@
 <?php
-namespace Said\Nadota\Http\Controllers;
+namespace SchoolAid\Nadota\Http\Controllers;
 
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\App;
-use Said\Nadota\Http\Requests\NadotaRequest;
-use Said\Nadota\Http\Resources\Filters\FilterResource;
-use Said\Nadota\Http\Resources\Index\FieldResource;
-use Said\Nadota\Http\Resources\InfoResource;
+use SchoolAid\Nadota\Http\Requests\NadotaRequest;
+use SchoolAid\Nadota\Http\Resources\Filters\FilterResource;
+use SchoolAid\Nadota\Http\Resources\Index\FieldResource;
+use SchoolAid\Nadota\Http\Resources\InfoResource;
 
 class ResourceIndexController extends Controller
 {

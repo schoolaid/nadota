@@ -1,6 +1,6 @@
 <?php
 
-namespace Said\Nadota\Http\Fields\Enums;
+namespace SchoolAid\Nadota\Http\Fields\Enums;
 
 enum FieldType: string
 {

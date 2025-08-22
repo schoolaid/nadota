@@ -1,6 +1,6 @@
 <?php
 
-namespace Said\Nadota\Contracts;
+namespace SchoolAid\Nadota\Contracts;
 
 interface MenuItemInterface
 {

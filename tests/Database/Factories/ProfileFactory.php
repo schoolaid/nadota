@@ -1,10 +1,10 @@
 <?php
 
-namespace Said\Nadota\Tests\Database\Factories;
+namespace SchoolAid\Nadota\Tests\Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Said\Nadota\Tests\Models\Profile;
-use Said\Nadota\Tests\Models\TestModel;
+use SchoolAid\Nadota\Tests\Models\Profile;
+use SchoolAid\Nadota\Tests\Models\TestModel;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\Said\Nadota\Tests\Models\Profile>

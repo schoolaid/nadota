@@ -1,9 +1,9 @@
 <?php
 
-namespace Said\Nadota\Contracts;
+namespace SchoolAid\Nadota\Contracts;
 
 use Illuminate\Database\Eloquent\Model;
-use Said\Nadota\Http\Requests\NadotaRequest;
+use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 
 interface ResourceInterface
 {

@@ -1,5 +1,5 @@
 {
-    "name": "said/nadota",
+    "name": "schoolaid/nadota",
     "type": "library",
     "description": "Laravel admin panel package for resource-based CRUD interfaces similar to Laravel Nova",
     "keywords": [
@@ -9,13 +9,13 @@
         "resource",
         "panel",
         "nova",
-        "said"
+        "schoolaid"
     ],
     "license": "MIT",
     "authors": [
         {
-            "name": "Said Development Team",
-            "email": "dev@said.com"
+            "name": "SchoolAid Development Team",
+            "email": "dev@schoolaid.com"
         }
     ],
     "require": {
@@ -34,18 +34,18 @@
     },
     "autoload": {
         "psr-4": {
-            "Said\\Nadota\\": "src/"
+            "SchoolAid\\Nadota\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Said\\Nadota\\Tests\\": "tests/"
+            "SchoolAid\\Nadota\\Tests\\": "tests/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "Said\\Nadota\\NadotaServiceProvider"
+                "SchoolAid\\Nadota\\NadotaServiceProvider"
             ]
         }
     },

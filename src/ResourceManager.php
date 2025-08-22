@@ -1,10 +1,10 @@
 <?php
 
-namespace Said\Nadota;
+namespace SchoolAid\Nadota;
 
 use Exception;
 use Illuminate\Support\Facades\Cache;
-use Said\Nadota\Http\Helpers\Helpers;
+use SchoolAid\Nadota\Http\Helpers\Helpers;
 use Symfony\Component\Finder\Finder;
 
 class ResourceManager

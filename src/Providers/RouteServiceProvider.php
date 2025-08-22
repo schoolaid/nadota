@@ -1,6 +1,6 @@
 <?php
 
-namespace Said\Nadota\Providers;
+namespace SchoolAid\Nadota\Providers;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;

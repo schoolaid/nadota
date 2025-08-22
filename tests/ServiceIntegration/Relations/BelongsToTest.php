@@ -1,8 +1,8 @@
 <?php
 
-use Said\Nadota\Http\Fields\Relations\BelongsTo;
-use Said\Nadota\Tests\Models\TestModel;
-use Said\Nadota\Tests\Models\RelatedModel;
+use SchoolAid\Nadota\Http\Fields\Relations\BelongsTo;
+use SchoolAid\Nadota\Tests\Models\TestModel;
+use SchoolAid\Nadota\Tests\Models\RelatedModel;
 
 it('can be instantiated', function () {
     $field = BelongsTo::make('Test Model', 'testModel');

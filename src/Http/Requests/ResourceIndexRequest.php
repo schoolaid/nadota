@@ -1,6 +1,6 @@
 <?php
 
-namespace Said\Nadota\Http\Requests;
+namespace SchoolAid\Nadota\Http\Requests;
 
 class ResourceIndexRequest extends NadotaRequest
 {

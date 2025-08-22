@@ -1,8 +1,8 @@
 <?php
-namespace Said\Nadota\Http\Controllers;
+namespace SchoolAid\Nadota\Http\Controllers;
 
-use Said\Nadota\Contracts\MenuServiceInterface;
-use Said\Nadota\Http\Requests\NadotaRequest;
+use SchoolAid\Nadota\Contracts\MenuServiceInterface;
+use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 
 readonly class MenuController
 {

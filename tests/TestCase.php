@@ -1,14 +1,14 @@
 <?php
 
-namespace Said\Nadota\Tests;
+namespace SchoolAid\Nadota\Tests;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Orchestra\Testbench\TestCase as Orchestra;
-use Said\Nadota\NadotaServiceProvider;
-use Said\Nadota\Contracts\ResourceAuthorizationInterface;
-use Said\Nadota\Tests\Mocks\MockResourceAuthorizationService;
+use SchoolAid\Nadota\NadotaServiceProvider;
+use SchoolAid\Nadota\Contracts\ResourceAuthorizationInterface;
+use SchoolAid\Nadota\Tests\Mocks\MockResourceAuthorizationService;
 
 class TestCase extends Orchestra
 {
@@ -17,7 +17,7 @@ class TestCase extends Orchestra
         parent::setUp();
 
         Factory::guessFactoryNamesUsing(
-            fn (string $modelName) => 'Said\\Nadota\\Tests\\Database\\Factories\\'.class_basename($modelName).'Factory'
+            fn (string $modelName) => 'SchoolAid\\Nadota\\Tests\\Database\\Factories\\'.class_basename($modelName).'Factory'
         );
 
         // Bind mock authorization service for testing

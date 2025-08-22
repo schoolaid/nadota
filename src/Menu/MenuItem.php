@@ -1,10 +1,10 @@
 <?php
 
-namespace Said\Nadota\Menu;
+namespace SchoolAid\Nadota\Menu;
 
-use Said\Nadota\Contracts\MenuItemInterface;
-use Said\Nadota\Http\Traits\Makeable;
-use Said\Nadota\Http\Traits\VisibleWhen;
+use SchoolAid\Nadota\Contracts\MenuItemInterface;
+use SchoolAid\Nadota\Http\Traits\Makeable;
+use SchoolAid\Nadota\Http\Traits\VisibleWhen;
 
 class MenuItem implements MenuItemInterface
 {

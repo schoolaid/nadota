@@ -1,7 +1,7 @@
 <?php
 
-use Said\Nadota\Http\Fields\File;
-use Said\Nadota\Tests\Models\TestModel;
+use SchoolAid\Nadota\Http\Fields\File;
+use SchoolAid\Nadota\Tests\Models\TestModel;
 use Illuminate\Http\UploadedFile;
 
 it('can be instantiated', function () {

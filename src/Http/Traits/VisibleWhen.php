@@ -1,6 +1,6 @@
 <?php
 
-namespace Said\Nadota\Http\Traits;
+namespace SchoolAid\Nadota\Http\Traits;
 
 trait VisibleWhen
 {

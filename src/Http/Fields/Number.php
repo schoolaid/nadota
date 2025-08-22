@@ -1,8 +1,8 @@
 <?php
 
-namespace Said\Nadota\Http\Fields;
+namespace SchoolAid\Nadota\Http\Fields;
 
-use Said\Nadota\Http\Fields\Enums\FieldType;
+use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
 
 class Number extends Field
 {
@@ -53,7 +53,7 @@ class Number extends Field
         return $rules;
     }
 
-    protected function getProps(\Illuminate\Http\Request $request, ?\Illuminate\Database\Eloquent\Model $model, ?\Said\Nadota\Contracts\ResourceInterface $resource): array
+    protected function getProps(\Illuminate\Http\Request $request, ?\Illuminate\Database\Eloquent\Model $model, ?\SchoolAid\Nadota\Contracts\ResourceInterface $resource): array
     {
         return array_merge(parent::getProps($request, $model, $resource), [
             'min' => $this->min,

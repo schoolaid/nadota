@@ -1,8 +1,8 @@
 <?php
 
-namespace Said\Nadota\Http\Fields\Traits;
+namespace SchoolAid\Nadota\Http\Fields\Traits;
 
-use Said\Nadota\Http\Requests\NadotaRequest;
+use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 
 trait VisibilityTrait
 {

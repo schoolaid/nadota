@@ -1,16 +1,16 @@
 <?php
 
-namespace Said\Nadota\Http\Services;
+namespace SchoolAid\Nadota\Http\Services;
 
-use Said\Nadota\Contracts\MenuServiceInterface;
-use Said\Nadota\Contracts\ResourceAuthorizationInterface;
-use Said\Nadota\NadotaService;
-use Said\Nadota\Http\Requests\NadotaRequest;
-use Said\Nadota\ResourceManager;
-use Said\Nadota\Menu\MenuItem;
-use Said\Nadota\Menu\MenuSection;
-use Said\Nadota\Http\Resources\Menu\MenuResource;
-use Said\Nadota\Contracts\MenuItemInterface;
+use SchoolAid\Nadota\Contracts\MenuServiceInterface;
+use SchoolAid\Nadota\Contracts\ResourceAuthorizationInterface;
+use SchoolAid\Nadota\NadotaService;
+use SchoolAid\Nadota\Http\Requests\NadotaRequest;
+use SchoolAid\Nadota\ResourceManager;
+use SchoolAid\Nadota\Menu\MenuItem;
+use SchoolAid\Nadota\Menu\MenuSection;
+use SchoolAid\Nadota\Http\Resources\Menu\MenuResource;
+use SchoolAid\Nadota\Contracts\MenuItemInterface;
 
 class MenuService implements MenuServiceInterface
 {

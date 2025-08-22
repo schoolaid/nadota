@@ -1,8 +1,8 @@
 <?php
 
-namespace Said\Nadota\Http\Fields;
+namespace SchoolAid\Nadota\Http\Fields;
 
-use Said\Nadota\Http\Fields\Enums\FieldType;
+use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
 
 class Hidden extends Field
 {

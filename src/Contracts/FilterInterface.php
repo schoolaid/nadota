@@ -1,8 +1,8 @@
 <?php
 
-namespace Said\Nadota\Contracts;
+namespace SchoolAid\Nadota\Contracts;
 
-use Said\Nadota\Http\Requests\NadotaRequest;
+use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 
 interface FilterInterface
 {

@@ -1,9 +1,9 @@
 <?php
 
-use Said\Nadota\Http\Fields\Relations\HasMany;
-use Said\Nadota\Http\Fields\Input;
-use Said\Nadota\Tests\Models\TestModel;
-use Said\Nadota\Tests\Models\RelatedModel;
+use SchoolAid\Nadota\Http\Fields\Relations\HasMany;
+use SchoolAid\Nadota\Http\Fields\Input;
+use SchoolAid\Nadota\Tests\Models\TestModel;
+use SchoolAid\Nadota\Tests\Models\RelatedModel;
 
 it('can be instantiated', function () {
     $field = HasMany::make('Related Models', 'relatedModels');

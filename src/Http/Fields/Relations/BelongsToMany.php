@@ -1,12 +1,12 @@
 <?php
 
-namespace Said\Nadota\Http\Fields\Relations;
+namespace SchoolAid\Nadota\Http\Fields\Relations;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
-use Said\Nadota\Contracts\ResourceInterface;
-use Said\Nadota\Http\Fields\Enums\FieldType;
+use SchoolAid\Nadota\Contracts\ResourceInterface;
+use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
 
 class BelongsToMany extends RelationField
 {

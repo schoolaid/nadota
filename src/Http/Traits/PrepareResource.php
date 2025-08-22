@@ -1,9 +1,9 @@
 <?php
 
-namespace Said\Nadota\Http\Traits;
+namespace SchoolAid\Nadota\Http\Traits;
 
-use Said\Nadota\Resource;
-use Said\Nadota\ResourceManager;
+use SchoolAid\Nadota\Resource;
+use SchoolAid\Nadota\ResourceManager;
 
 trait PrepareResource
 {

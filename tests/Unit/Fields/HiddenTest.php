@@ -1,7 +1,7 @@
 <?php
 
-use Said\Nadota\Http\Fields\Hidden;
-use Said\Nadota\Tests\Models\TestModel;
+use SchoolAid\Nadota\Http\Fields\Hidden;
+use SchoolAid\Nadota\Tests\Models\TestModel;
 
 it('can be instantiated', function () {
     $field = Hidden::make('Secret Key', 'secret_key');

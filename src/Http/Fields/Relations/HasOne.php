@@ -1,6 +1,6 @@
 <?php
 
-namespace Said\Nadota\Http\Fields\Relations;
+namespace SchoolAid\Nadota\Http\Fields\Relations;
 
 use Illuminate\Database\Eloquent\Builder;
 

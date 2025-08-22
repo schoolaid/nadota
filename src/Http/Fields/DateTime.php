@@ -1,6 +1,6 @@
 <?php
 
-namespace Said\Nadota\Http\Fields;
+namespace SchoolAid\Nadota\Http\Fields;
 
 class DateTime extends Field
 {
@@ -49,7 +49,7 @@ class DateTime extends Field
         $this->format = 'H:i:s';
         return $this;
     }
-    protected function getProps(\Illuminate\Http\Request $request, ?\Illuminate\Database\Eloquent\Model $model, ?\Said\Nadota\Contracts\ResourceInterface $resource): array
+    protected function getProps(\Illuminate\Http\Request $request, ?\Illuminate\Database\Eloquent\Model $model, ?\SchoolAid\Nadota\Contracts\ResourceInterface $resource): array
     {
         return array_merge(parent::getProps($request, $model, $resource), [
             'format' => $this->format,
@@ -60,7 +60,7 @@ class DateTime extends Field
         ]);
     }
     
-    public function resolve(\Illuminate\Http\Request $request, \Illuminate\Database\Eloquent\Model $model, ?\Said\Nadota\Contracts\ResourceInterface $resource): mixed
+    public function resolve(\Illuminate\Http\Request $request, \Illuminate\Database\Eloquent\Model $model, ?\SchoolAid\Nadota\Contracts\ResourceInterface $resource): mixed
     {
         $value = $model->{$this->getAttribute()};
         if ($value instanceof \DateTimeInterface) {

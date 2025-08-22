@@ -1,10 +1,10 @@
 <?php
 
-namespace Said\Nadota\Http\Services\Pipes;
+namespace SchoolAid\Nadota\Http\Services\Pipes;
 
 use Closure;
-use Said\Nadota\Http\Criteria\FilterCriteria;
-use Said\Nadota\Http\DataTransferObjects\IndexRequestDTO;
+use SchoolAid\Nadota\Http\Criteria\FilterCriteria;
+use SchoolAid\Nadota\Http\DataTransferObjects\IndexRequestDTO;
 
 class ApplyFiltersPipe
 {

@@ -1,15 +1,15 @@
 <?php
 
-namespace Said\Nadota\Http\Filters;
+namespace SchoolAid\Nadota\Http\Filters;
 
-use Said\Nadota\Contracts\FilterInterface;
-use Said\Nadota\Http\Fields\Enums\FieldType;
-use Said\Nadota\Http\Helpers\Helpers;
-use Said\Nadota\Http\Requests\NadotaRequest;
+use SchoolAid\Nadota\Contracts\FilterInterface;
+use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
+use SchoolAid\Nadota\Http\Helpers\Helpers;
+use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 
 abstract class Filter implements FilterInterface
 {
-    use \Said\Nadota\Http\Traits\Makeable;
+    use \SchoolAid\Nadota\Http\Traits\Makeable;
     public string $name = 'Filter';
     public string $type = 'text';
     public string $component = 'select-filter';

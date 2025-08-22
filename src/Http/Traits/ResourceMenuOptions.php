@@ -1,8 +1,8 @@
 <?php
 
-namespace Said\Nadota\Http\Traits;
+namespace SchoolAid\Nadota\Http\Traits;
 
-use Said\Nadota\Http\Requests\NadotaRequest;
+use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 
 trait ResourceMenuOptions
 {

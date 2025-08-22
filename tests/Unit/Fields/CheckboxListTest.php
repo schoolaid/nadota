@@ -1,6 +1,6 @@
 <?php
 
-use Said\Nadota\Http\Fields\CheckboxList;
+use SchoolAid\Nadota\Http\Fields\CheckboxList;
 
 it('can be instantiated', function () {
     $field = CheckboxList::make('Features', 'features');

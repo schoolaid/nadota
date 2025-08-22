@@ -1,11 +1,11 @@
 <?php
 
-namespace Said\Nadota\Http\Services;
+namespace SchoolAid\Nadota\Http\Services;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
-use Said\Nadota\Contracts\ResourceUpdateInterface;
-use Said\Nadota\Http\Requests\NadotaRequest;
+use SchoolAid\Nadota\Contracts\ResourceUpdateInterface;
+use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 
 class ResourceUpdateService implements ResourceUpdateInterface
 {

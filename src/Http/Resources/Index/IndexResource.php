@@ -1,6 +1,6 @@
 <?php
 
-namespace Said\Nadota\Http\Resources\Index;
+namespace SchoolAid\Nadota\Http\Resources\Index;
 
 use Illuminate\Http\Resources\Json\ResourceCollection;
 

@@ -1,11 +1,11 @@
 <?php
 
-namespace Said\Nadota\Http\Fields\Contracts;
+namespace SchoolAid\Nadota\Http\Fields\Contracts;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
-use Said\Nadota\Contracts\ResourceInterface;
-use Said\Nadota\Http\Requests\NadotaRequest;
+use SchoolAid\Nadota\Contracts\ResourceInterface;
+use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 
 interface FieldInterface
 {

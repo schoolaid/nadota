@@ -1,7 +1,7 @@
 <?php
 
-use Said\Nadota\Http\Fields\Textarea;
-use Said\Nadota\Tests\Models\TestModel;
+use SchoolAid\Nadota\Http\Fields\Textarea;
+use SchoolAid\Nadota\Tests\Models\TestModel;
 
 it('can be instantiated', function () {
     $field = Textarea::make('Description', 'description');

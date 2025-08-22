@@ -11,7 +11,7 @@
 |
 */
 
-pest()->extend(\Said\Nadota\Tests\TestCase::class)
+pest()->extend(\SchoolAid\Nadota\Tests\TestCase::class)
     ->use(\Illuminate\Foundation\Testing\RefreshDatabase::class)
     ->in('Feature', 'Unit');
 
@@ -27,7 +27,7 @@ pest()->extend(\Said\Nadota\Tests\TestCase::class)
 */
 
 expect()->extend('toBeField', function () {
-    return $this->toBeInstanceOf(\Said\Nadota\Http\Fields\Field::class);
+    return $this->toBeInstanceOf(\SchoolAid\Nadota\Http\Fields\Field::class);
 });
 
 expect()->extend('toHaveFieldAttribute', function (string $attribute) {
@@ -49,19 +49,19 @@ expect()->extend('toBeFieldType', function (string $type) {
 |
 */
 
-function createTestModel(array $attributes = []): \Said\Nadota\Tests\Models\TestModel
+function createTestModel(array $attributes = []): \SchoolAid\Nadota\Tests\Models\TestModel
 {
-    return new \Said\Nadota\Tests\Models\TestModel($attributes);
+    return new \SchoolAid\Nadota\Tests\Models\TestModel($attributes);
 }
 
-function createTestResource(): \Said\Nadota\Tests\Resources\TestResource
+function createTestResource(): \SchoolAid\Nadota\Tests\Resources\TestResource
 {
-    return new \Said\Nadota\Tests\Resources\TestResource();
+    return new \SchoolAid\Nadota\Tests\Resources\TestResource();
 }
 
-function createNadotaRequest(array $data = []): \Said\Nadota\Http\Requests\NadotaRequest
+function createNadotaRequest(array $data = []): \SchoolAid\Nadota\Http\Requests\NadotaRequest
 {
-    $request = new \Said\Nadota\Http\Requests\NadotaRequest();
+    $request = new \SchoolAid\Nadota\Http\Requests\NadotaRequest();
     $request->merge($data);
     return $request;
 }

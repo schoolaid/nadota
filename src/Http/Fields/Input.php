@@ -1,6 +1,6 @@
 <?php
 
-namespace Said\Nadota\Http\Fields;
+namespace SchoolAid\Nadota\Http\Fields;
 
 class Input extends Field
 {

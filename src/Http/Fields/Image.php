@@ -1,11 +1,11 @@
 <?php
 
-namespace Said\Nadota\Http\Fields;
+namespace SchoolAid\Nadota\Http\Fields;
 
 use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\Model;
-use Said\Nadota\Contracts\ResourceInterface;
-use Said\Nadota\Http\Fields\Enums\FieldType;
+use SchoolAid\Nadota\Contracts\ResourceInterface;
+use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
 
 class Image extends File
 {

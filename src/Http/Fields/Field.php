@@ -1,22 +1,22 @@
 <?php
 
-namespace Said\Nadota\Http\Fields;
+namespace SchoolAid\Nadota\Http\Fields;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
-use Said\Nadota\Contracts\ResourceInterface;
-use Said\Nadota\Http\Fields\Contracts\FieldInterface;
-use Said\Nadota\Http\Fields\DataTransferObjects\FieldDTO;
-use Said\Nadota\Http\Fields\Enums\FieldType;
-use Said\Nadota\Http\Fields\Traits\{DefaultValueTrait,
+use SchoolAid\Nadota\Contracts\ResourceInterface;
+use SchoolAid\Nadota\Http\Fields\Contracts\FieldInterface;
+use SchoolAid\Nadota\Http\Fields\DataTransferObjects\FieldDTO;
+use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
+use SchoolAid\Nadota\Http\Fields\Traits\{DefaultValueTrait,
     FilterableTrait,
     RelationshipTrait,
     SearchableTrait,
     SortableTrait,
     ValidationTrait,
     VisibilityTrait};
-use Said\Nadota\Http\Requests\NadotaRequest;
-use Said\Nadota\Http\Traits\Makeable;
+use SchoolAid\Nadota\Http\Requests\NadotaRequest;
+use SchoolAid\Nadota\Http\Traits\Makeable;
 
 abstract class Field implements FieldInterface
 {

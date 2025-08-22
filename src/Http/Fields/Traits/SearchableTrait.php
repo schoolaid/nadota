@@ -1,6 +1,6 @@
 <?php
 
-namespace Said\Nadota\Http\Fields\Traits;
+namespace SchoolAid\Nadota\Http\Fields\Traits;
 
 trait SearchableTrait
 {

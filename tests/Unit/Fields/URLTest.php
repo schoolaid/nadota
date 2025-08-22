@@ -1,7 +1,7 @@
 <?php
 
-use Said\Nadota\Http\Fields\URL;
-use Said\Nadota\Tests\Models\TestModel;
+use SchoolAid\Nadota\Http\Fields\URL;
+use SchoolAid\Nadota\Tests\Models\TestModel;
 
 it('can be instantiated', function () {
     $field = URL::make('Website', 'website_url');

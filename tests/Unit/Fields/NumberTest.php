@@ -1,7 +1,7 @@
 <?php
 
-use Said\Nadota\Http\Fields\Number;
-use Said\Nadota\Tests\Models\TestModel;
+use SchoolAid\Nadota\Http\Fields\Number;
+use SchoolAid\Nadota\Tests\Models\TestModel;
 
 it('can be instantiated', function () {
     $field = Number::make('Age', 'age');

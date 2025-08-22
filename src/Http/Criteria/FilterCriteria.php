@@ -1,9 +1,9 @@
 <?php
 
-namespace Said\Nadota\Http\Criteria;
+namespace SchoolAid\Nadota\Http\Criteria;
 
-use Said\Nadota\Http\Filters\Filter;
-use Said\Nadota\Http\Requests\NadotaRequest;
+use SchoolAid\Nadota\Http\Filters\Filter;
+use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 
 class FilterCriteria
 {

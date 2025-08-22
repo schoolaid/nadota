@@ -1,7 +1,7 @@
 <?php
 
-use Said\Nadota\Http\Fields\Input;
-use Said\Nadota\Tests\Models\TestModel;
+use SchoolAid\Nadota\Http\Fields\Input;
+use SchoolAid\Nadota\Tests\Models\TestModel;
 
 it('field has no default value by default', function () {
     $field = Input::make('Name', 'name');

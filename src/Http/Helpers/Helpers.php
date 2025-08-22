@@ -1,6 +1,6 @@
 <?php
 
-namespace Said\Nadota\Http\Helpers;
+namespace SchoolAid\Nadota\Http\Helpers;
 
 use Illuminate\Support\Str;
 

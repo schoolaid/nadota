@@ -1,11 +1,11 @@
 <?php
 
-namespace Said\Nadota;
+namespace SchoolAid\Nadota;
 
 use Illuminate\Support\ServiceProvider;
-use Said\Nadota\Providers\RouteServiceProvider;
-use Said\Nadota\Providers\ServiceBindingServiceProvider;
-use Said\Nadota\Providers\ResourceServiceProvider;
+use SchoolAid\Nadota\Providers\RouteServiceProvider;
+use SchoolAid\Nadota\Providers\ServiceBindingServiceProvider;
+use SchoolAid\Nadota\Providers\ResourceServiceProvider;
 
 class NadotaServiceProvider extends ServiceProvider
 {

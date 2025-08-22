@@ -1,11 +1,11 @@
 <?php
 
-namespace Said\Nadota\Http\Services;
+namespace SchoolAid\Nadota\Http\Services;
 
 use Illuminate\Http\JsonResponse;
-use Said\Nadota\Contracts\ResourceCreateInterface;
-use Said\Nadota\Contracts\ResourceEditInterface;
-use Said\Nadota\Http\Requests\NadotaRequest;
+use SchoolAid\Nadota\Contracts\ResourceCreateInterface;
+use SchoolAid\Nadota\Contracts\ResourceEditInterface;
+use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 
 class ResourceEditService implements ResourceEditInterface
 {

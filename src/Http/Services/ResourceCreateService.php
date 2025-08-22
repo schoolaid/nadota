@@ -1,9 +1,9 @@
 <?php
 
-namespace Said\Nadota\Http\Services;
+namespace SchoolAid\Nadota\Http\Services;
 
-use Said\Nadota\Contracts\ResourceCreateInterface;
-use Said\Nadota\Http\Requests\NadotaRequest;
+use SchoolAid\Nadota\Contracts\ResourceCreateInterface;
+use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 use Illuminate\Http\JsonResponse;
 
 class ResourceCreateService implements ResourceCreateInterface

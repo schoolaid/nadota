@@ -1,10 +1,10 @@
 <?php
 
-namespace Said\Nadota\Http\Requests;
+namespace SchoolAid\Nadota\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Said\Nadota\Http\Traits\AuthorizesResources;
-use Said\Nadota\Http\Traits\PrepareResource;
+use SchoolAid\Nadota\Http\Traits\AuthorizesResources;
+use SchoolAid\Nadota\Http\Traits\PrepareResource;
 
 class NadotaRequest extends FormRequest
 {

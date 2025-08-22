@@ -1,8 +1,8 @@
 <?php
 
-use Said\Nadota\Http\Fields\Relations\BelongsToMany;
-use Said\Nadota\Tests\Models\TestModel;
-use Said\Nadota\Tests\Models\Tag;
+use SchoolAid\Nadota\Http\Fields\Relations\BelongsToMany;
+use SchoolAid\Nadota\Tests\Models\TestModel;
+use SchoolAid\Nadota\Tests\Models\Tag;
 
 it('can be instantiated', function () {
     $field = BelongsToMany::make('Tags', 'simpleTags');

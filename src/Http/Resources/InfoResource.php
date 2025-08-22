@@ -1,6 +1,6 @@
 <?php
 
-namespace Said\Nadota\Http\Resources;
+namespace SchoolAid\Nadota\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
 

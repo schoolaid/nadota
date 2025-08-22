@@ -1,9 +1,9 @@
 <?php
 
-namespace Said\Nadota\Http\Services;
+namespace SchoolAid\Nadota\Http\Services;
 
-use Said\Nadota\Contracts\ResourceShowInterface;
-use Said\Nadota\Http\Requests\NadotaRequest;
+use SchoolAid\Nadota\Contracts\ResourceShowInterface;
+use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 use Illuminate\Http\JsonResponse;
 
 class ResourceShowService implements ResourceShowInterface

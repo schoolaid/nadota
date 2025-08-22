@@ -1,6 +1,6 @@
 <?php
 
-use Said\Nadota\Http\Fields\Toggle;
+use SchoolAid\Nadota\Http\Fields\Toggle;
 
 it('can be instantiated', function () {
     $field = Toggle::make('Is Active', 'is_active');

@@ -1,6 +1,6 @@
 <?php
 
-namespace Said\Nadota\Http\Fields;
+namespace SchoolAid\Nadota\Http\Fields;
 
 class Checkbox extends Field
 {
@@ -27,7 +27,7 @@ class Checkbox extends Field
         return $this;
     }
 
-    protected function getProps(\Illuminate\Http\Request $request, ?\Illuminate\Database\Eloquent\Model $model, ?\Said\Nadota\Contracts\ResourceInterface $resource): array
+    protected function getProps(\Illuminate\Http\Request $request, ?\Illuminate\Database\Eloquent\Model $model, ?\SchoolAid\Nadota\Contracts\ResourceInterface $resource): array
     {
         return array_merge(parent::getProps($request, $model, $resource), [
             'trueValue' => $this->trueValue,
@@ -35,7 +35,7 @@ class Checkbox extends Field
         ]);
     }
 
-    public function resolve(\Illuminate\Http\Request $request, \Illuminate\Database\Eloquent\Model $model, ?\Said\Nadota\Contracts\ResourceInterface $resource): mixed
+    public function resolve(\Illuminate\Http\Request $request, \Illuminate\Database\Eloquent\Model $model, ?\SchoolAid\Nadota\Contracts\ResourceInterface $resource): mixed
     {
         $value = $model->{$this->getAttribute()};
         

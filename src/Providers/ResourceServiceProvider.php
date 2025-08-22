@@ -1,12 +1,12 @@
 <?php
 
-namespace Said\Nadota\Providers;
+namespace SchoolAid\Nadota\Providers;
 
 use Exception;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
-use Said\Nadota\ResourceManager;
+use SchoolAid\Nadota\ResourceManager;
 
 class ResourceServiceProvider extends ServiceProvider
 {

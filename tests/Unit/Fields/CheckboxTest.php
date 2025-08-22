@@ -1,6 +1,6 @@
 <?php
 
-use Said\Nadota\Http\Fields\Checkbox;
+use SchoolAid\Nadota\Http\Fields\Checkbox;
 
 it('can be instantiated', function () {
     $field = Checkbox::make('Accept Terms', 'accept_terms');

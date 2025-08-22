@@ -1,6 +1,6 @@
 <?php
 
-use Said\Nadota\Http\Fields\DateTime;
+use SchoolAid\Nadota\Http\Fields\DateTime;
 use Carbon\Carbon;
 
 it('can be instantiated', function () {

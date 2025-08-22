@@ -1,9 +1,9 @@
 <?php
 
-namespace Said\Nadota\Http\Services\Handlers;
+namespace SchoolAid\Nadota\Http\Services\Handlers;
 
 use Illuminate\Database\Eloquent\Model;
-use Said\Nadota\Http\Fields\Field;
+use SchoolAid\Nadota\Http\Fields\Field;
 
 class RelationHandler
 {

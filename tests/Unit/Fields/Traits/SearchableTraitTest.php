@@ -1,6 +1,6 @@
 <?php
 
-use Said\Nadota\Http\Fields\Input;
+use SchoolAid\Nadota\Http\Fields\Input;
 
 it('field is not searchable by default', function () {
     $field = Input::make('Name', 'name');

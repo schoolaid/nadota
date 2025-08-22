@@ -1,14 +1,14 @@
 <?php
 
-namespace Said\Nadota\Http\Fields\Relations;
+namespace SchoolAid\Nadota\Http\Fields\Relations;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
-use Said\Nadota\Contracts\ResourceInterface;
-use Said\Nadota\Http\Fields\Field;
-use Said\Nadota\Http\Requests\NadotaRequest;
-use Said\Nadota\ResourceManager;
+use SchoolAid\Nadota\Contracts\ResourceInterface;
+use SchoolAid\Nadota\Http\Fields\Field;
+use SchoolAid\Nadota\Http\Requests\NadotaRequest;
+use SchoolAid\Nadota\ResourceManager;
 
 abstract class RelationField extends Field
 {
@@ -38,7 +38,7 @@ abstract class RelationField extends Field
         return $this;
     }
 
-    public function resolve(\Illuminate\Http\Request $request, \Illuminate\Database\Eloquent\Model $model, ?\Said\Nadota\Contracts\ResourceInterface $resource): mixed
+    public function resolve(\Illuminate\Http\Request $request, \Illuminate\Database\Eloquent\Model $model, ?\SchoolAid\Nadota\Contracts\ResourceInterface $resource): mixed
     {
         $related = $model->{$this->getRelation()};
 

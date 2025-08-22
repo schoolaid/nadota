@@ -1,12 +1,12 @@
 <?php
 
-namespace Said\Nadota\Http\Services\Pipes;
+namespace SchoolAid\Nadota\Http\Services\Pipes;
 
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
-use Said\Nadota\Http\DataTransferObjects\IndexRequestDTO;
-use Said\Nadota\Http\Fields\Relations\RelationField;
+use SchoolAid\Nadota\Http\DataTransferObjects\IndexRequestDTO;
+use SchoolAid\Nadota\Http\Fields\Relations\RelationField;
 
 class BuildQueryPipe
 {

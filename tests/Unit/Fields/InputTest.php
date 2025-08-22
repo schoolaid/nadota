@@ -1,8 +1,8 @@
 <?php
 
-use Said\Nadota\Http\Fields\Input;
-use Said\Nadota\Http\Fields\Enums\FieldType;
-use Said\Nadota\Tests\Models\TestModel;
+use SchoolAid\Nadota\Http\Fields\Input;
+use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
+use SchoolAid\Nadota\Tests\Models\TestModel;
 
 it('can be instantiated', function () {
     $field = Input::make('Test Field', 'test_attribute');

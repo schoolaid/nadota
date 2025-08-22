@@ -1,8 +1,8 @@
 <?php
 
-use Said\Nadota\Http\Fields\Relations\HasOne;
-use Said\Nadota\Tests\Models\TestModel;
-use Said\Nadota\Tests\Models\Profile;
+use SchoolAid\Nadota\Http\Fields\Relations\HasOne;
+use SchoolAid\Nadota\Tests\Models\TestModel;
+use SchoolAid\Nadota\Tests\Models\Profile;
 
 it('can be instantiated', function () {
     $field = HasOne::make('Profile', 'profile');

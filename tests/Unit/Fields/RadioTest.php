@@ -1,7 +1,7 @@
 <?php
 
-use Said\Nadota\Http\Fields\Radio;
-use Said\Nadota\Tests\Models\TestModel;
+use SchoolAid\Nadota\Http\Fields\Radio;
+use SchoolAid\Nadota\Tests\Models\TestModel;
 
 it('can be instantiated', function () {
     $field = Radio::make('Status', 'status');

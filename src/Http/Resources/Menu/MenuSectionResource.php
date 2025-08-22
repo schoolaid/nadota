@@ -1,9 +1,9 @@
 <?php
 
-namespace Said\Nadota\Http\Resources\Menu;
+namespace SchoolAid\Nadota\Http\Resources\Menu;
 
 use Illuminate\Http\Resources\Json\JsonResource;
-use Said\Nadota\Menu\MenuSection;
+use SchoolAid\Nadota\Menu\MenuSection;
 
 class MenuSectionResource extends JsonResource
 {

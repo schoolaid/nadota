@@ -1,11 +1,11 @@
 <?php
 
-namespace Said\Nadota\Http\DataTransferObjects;
+namespace SchoolAid\Nadota\Http\DataTransferObjects;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Said\Nadota\Http\Requests\NadotaRequest;
-use Said\Nadota\Resource;
+use SchoolAid\Nadota\Http\Requests\NadotaRequest;
+use SchoolAid\Nadota\Resource;
 use Illuminate\Support\Collection;
 
 class IndexRequestDTO

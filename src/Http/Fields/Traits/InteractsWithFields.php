@@ -1,9 +1,9 @@
 <?php
 
-namespace Said\Nadota\Http\Fields\Traits;
+namespace SchoolAid\Nadota\Http\Fields\Traits;
 
 use Illuminate\Support\Collection;
-use Said\Nadota\Http\Requests\NadotaRequest;
+use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 
 trait InteractsWithFields
 {

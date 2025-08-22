@@ -1,8 +1,8 @@
 <?php
 
-namespace Said\Nadota\Http\Filters;
+namespace SchoolAid\Nadota\Http\Filters;
 
-use Said\Nadota\Http\Requests\NadotaRequest;
+use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 
 class DefaultFilter  extends Filter
 {

@@ -1,7 +1,7 @@
 <?php
 
-use Said\Nadota\Http\Fields\Image;
-use Said\Nadota\Tests\Models\TestModel;
+use SchoolAid\Nadota\Http\Fields\Image;
+use SchoolAid\Nadota\Tests\Models\TestModel;
 
 it('can be instantiated', function () {
     $field = Image::make('Avatar', 'avatar');

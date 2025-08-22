@@ -1,16 +1,16 @@
 <?php
 
-namespace Said\Nadota\Http\Controllers;
+namespace SchoolAid\Nadota\Http\Controllers;
 
 use Illuminate\Routing\Controller;
-use Said\Nadota\Contracts\ResourceIndexInterface;
-use Said\Nadota\Contracts\ResourceCreateInterface;
-use Said\Nadota\Contracts\ResourceStoreInterface;
-use Said\Nadota\Contracts\ResourceShowInterface;
-use Said\Nadota\Contracts\ResourceEditInterface;
-use Said\Nadota\Contracts\ResourceUpdateInterface;
-use Said\Nadota\Contracts\ResourceDestroyInterface;
-use Said\Nadota\Http\Requests\NadotaRequest;
+use SchoolAid\Nadota\Contracts\ResourceIndexInterface;
+use SchoolAid\Nadota\Contracts\ResourceCreateInterface;
+use SchoolAid\Nadota\Contracts\ResourceStoreInterface;
+use SchoolAid\Nadota\Contracts\ResourceShowInterface;
+use SchoolAid\Nadota\Contracts\ResourceEditInterface;
+use SchoolAid\Nadota\Contracts\ResourceUpdateInterface;
+use SchoolAid\Nadota\Contracts\ResourceDestroyInterface;
+use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 
 class ResourceController extends Controller
 {

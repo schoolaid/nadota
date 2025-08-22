@@ -1,12 +1,12 @@
 <?php
 
-namespace Said\Nadota\Http\Services;
+namespace SchoolAid\Nadota\Http\Services;
 
 use Illuminate\Pipeline\Pipeline;
-use Said\Nadota\Contracts\ResourceIndexInterface;
-use Said\Nadota\Http\DataTransferObjects\IndexRequestDTO;
-use Said\Nadota\Http\Requests\NadotaRequest;
-use Said\Nadota\Http\Resources\Index\IndexResource;
+use SchoolAid\Nadota\Contracts\ResourceIndexInterface;
+use SchoolAid\Nadota\Http\DataTransferObjects\IndexRequestDTO;
+use SchoolAid\Nadota\Http\Requests\NadotaRequest;
+use SchoolAid\Nadota\Http\Resources\Index\IndexResource;
 
 class ResourceIndexService implements ResourceIndexInterface
 {

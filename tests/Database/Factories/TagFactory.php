@@ -1,9 +1,9 @@
 <?php
 
-namespace Said\Nadota\Tests\Database\Factories;
+namespace SchoolAid\Nadota\Tests\Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Said\Nadota\Tests\Models\Tag;
+use SchoolAid\Nadota\Tests\Models\Tag;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\Said\Nadota\Tests\Models\Tag>

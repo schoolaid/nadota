@@ -1,20 +1,20 @@
 <?php
 
-namespace Said\Nadota;
+namespace SchoolAid\Nadota;
 
 use AllowDynamicProperties;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
-use Said\Nadota\Contracts\ResourceAuthorizationInterface;
-use Said\Nadota\Http\Fields\Traits\InteractsWithFields;
-use Said\Nadota\Http\Fields\Traits\ResourceFrontUtils;
-use Said\Nadota\Http\Helpers\Helpers;
-use Said\Nadota\Http\Requests\NadotaRequest;
-use Said\Nadota\Http\Traits\ResourceMenuOptions;
-use Said\Nadota\Http\Traits\ResourcePagination;
-use Said\Nadota\Http\Traits\ResourceRelatable;
-use Said\Nadota\Http\Traits\VisibleWhen;
+use SchoolAid\Nadota\Contracts\ResourceAuthorizationInterface;
+use SchoolAid\Nadota\Http\Fields\Traits\InteractsWithFields;
+use SchoolAid\Nadota\Http\Fields\Traits\ResourceFrontUtils;
+use SchoolAid\Nadota\Http\Helpers\Helpers;
+use SchoolAid\Nadota\Http\Requests\NadotaRequest;
+use SchoolAid\Nadota\Http\Traits\ResourceMenuOptions;
+use SchoolAid\Nadota\Http\Traits\ResourcePagination;
+use SchoolAid\Nadota\Http\Traits\ResourceRelatable;
+use SchoolAid\Nadota\Http\Traits\VisibleWhen;
 
 #[AllowDynamicProperties] abstract class Resource implements Contracts\ResourceInterface
 {

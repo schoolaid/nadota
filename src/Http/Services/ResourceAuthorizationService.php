@@ -1,9 +1,9 @@
 <?php
 
-namespace Said\Nadota\Http\Services;
-use Said\Nadota\Contracts\ResourceAuthorizationInterface;
+namespace SchoolAid\Nadota\Http\Services;
+use SchoolAid\Nadota\Contracts\ResourceAuthorizationInterface;
 use Illuminate\Support\Facades\Gate;
-use Said\Nadota\Http\Requests\NadotaRequest;
+use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 
 class ResourceAuthorizationService implements ResourceAuthorizationInterface
 {

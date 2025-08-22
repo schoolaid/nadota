@@ -1,9 +1,9 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Said\Nadota\Http\Controllers\ResourceController;
-use Said\Nadota\Http\Controllers\ResourceIndexController;
-use Said\Nadota\Http\Controllers\MenuController;
+use SchoolAid\Nadota\Http\Controllers\ResourceController;
+use SchoolAid\Nadota\Http\Controllers\ResourceIndexController;
+use SchoolAid\Nadota\Http\Controllers\MenuController;
 
 Route::get('/menu', [MenuController::class, 'menu'])->name('menu');
 

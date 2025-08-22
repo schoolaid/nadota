@@ -1,9 +1,9 @@
 <?php
 
-namespace Said\Nadota\Http\Services\Handlers;
+namespace SchoolAid\Nadota\Http\Services\Handlers;
 
 use Illuminate\Database\Eloquent\Model;
-use Said\Nadota\Resource;
+use SchoolAid\Nadota\Resource;
 use Illuminate\Support\Collection;
 
 class DefaultValueHandler

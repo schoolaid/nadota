@@ -1,9 +1,9 @@
 <?php
 
-namespace Said\Nadota\Http\Fields\Traits;
+namespace SchoolAid\Nadota\Http\Fields\Traits;
 
-use Said\Nadota\Http\Filters\DefaultFilter;
-use Said\Nadota\Http\Filters\RangeFilter;
+use SchoolAid\Nadota\Http\Filters\DefaultFilter;
+use SchoolAid\Nadota\Http\Filters\RangeFilter;
 
 trait FilterableTrait
 {

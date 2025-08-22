@@ -1,9 +1,9 @@
 <?php
 
-namespace Said\Nadota\Tests\Mocks;
+namespace SchoolAid\Nadota\Tests\Mocks;
 
-use Said\Nadota\Contracts\ResourceAuthorizationInterface;
-use Said\Nadota\Http\Requests\NadotaRequest;
+use SchoolAid\Nadota\Contracts\ResourceAuthorizationInterface;
+use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 
 class MockResourceAuthorizationService implements ResourceAuthorizationInterface
 {

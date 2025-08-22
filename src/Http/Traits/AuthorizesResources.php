@@ -1,8 +1,8 @@
 <?php
 
-namespace Said\Nadota\Http\Traits;
+namespace SchoolAid\Nadota\Http\Traits;
 
-use Said\Nadota\ResourceManager;
+use SchoolAid\Nadota\ResourceManager;
 
 trait AuthorizesResources
 {
