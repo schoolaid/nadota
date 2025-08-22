@@ -4,6 +4,8 @@
 [![Latest Stable Version](http://poig.packagist.org/v/said/nadota.svg)](https://packagist.org/packages/said/nadota)
 [![License](http://poig.packagist.org/l/said/nadota.svg)](https://packagist.org/packages/said/nadota)
 
+Para eso, mejor Nadota.
+
 Nadota is a Laravel admin panel package that provides a resource-based CRUD interface similar to Laravel Nova. It allows developers to create administrative interfaces for Eloquent models through resource classes that define how data is displayed, filtered, and manipulated.
 
 ## Features
