@@ -1,0 +1,94 @@
+<?php
+
+namespace Said\Nadota;
+
+use AllowDynamicProperties;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
+use Said\Nadota\Contracts\ResourceAuthorizationInterface;
+use Said\Nadota\Http\Fields\Traits\InteractsWithFields;
+use Said\Nadota\Http\Fields\Traits\ResourceFrontUtils;
+use Said\Nadota\Http\Helpers\Helpers;
+use Said\Nadota\Http\Requests\NadotaRequest;
+use Said\Nadota\Http\Traits\ResourceMenuOptions;
+use Said\Nadota\Http\Traits\ResourcePagination;
+use Said\Nadota\Http\Traits\ResourceRelatable;
+use Said\Nadota\Http\Traits\VisibleWhen;
+
+#[AllowDynamicProperties] abstract class Resource implements Contracts\ResourceInterface
+{
+    use ResourcePagination,
+        ResourceMenuOptions,
+        VisibleWhen,
+        InteractsWithFields,
+        ResourceFrontUtils,
+        ResourceRelatable;
+    public string $model;
+    protected bool $usesSoftDeletes = false;
+    protected ResourceAuthorizationInterface $resourceAuthorization;
+    public function __construct(
+        ResourceAuthorizationInterface $resourceAuthorization = null
+    )
+    {
+        $this->resourceAuthorization = $resourceAuthorization ?? app(ResourceAuthorizationInterface::class);
+    }
+    public function authorizedTo(NadotaRequest $request, string $action, $model = null): bool
+    {
+        return $this->resourceAuthorization
+            ->setModel($model ?? $this->model)
+            ->authorizedTo($request, $action);
+    }
+    public function title(): string
+    {
+        return Str::plural(Str::title(Str::snake(class_basename(get_called_class()), ' ')));
+    }
+    public function getKey(): string
+    {
+        return Helpers::toUri(get_called_class());
+    }
+    abstract public function fields(NadotaRequest $request);
+    public function getQuery(NadotaRequest $request, Model $modelInstance = null): Builder
+    {
+        if ($modelInstance) {
+            return $modelInstance->newQuery();
+        }
+        return (new $this->model)->newQuery();
+    }
+    public function getPermissionsForResource(NadotaRequest $request, Model $resource): array
+    {
+        $hasSoftDelete = array_key_exists('deleted_at', $resource->getAttributes());
+        $trashed = $resource->deleted_at !== null;
+
+        $forceDelete = $this->authorizedTo($request, 'forceDelete', $resource);
+        $restore = $this->authorizedTo($request, 'restore', $resource);
+
+        return [
+            'view' => $this->authorizedTo($request, 'view', $resource),
+            'update' => $this->authorizedTo($request, 'update', $resource),
+            'delete' => $this->authorizedTo($request, 'delete', $resource),
+            'forceDelete' => $forceDelete && $hasSoftDelete,
+            'restore' => $restore && $hasSoftDelete && $trashed,
+        ];
+    }
+    public function usesSoftDeletes(): bool
+    {
+        return $this->usesSoftDeletes;
+    }
+    public function actions(NadotaRequest $request): array
+    {
+        return [];
+    }
+    public function filters(NadotaRequest $request): array
+    {
+        return [];
+    }
+    public function queryIndex(NadotaRequest $request, $query)
+    {
+        return $query;
+    }
+    public function tools(NadotaRequest $request): array
+    {
+        return [];
+    }
+}
