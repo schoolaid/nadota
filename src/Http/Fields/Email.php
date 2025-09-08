@@ -10,7 +10,7 @@ class Email extends Field
     {
         parent::__construct($name, $attribute);
         $this->type(FieldType::EMAIL);
-        $this->component(config('nadota.fields.email.component', 'field-email'));
+        $this->component(config('nadota.fields.email.component', 'FieldEmail'));
         
         // Add email validation by default
         $this->rules(['email']);

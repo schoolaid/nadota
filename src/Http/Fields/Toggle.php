@@ -14,7 +14,7 @@ class Toggle extends Field
     {
         parent::__construct($name, $attribute);
         $this->type = 'toggle';
-        $this->component = config('nadota.fields.toggle.component', $this->component);
+        $this->component = config('nadota.fields.toggle.component', 'FieldToggle');
     }
 
     public function trueLabel(string $label): static

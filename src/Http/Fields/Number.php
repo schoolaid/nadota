@@ -14,7 +14,7 @@ class Number extends Field
     {
         parent::__construct($name, $attribute);
         $this->type(FieldType::NUMBER);
-        $this->component(config('nadota.fields.number.component', 'field-number'));
+        $this->component(config('nadota.fields.number.component', 'FieldNumber'));
     }
 
     public function min(float $min): static

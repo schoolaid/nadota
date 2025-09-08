@@ -10,7 +10,7 @@ class URL extends Field
     {
         parent::__construct($name, $attribute);
         $this->type(FieldType::URL);
-        $this->component(config('nadota.fields.url.component', 'field-url'));
+        $this->component(config('nadota.fields.url.component', 'FieldUrl'));
         
         // Add URL validation by default
         $this->rules(['url']);

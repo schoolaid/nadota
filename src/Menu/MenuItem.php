@@ -34,7 +34,7 @@ class MenuItem implements MenuItemInterface
     ) {
         $this->label = $label;
         $this->key = $key;
-        $this->icon = $icon;
+        $this->icon = $icon ?? 'LayoutPanelTop';
         $this->apiUrl = $apiUrl;
         $this->frontendUrl = $frontendUrl;
         $this->parent = $parent;

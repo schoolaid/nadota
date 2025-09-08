@@ -40,7 +40,7 @@ abstract class Field implements FieldInterface
             attribute: $attribute,
             placeholder: $name,
             type: FieldType::TEXT,
-            component: 'field'
+            component: 'FieldText'
         );
     }
 
@@ -77,7 +77,7 @@ abstract class Field implements FieldInterface
     {
         $value = $model->{$this->getAttribute()};
         
-        // If model has a value, use it; otherwise use default if available
+        // If the model has a value, use it; otherwise use default if available
         if ($value !== null) {
             return $value;
         }

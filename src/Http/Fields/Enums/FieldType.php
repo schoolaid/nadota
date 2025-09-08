@@ -5,6 +5,7 @@ namespace SchoolAid\Nadota\Http\Fields\Enums;
 enum FieldType: string
 {
     case TEXT = 'text';
+    case CHECKBOX = 'checkbox';
     case BELONGS_TO = 'belongsTo';
     case HAS_MANY = 'hasMany';
     case HAS_ONE = 'hasOne';
@@ -18,6 +19,7 @@ enum FieldType: string
     case RADIO = 'radio';
     case EMAIL = 'email';
     case URL = 'url';
+    case PASSWORD = 'password';
     case BELONGS_TO_MANY = 'belongsToMany';
     case FILE = 'file';
     case IMAGE = 'image';

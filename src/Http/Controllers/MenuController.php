@@ -13,6 +13,6 @@ readonly class MenuController
 
     public function menu(NadotaRequest $request)
     {
-        return $this->menuService->handle($request);
+        return $this->menuService->all($request);
     }
 }

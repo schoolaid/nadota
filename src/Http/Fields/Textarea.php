@@ -13,7 +13,7 @@ class Textarea extends Field
     {
         parent::__construct($name, $attribute);
         $this->type(FieldType::TEXTAREA);
-        $this->component(config('nadota.fields.textarea.component', 'field-textarea'));
+        $this->component(config('nadota.fields.textarea.component', 'FieldTextarea'));
     }
 
     public function rows(int $rows): static

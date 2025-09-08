@@ -14,7 +14,7 @@ class Select extends Field
     {
         parent::__construct($name, $attribute);
         $this->type = 'select';
-        $this->component = config('nadota.fields.select.component', $this->component);
+        $this->component = config('nadota.fields.select.component', 'FieldSelect');
     }
 
     public function options(array $options): static

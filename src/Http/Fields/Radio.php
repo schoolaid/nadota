@@ -13,7 +13,7 @@ class Radio extends Field
     {
         parent::__construct($name, $attribute);
         $this->type(FieldType::RADIO);
-        $this->component(config('nadota.fields.radio.component', 'field-radio'));
+        $this->component(config('nadota.fields.radio.component', 'FieldRadio'));
     }
 
     public function options(array $options): static

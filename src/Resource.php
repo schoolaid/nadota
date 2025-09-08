@@ -11,6 +11,7 @@ use SchoolAid\Nadota\Http\Fields\Traits\InteractsWithFields;
 use SchoolAid\Nadota\Http\Fields\Traits\ResourceFrontUtils;
 use SchoolAid\Nadota\Http\Helpers\Helpers;
 use SchoolAid\Nadota\Http\Requests\NadotaRequest;
+use SchoolAid\Nadota\Http\Traits\Makeable;
 use SchoolAid\Nadota\Http\Traits\ResourceMenuOptions;
 use SchoolAid\Nadota\Http\Traits\ResourcePagination;
 use SchoolAid\Nadota\Http\Traits\ResourceRelatable;
@@ -24,6 +25,7 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
         InteractsWithFields,
         ResourceFrontUtils,
         ResourceRelatable;
+
     public string $model;
     protected bool $usesSoftDeletes = false;
     protected ResourceAuthorizationInterface $resourceAuthorization;
@@ -43,7 +45,7 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
     {
         return Str::plural(Str::title(Str::snake(class_basename(get_called_class()), ' ')));
     }
-    public function getKey(): string
+    public static function getKey(): string
     {
         return Helpers::toUri(get_called_class());
     }

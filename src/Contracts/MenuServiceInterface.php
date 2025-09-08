@@ -6,5 +6,5 @@ use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 
 interface MenuServiceInterface
 {
-    public function handle(NadotaRequest $request);
+    public function all(NadotaRequest $request);
 }

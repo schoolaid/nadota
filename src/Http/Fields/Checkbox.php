@@ -2,17 +2,19 @@
 
 namespace SchoolAid\Nadota\Http\Fields;
 
+use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
+
 class Checkbox extends Field
 {
-    protected string $component = 'field-checkbox';
+    public string $type = 'checkbox';
     protected mixed $trueValue = 1;
     protected mixed $falseValue = 0;
 
     public function __construct(string $name, string $attribute)
     {
         parent::__construct($name, $attribute);
-        $this->type = 'checkbox';
-        $this->component = config('nadota.fields.checkbox.component', $this->component);
+        $this->type(FieldType::CHECKBOX);
+        $this->component(config('nadota.fields.checkbox.component', 'FieldCheckbox'));
     }
 
     public function trueValue(mixed $value): static

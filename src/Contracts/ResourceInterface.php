@@ -12,5 +12,5 @@ interface ResourceInterface
     public function getPermissionsForResource(NadotaRequest $request, Model $resource): array;
     public function authorizedTo(NadotaRequest $request, string $action, $model = null): bool;
     public function title(): string;
-    public function getKey(): string;
+    public static function getKey(): string;
 }

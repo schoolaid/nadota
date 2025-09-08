@@ -34,7 +34,6 @@ abstract class RelationField extends Field
     public function relatedResource(string $resourceClass): static
     {
         $this->relatedResourceClass = $resourceClass;
-        $this->relatedModelClass = ResourceManager::getModelByResource($resourceClass);
         return $this;
     }
 
@@ -74,14 +73,14 @@ abstract class RelationField extends Field
     protected function getApiUrl(string $value): ?string
     {
         return $this->relatedResourceClass
-            ? $this->relatedResourceClass::make()->apiUrl() . '/' . $value
+            ? $this->relatedResourceClass::apiUrl() . '/' . $value
             : null;
     }
 
     protected function getFrontendUrl(string $value): ?string
     {
         return $this->relatedResourceClass
-            ? $this->relatedResourceClass::make()->frontendUrl() . '/' . $value
+            ? $this->relatedResourceClass::frontendUrl() . '/' . $value
             : null;
     }
 

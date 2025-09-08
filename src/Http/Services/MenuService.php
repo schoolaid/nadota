@@ -14,7 +14,7 @@ use SchoolAid\Nadota\Contracts\MenuItemInterface;
 
 class MenuService implements MenuServiceInterface
 {
-    public function handle(NadotaRequest $request)
+    public function all(NadotaRequest $request)
     {
         if (NadotaService::$prepareMenuUsing) {
             return call_user_func(NadotaService::$prepareMenuUsing, $request);

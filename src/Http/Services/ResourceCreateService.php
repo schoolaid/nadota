@@ -18,7 +18,7 @@ class ResourceCreateService implements ResourceCreateInterface
 
         return response()->json([
             'data' => [
-                'key' => $resource->getKey(),
+                'key' => $resource::getKey(),
                 'attributes' => $fields,
                 'title' => $resource->title(),
             ],

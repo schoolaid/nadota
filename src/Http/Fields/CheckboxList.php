@@ -14,7 +14,7 @@ class CheckboxList extends Field
     {
         parent::__construct($name, $attribute);
         $this->type = 'checkbox_list';
-        $this->component = config('nadota.fields.checkbox_list.component', $this->component);
+        $this->component = config('nadota.fields.checkboxList.component', 'FieldCheckboxList');
     }
 
     public function options(array $options): static

@@ -18,7 +18,7 @@ class BelongsTo extends RelationField
     /**
      * Set the attribute to display for the relationship.
      */
-    public function relationAttribute(string $attribute): static
+    public function relationAttribute($attribute): static
     {
         $this->relationAttribute = $attribute;
         return $this;

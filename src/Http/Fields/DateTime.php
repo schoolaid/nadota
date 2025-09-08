@@ -14,7 +14,7 @@ class DateTime extends Field
     {
         parent::__construct($name, $attribute);
         $this->type = 'datetime';
-        $this->component = config('nadota.fields.datetime.component', $this->component);
+        $this->component = config('nadota.fields.datetime.component', 'FieldDateTime');
     }
     public function format(string $format): static
     {
