@@ -25,7 +25,7 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
         ResourceFrontUtils,
         ResourceRelatable;
     public string $model;
-    public ?string $displayIcon = null;
+    protected ?string $displayIcon = null;
     protected bool $usesSoftDeletes = false;
     protected ?ResourceAuthorizationInterface $resourceAuthorization;
     public function __construct(
