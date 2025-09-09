@@ -25,14 +25,20 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
         ResourceFrontUtils,
         ResourceRelatable;
     public string $model;
+    public ?string $displayIcon = null;
     protected bool $usesSoftDeletes = false;
-    protected ResourceAuthorizationInterface $resourceAuthorization;
+    protected ?ResourceAuthorizationInterface $resourceAuthorization;
     public function __construct(
-        ResourceAuthorizationInterface $resourceAuthorization = null
+        ?ResourceAuthorizationInterface $resourceAuthorization = null
     )
     {
         $this->resourceAuthorization = $resourceAuthorization ?? app(ResourceAuthorizationInterface::class);
     }
+    public function displayIcon(): string|null
+    {
+        return $this->displayIcon;
+    }
+
     public function authorizedTo(NadotaRequest $request, string $action, $model = null): bool
     {
         return $this->resourceAuthorization
