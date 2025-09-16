@@ -2,6 +2,8 @@
 
 namespace SchoolAid\Nadota\Http\Fields;
 
+use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
+
 class DateTime extends Field
 {
     protected string $component = 'field-datetime';
@@ -12,9 +14,7 @@ class DateTime extends Field
     protected bool $timeOnly = false;
     public function __construct(string $name, string $attribute)
     {
-        parent::__construct($name, $attribute);
-        $this->type = 'datetime';
-        $this->component = config('nadota.fields.datetime.component', 'FieldDateTime');
+        parent::__construct($name, $attribute, FieldType::DATETIME->value, config('nadota.fields.datetime.component', 'FieldDateTime'));
     }
     public function format(string $format): static
     {

@@ -14,7 +14,7 @@ class InfoResource extends JsonResource
             'description' => $this->resource->description(),
             'perPage' => $this->resource->getPerPage(),
             'allowedPerPage' => $this->resource->getAllowedPerPage(),
-            'allowedSoftDeletes' => method_exists($this->resource, 'getSoftDeletes'),
+            'allowedSoftDeletes' => $this->resource->getUseSoftDeletes(),
             'canCreate' => $this->resource->canCreate,
         ];
     }

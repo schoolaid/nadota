@@ -14,7 +14,7 @@ use SchoolAid\Nadota\Contracts\MenuItemInterface;
 
 class MenuService implements MenuServiceInterface
 {
-    public function all(NadotaRequest $request)
+    public function build(NadotaRequest $request)
     {
         if (NadotaService::$prepareMenuUsing) {
             return call_user_func(NadotaService::$prepareMenuUsing, $request);
@@ -23,18 +23,20 @@ class MenuService implements MenuServiceInterface
         $resources = ResourceManager::getResources();
         $resourceAuthorization = app(ResourceAuthorizationInterface::class);
 
+        // Filter resources by authorization
         $resources = $resources->filter(function ($resource) use ($request, $resourceAuthorization) {
             return $resourceAuthorization
                 ->setModel($resource['model'])
                 ->authorizedTo($request, 'viewAny');
         });
 
-        $menuItems = [];
-
+        // Build menu structure
+        $menuStructure = [];
+        
         foreach ($resources as $resource) {
             $resourceInstance = new $resource['class'];
 
-            if(!$resourceInstance->displayInMenu($request)) {
+            if (!$resourceInstance->displayInMenu($request)) {
                 continue;
             }
 
@@ -44,92 +46,121 @@ class MenuService implements MenuServiceInterface
                 $resourceInstance->displayIcon(),
                 $resourceInstance->apiUrl(),
                 $resourceInstance->frontendUrl(),
-                $resourceInstance->displayInSubMenu(),
+                null, // Remove parent from the constructor
                 [],
                 $resourceInstance->orderInMenu(),
                 true
             );
 
-            $menuItems[$menuItem->getLabel()] = $menuItem;
-        }
-
-        foreach ($menuItems as $label => $menuItem) {
-            $parentLabel = $menuItem->getParent();
-            if ($parentLabel && isset($menuItems[$parentLabel])) {
-                $parentItem = $menuItems[$parentLabel];
-                $parentItem->addChild($menuItem);
+            $parentPath = $resourceInstance->displayInSubMenu();
+            if ($parentPath === null) {
+                // Top-level menu item
+                $menuStructure[$resourceInstance->title()] = $menuItem;
+            } else {
+                // Handle dot notation for nested menus
+                $this->addToMenuPath($menuStructure, $parentPath, $menuItem);
             }
         }
 
-        foreach ($menuItems as $label => &$menuItem) {
-            $this->convertToMenuSectionIfHasChildren($menuItem);
-        }
+        // Convert structure to final menu
+        $finalMenu = $this->buildFinalMenu($menuStructure);
 
-        unset($menuItem);
-
-        $finalMenu = [];
-        foreach ($menuItems as $label => $menuItem) {
-            $parentLabel = $menuItem->getParent();
-            if (!$parentLabel || !isset($menuItems[$parentLabel])) {
-                $this->filterInvisibleChildren($menuItem);
-                $finalMenu[] = $menuItem;
-            }
-        }
+        // Add additional menu items if configured
         if (NadotaService::$addMenuItems) {
             $additionalMenuItems = call_user_func(NadotaService::$addMenuItems, $request);
+
             foreach ($additionalMenuItems as $additionalMenuItem) {
-                $finalMenu[] = $additionalMenuItem;
+                if ($additionalMenuItem->isVisible($request)) {
+                    $finalMenu[] = $additionalMenuItem;
+                }
             }
         }
 
-        usort($finalMenu, function ($a, $b) {
-            return $a->getOrder() <=> $b->getOrder();
-        });
-
-        foreach ($finalMenu as $menuItem) {
-            $children = $menuItem->getChildren();
-            usort($children, function ($a, $b) {
-                return $a->getOrder() <=> $b->getOrder();
-            });
-            $menuItem->setChildren($children);
-        }
-
+        // Sort menu items
+        $this->sortMenuRecursively($finalMenu);
 
         return new MenuResource($finalMenu);
     }
 
-    private function convertToMenuSectionIfHasChildren(MenuItemInterface &$menuItem): void
+    /**
+     * Add a menu item to the structure using dot notation path
+     */
+    private function addToMenuPath(array &$menuStructure, string $path, MenuItem $menuItem): void
     {
-        $children = $menuItem->getChildren();
-        if (count($children) > 0) {
-            $menuSection = new MenuSection(
-                $menuItem->getLabel(),
-                $menuItem->getIcon(),
-                [],
-                $menuItem->getOrder(),
-                false
-            );
+        $segments = array_filter(explode('.', $path)); // Remove empty segments
+        
+        if (empty($segments)) {
+            return;
+        }
 
-            $newChildren = [];
-            foreach ($children as &$child) {
-                $this->convertToMenuSectionIfHasChildren($child);
-                $newChildren[] = $child;
+        // Get or create the section path
+        $current = &$menuStructure;
+        
+        foreach ($segments as $segment) {
+            // Create a section if it doesn't exist
+            if (!isset($current[$segment])) {
+                $current[$segment] = new MenuSection(
+                    $segment,
+                    'Boxes'
+                );
+            } elseif ($current[$segment] instanceof MenuItem) {
+                // Convert MenuItem to MenuSection if it needs to hold children
+                $existingItem = $current[$segment];
+                $current[$segment] = new MenuSection(
+                    $existingItem->getLabel(),
+                    $existingItem->getIcon(),
+                    [$existingItem], // Keep existing item as a first child
+                    $existingItem->getOrder(),
+                    false
+                );
             }
-            $menuSection->setChildren($newChildren);
-            $menuItem = $menuSection;
+        }
+        // Now add the menu item to the last section
+        $targetSection = $menuStructure;
+        foreach ($segments as $segment) {
+            $targetSection = $targetSection[$segment];
+        }
+        
+        if ($targetSection instanceof MenuSection) {
+            $children = $targetSection->getChildren();
+            $children[] = $menuItem;
+            $targetSection->setChildren($children);
         }
     }
-
-    private function filterInvisibleChildren(MenuItemInterface $menuItem): void
+    
+    /**
+     * Build the final menu array from the structure
+     */
+    private function buildFinalMenu(array $menuStructure): array
     {
-        $children = $menuItem->getChildren();
-        $visibleChildren = [];
-
-        foreach ($children as $child) {
-            $this->filterInvisibleChildren($child);
-            $visibleChildren[] = $child;
+        $finalMenu = [];
+        
+        foreach ($menuStructure as $key => $item) {
+            if ($item instanceof MenuItemInterface) {
+                $finalMenu[] = $item;
+            }
         }
-
-        $menuItem->setChildren($visibleChildren);
+        
+        return $finalMenu;
+    }
+    
+    /**
+     * Sort menu items recursively
+     */
+    private function sortMenuRecursively(array &$menuItems): void
+    {
+        usort($menuItems, function ($a, $b) {
+            return $a->getOrder() <=> $b->getOrder();
+        });
+        
+        foreach ($menuItems as $menuItem) {
+            if ($menuItem instanceof MenuItemInterface) {
+                $children = $menuItem->getChildren();
+                if (!empty($children)) {
+                    $this->sortMenuRecursively($children);
+                    $menuItem->setChildren($children);
+                }
+            }
+        }
     }
 }

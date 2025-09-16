@@ -3,25 +3,58 @@
 namespace SchoolAid\Nadota\Http\Services;
 
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use SchoolAid\Nadota\Contracts\ResourceStoreInterface;
+use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
+use SchoolAid\Nadota\Http\Fields\Relations\MorphTo;
 use SchoolAid\Nadota\Http\Requests\NadotaRequest;
+use SchoolAid\Nadota\Http\Traits\TracksActionEvents;
 
 class ResourceStoreService implements ResourceStoreInterface
 {
+    use TracksActionEvents;
     public function handle(NadotaRequest $request): JsonResponse
     {
         $request->authorized('create');
         $resource = $request->getResource();
-        $model = new $resource->model();
+        $model = new $resource->model;
+
         $fields = collect($resource->fields($request))
             ->filter(function ($field) {
                 return $field->isShowOnCreation();
             });
-        $rules = $fields->mapWithKeys(function ($field) {
-            return [$field->getAttribute() => $field->getRules()];
-        })->toArray();
+
+        // Build validation rules including MorphTo fields
+        $rules = [];
+        foreach ($fields as $field) {
+            if ($field instanceof MorphTo) {
+                // MorphTo needs validation for both type and id attributes
+                $typeAttribute = $field->getMorphTypeAttribute();
+                $idAttribute = $field->getMorphIdAttribute();
+
+                // Add validation rules for morph fields if they exist
+                $fieldRules = $field->getRules();
+                if (!empty($fieldRules)) {
+                    // If rules are provided as array, split them
+                    if (isset($fieldRules[$typeAttribute])) {
+                        $rules[$typeAttribute] = $fieldRules[$typeAttribute];
+                    }
+                    if (isset($fieldRules[$idAttribute])) {
+                        $rules[$idAttribute] = $fieldRules[$idAttribute];
+                    }
+                    // If rules are provided as single string, apply to id field
+                    if (!isset($fieldRules[$typeAttribute]) && !isset($fieldRules[$idAttribute])) {
+                        $rules[$idAttribute] = $fieldRules;
+                    }
+                }
+            } else {
+                $rules[$field->getAttribute()] = $field->getRules();
+            }
+        }
+
         $validator = Validator::make($request->all(), $rules);
+
         if ($validator->fails()) {
             return response()->json([
                 'message' => 'Validation failed',
@@ -29,31 +62,48 @@ class ResourceStoreService implements ResourceStoreInterface
             ], 422);
         }
         $validator->validated();
-        $onlyAttributes = $fields->map(function ($field) {
-            return $field->getAttribute();
-        })->toArray();
+
+        // Collect all attributes including morph attributes
+        $onlyAttributes = [];
+        foreach ($fields as $field) {
+            if ($field instanceof MorphTo) {
+                $onlyAttributes[] = $field->getMorphTypeAttribute();
+                $onlyAttributes[] = $field->getMorphIdAttribute();
+            } else {
+                $onlyAttributes[] = $field->getAttribute();
+            }
+        }
+
         $validatedData = $validator->safe()->only($onlyAttributes);
-        $fields->each(function ($field) use (&$validatedData, $request, $model, $resource) {
-            $attribute = $field->getAttribute();
 
-            if (!array_key_exists($attribute, $validatedData) && $field->hasDefault()) {
-                $validatedData[$attribute] = $field->resolveDefault($request, $model, $resource);
-            }
+        try {
+            DB::beginTransaction();
 
-            $value = $validatedData[$attribute] ?? null;
+            // Process each field
+            $fields->each(function ($field) use (&$validatedData, $request, $model, $resource) {
+                if ($field instanceof MorphTo) {
+                    // Use the fill method for MorphTo fields
+                    $field->fill($request, $model);
+                } else {
+                    $attribute = $field->getAttribute();
+                    $model->{$attribute} = $field->resolveForStore($request, $model, $resource, $validatedData[$attribute] ?? null);
+                }
+            });
+            $model->save();
 
+            // Track the create action
+            $this->trackCreate($model, $request, $validatedData);
 
-            if($field->getType() === 'belongsTo') {
-                $foreignKey = $model->{$attribute}()->getForeignKeyName();
-                $model->{$foreignKey} = $value;
-            }
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
 
-            if($field->getType() !== 'belongsTo') {
-                $model->{$attribute} = $value;
-            }
+            return response()->json([
+                'message' => 'Failed to create resource',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
 
-        });
-        $model->save();
         return response()->json([
             'message' => 'Resource created successfully',
             'data' => $model,

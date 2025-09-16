@@ -8,10 +8,7 @@ class Hidden extends Field
 {
     public function __construct(string $name, string $attribute)
     {
-        parent::__construct($name, $attribute);
-
-        $this->type(FieldType::HIDDEN);
-        $this->component(config('nadota.fields.hidden.component', 'FieldHidden'));
+        parent::__construct($name, $attribute, FieldType::HIDDEN->value, config('nadota.fields.hidden.component', 'FieldHidden'));
         
         // Hidden fields are typically not shown on index or detail views
         $this->hideFromIndex()->hideFromDetail();

@@ -17,10 +17,16 @@ enum FieldType: string
     case TEXTAREA = 'textarea';
     case HIDDEN = 'hidden';
     case RADIO = 'radio';
+    case CHECKBOX_LIST = 'checkbox_list';
     case EMAIL = 'email';
     case URL = 'url';
     case PASSWORD = 'password';
     case BELONGS_TO_MANY = 'belongsToMany';
     case FILE = 'file';
     case IMAGE = 'image';
+    case MORPH_TO = 'morphTo';
+    case MORPH_MANY = 'morphMany';
+    case MORPH_ONE = 'morphOne';
+    case JSON = 'json';
+    case CODE = 'code';
 }

@@ -11,9 +11,7 @@ class Textarea extends Field
 
     public function __construct(string $name, string $attribute)
     {
-        parent::__construct($name, $attribute);
-        $this->type(FieldType::TEXTAREA);
-        $this->component(config('nadota.fields.textarea.component', 'FieldTextarea'));
+        parent::__construct($name, $attribute, FieldType::TEXTAREA->value, config('nadota.fields.textarea.component', 'FieldTextarea'));
     }
 
     public function rows(int $rows): static

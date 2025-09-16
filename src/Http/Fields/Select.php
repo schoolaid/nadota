@@ -2,6 +2,8 @@
 
 namespace SchoolAid\Nadota\Http\Fields;
 
+use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
+
 class Select extends Field
 {
     protected string $component = 'field-select';
@@ -12,9 +14,7 @@ class Select extends Field
 
     public function __construct(string $name, string $attribute)
     {
-        parent::__construct($name, $attribute);
-        $this->type = 'select';
-        $this->component = config('nadota.fields.select.component', 'FieldSelect');
+        parent::__construct($name, $attribute, FieldType::SELECT->value, config('nadota.fields.select.component', 'FieldSelect'));
     }
 
     public function options(array $options): static

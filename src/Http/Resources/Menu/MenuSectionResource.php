@@ -12,7 +12,7 @@ class MenuSectionResource extends JsonResource
      */
     public $resource;
 
-    public function toArray($request)
+    public function toArray($request): array
     {
         return [
             'isSection' => true,

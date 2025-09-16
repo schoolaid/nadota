@@ -17,9 +17,7 @@ class Image extends File
 
     public function __construct(string $name, string $attribute)
     {
-        parent::__construct($name, $attribute);
-        $this->type(FieldType::IMAGE);
-        $this->component(config('nadota.fields.image.component', 'FieldImage'));
+        parent::__construct($name, $attribute, FieldType::IMAGE->value, config('nadota.fields.image.component', 'FieldImage'));
         
         // Set default accepted types to common image formats
         $this->acceptedTypes = ['jpg', 'jpeg', 'png', 'gif', 'webp'];

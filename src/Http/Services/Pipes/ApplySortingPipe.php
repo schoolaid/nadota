@@ -5,7 +5,6 @@ namespace SchoolAid\Nadota\Http\Services\Pipes;
 use Closure;
 use SchoolAid\Nadota\Http\DataTransferObjects\IndexRequestDTO;
 use SchoolAid\Nadota\Http\Fields\Field;
-use SchoolAid\Nadota\Http\Fields\Relations\RelationField;
 
 class ApplySortingPipe
 {
@@ -24,7 +23,7 @@ class ApplySortingPipe
             return $next($data);
         }
 
-        if ($field instanceof RelationField) {
+        if ($field->isRelationship()) {
             $data->query = $field->applySorting($data->query, $sortDirection, $data->modelInstance);
         }else{
             $attribute = $field->getAttribute();

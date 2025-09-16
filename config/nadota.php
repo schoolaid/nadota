@@ -99,12 +99,47 @@ return [
         'belongsToMany' => [
             'type' => 'belongsToMany',
             'component' => 'FieldBelongsToMany'
-        ]
+        ],
+        'hasManyThrough' => [
+            'type' => 'hasManyThrough',
+            'component' => 'FieldHasManyThrough'
+        ],
+        'morphTo' => [
+            'type' => 'morphTo',
+            'component' => 'FieldMorphTo'
+        ],
+        'morphMany' => [
+            'type' => 'morphMany',
+            'component' => 'FieldMorphMany'
+        ],
+        'morphOne' => [
+            'type' => 'morphOne',
+            'component' => 'FieldMorphOne'
+        ],
+        'morphToMany' => [
+            'type' => 'morphToMany',
+            'component' => 'FieldMorphToMany'
+        ],
+        'morphedByMany' => [
+            'type' => 'morphedByMany',
+            'component' => 'FieldMorphedByMany'
+        ],
     ],
     'api' => [
         'prefix' => 'nadota-api'
     ],
     'frontend' => [
         'prefix' => 'resources'
+    ],
+
+    // Action Events Tracking
+    'track_actions' => env('NADOTA_TRACK_ACTIONS', true),
+    'action_events' => [
+        'enabled' => env('NADOTA_TRACK_ACTIONS', true),
+        'table' => 'action_events',
+        'exclude_fields' => ['password', 'remember_token', 'api_token'],
+        'track_fields' => true,
+        'track_original' => true,
+        'track_changes' => true,
     ],
 ];

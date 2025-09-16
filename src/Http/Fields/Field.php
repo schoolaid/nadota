@@ -9,12 +9,15 @@ use SchoolAid\Nadota\Http\Fields\Contracts\FieldInterface;
 use SchoolAid\Nadota\Http\Fields\DataTransferObjects\FieldDTO;
 use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
 use SchoolAid\Nadota\Http\Fields\Traits\{DefaultValueTrait,
+    FieldDataAccessorsTrait,
+    FieldResolveTrait,
     FilterableTrait,
     RelationshipTrait,
     SearchableTrait,
     SortableTrait,
     ValidationTrait,
-    VisibilityTrait};
+    VisibilityTrait
+};
 use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 use SchoolAid\Nadota\Http\Traits\Makeable;
 
@@ -22,6 +25,8 @@ abstract class Field implements FieldInterface
 {
     use RelationshipTrait;
     use DefaultValueTrait;
+    use FieldDataAccessorsTrait;
+    use FieldResolveTrait;
     use FilterableTrait;
     use Makeable;
     use SearchableTrait;
@@ -31,7 +36,27 @@ abstract class Field implements FieldInterface
 
     protected FieldDTO $fieldData;
 
-    public function __construct(string $name, string $attribute)
+    /**
+     * Field width (e.g., 'full', '1/2', '1/3', '1/4', '2/3', '3/4', or custom CSS value)
+     */
+    protected ?string $width = null;
+
+    /**
+     * Tab size for fields that support it
+     */
+    protected int $tabSize = 4;
+
+    /**
+     * Maximum height for the field
+     */
+    protected ?int $maxHeight = null;
+
+    /**
+     * Minimum height for the field
+     */
+    protected ?int $minHeight = null;
+
+    public function __construct(string $name, string $attribute, string $type = FieldType::TEXT->value, string $component = null)
     {
         $this->fieldData = new FieldDTO(
             name: $name,
@@ -39,33 +64,9 @@ abstract class Field implements FieldInterface
             id: str_replace(' ', '_', $name),
             attribute: $attribute,
             placeholder: $name,
-            type: FieldType::TEXT,
-            component: 'FieldText'
+            type: $type,
+            component: $component ?? config('nadota.fields.input.component')
         );
-    }
-
-    public function label(string $label): static
-    {
-        $this->fieldData->label = $label;
-        return $this;
-    }
-
-    public function type(FieldType $type): static
-    {
-        $this->fieldData->type = $type;
-        return $this;
-    }
-
-    public function placeholder(string $placeholder): static
-    {
-        $this->fieldData->placeholder = $placeholder;
-        return $this;
-    }
-
-    public function component(string $component): static
-    {
-        $this->fieldData->component = $component;
-        return $this;
     }
 
     public function key(): string
@@ -73,62 +74,14 @@ abstract class Field implements FieldInterface
         return str_replace(' ', '', strtolower($this->fieldData->name));
     }
 
-    public function resolve(Request $request, Model $model, ?ResourceInterface $resource): mixed
-    {
-        $value = $model->{$this->getAttribute()};
-        
-        // If the model has a value, use it; otherwise use default if available
-        if ($value !== null) {
-            return $value;
-        }
-        
-        if ($this->hasDefault()) {
-            return $this->resolveDefault($request, $model, $resource);
-        }
-
-        return $value; // null
-    }
-
-    public function getAttribute(): string
-    {
-        return $this->fieldData->attribute;
-    }
-
-    public function getType(): FieldType
-    {
-        return $this->fieldData->type;
-    }
-
-    public function getName(): string
-    {
-        return $this->fieldData->name;
-    }
-
-    public function getLabel(): string
-    {
-        return $this->fieldData->label;
-    }
-
-    public function getPlaceholder(): string
-    {
-        return $this->fieldData->placeholder;
-    }
-
-    public function getComponent(): string
-    {
-        return $this->fieldData->component;
-    }
-
-    public function getId(): string
-    {
-        return $this->fieldData->id;
-    }
-
     public function toArray(NadotaRequest $request, ?Model $model = null, ?ResourceInterface $resource = null): array
     {
         $data = array_merge($this->fieldData->toArray(), [
             'key' => $this->key(),
+            'readonly' => $this->isReadonly(),
+            'disabled' => $this->isDisabled(),
             'required' => $this->isRequired(),
+            'helpText' => $this->getHelpText(),
             'sortable' => $this->isSortable(),
             'searchable' => $this->isSearchable(),
             'filterable' => $this->isFilterable(),
@@ -138,6 +91,7 @@ abstract class Field implements FieldInterface
             'showOnUpdate' => $this->isShowOnUpdate($request, $model),
             'props' => $this->getProps($request, $model, $resource),
             'rules' => $this->getRules(),
+            'optionsUrl' => $this->getOptionsUrl($resource)
         ]);
 
         if ($model) {
@@ -150,28 +104,136 @@ abstract class Field implements FieldInterface
     protected function getProps(Request $request, ?Model $model, ?ResourceInterface $resource): array
     {
         $props = [];
-        
-        // Add search weight if available
-        if (method_exists($this, 'getSearchWeight') && $this->getSearchWeight() !== null) {
-            $props['searchWeight'] = $this->getSearchWeight();
+
+        if ($this->width !== null) {
+            $props['width'] = $this->width;
         }
-        
+
+        if ($this->tabSize !== 4) { // Only include if not default
+            $props['tabSize'] = $this->tabSize;
+        }
+
+        if ($this->maxHeight !== null) {
+            $props['maxHeight'] = $this->maxHeight;
+        }
+
+        if ($this->minHeight !== null) {
+            $props['minHeight'] = $this->minHeight;
+        }
+
         return $props;
     }
 
-    /**
-     * Magic getter for accessing protected properties in tests.
-     */
-    public function __get($name)
+    public function getOptions(): array
     {
-        if ($name === 'fieldData') {
-            return $this->fieldData;
-        }
-        
-        if (property_exists($this, $name)) {
-            return $this->$name;
-        }
-        
-        throw new \InvalidArgumentException("Property {$name} does not exist on " . static::class);
+        return [];
+    }
+
+    /**
+     * Set the field width
+     *
+     * @param string $width Width value (e.g., 'full', '1/2', '1/3', '1/4', '2/3', '3/4', or custom CSS value)
+     * @return static
+     */
+    public function width(string $width): static
+    {
+        $this->width = $width;
+        return $this;
+    }
+
+    /**
+     * Set the tab size for fields that support it
+     *
+     * @param int $tabSize Tab size value
+     * @return static
+     */
+    public function tabSize(int $tabSize): static
+    {
+        $this->tabSize = $tabSize;
+        return $this;
+    }
+
+    /**
+     * Set the maximum height for the field
+     *
+     * @param int|null $maxHeight Maximum height in pixels
+     * @return static
+     */
+    public function maxHeight(?int $maxHeight): static
+    {
+        $this->maxHeight = $maxHeight;
+        return $this;
+    }
+
+    /**
+     * Set the minimum height for the field
+     *
+     * @param int|null $minHeight Minimum height in pixels
+     * @return static
+     */
+    public function minHeight(?int $minHeight): static
+    {
+        $this->minHeight = $minHeight;
+        return $this;
+    }
+
+    /**
+     * Set the field to full width
+     *
+     * @return static
+     */
+    public function fullWidth(): static
+    {
+        return $this->width('full');
+    }
+
+    /**
+     * Set the field to half width
+     *
+     * @return static
+     */
+    public function halfWidth(): static
+    {
+        return $this->width('1/2');
+    }
+
+    /**
+     * Set the field to one third width
+     *
+     * @return static
+     */
+    public function oneThirdWidth(): static
+    {
+        return $this->width('1/3');
+    }
+
+    /**
+     * Set the field to two thirds width
+     *
+     * @return static
+     */
+    public function twoThirdsWidth(): static
+    {
+        return $this->width('2/3');
+    }
+
+    /**
+     * Set the field to one quarter width
+     *
+     * @return static
+     */
+    public function oneQuarterWidth(): static
+    {
+        return $this->width('1/4');
+    }
+
+    /**
+     * Set the field to three quarters width
+     *
+     * @return static
+     */
+    public function threeQuartersWidth(): static
+    {
+        return $this->width('3/4');
     }
 }

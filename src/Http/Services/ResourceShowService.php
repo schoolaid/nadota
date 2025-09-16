@@ -12,16 +12,22 @@ class ResourceShowService implements ResourceShowInterface
     {
         $request->prepareResource();
         $resource = $request->getResource();
-        $model = $resource->getQuery($request)->findOrFail($id);
-        $request->authorized('view', $model);
+        $attributes = $resource->getAttributesForSelect($request);
+        $relationAttributes = $resource->getRelationAttributesForSelect($request);
 
-        $fields = collect($resource->fields($request))
-            ->filter(function ($field) {
-                return $field->isShowOnDetail();
-            })
+        $model = $resource->getQuery($request)
+            ->with([...$resource->with, ...$relationAttributes])
+            ->select(...$attributes)
+            ->findOrFail($id);
+
+        $request->authorized('view', $model);
+        $action = $request->get('action', 'show');
+
+        $fields = $resource->fieldsForShow($request, $action)
             ->map(function ($field) use ($request, $model, $resource) {
                 return $field->toArray($request, $model, $resource);
             });
+
         return response()->json([
             'data' => [
                 'id' => $model->getKey(),
@@ -30,7 +36,7 @@ class ResourceShowService implements ResourceShowInterface
                 'title' => $resource->title(),
                 'actions' => $resource->actions($request),
                 'tools' => $resource->tools($request),
-                'deletedAt' => $model->deleted_at,
+                'deletedAt' => $model->deleted_at ?? null,
             ],
         ]);
     }

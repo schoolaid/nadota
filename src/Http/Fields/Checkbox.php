@@ -2,19 +2,19 @@
 
 namespace SchoolAid\Nadota\Http\Fields;
 
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Request;
+use SchoolAid\Nadota\Contracts\ResourceInterface;
 use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
 
 class Checkbox extends Field
 {
-    public string $type = 'checkbox';
     protected mixed $trueValue = 1;
     protected mixed $falseValue = 0;
 
     public function __construct(string $name, string $attribute)
     {
-        parent::__construct($name, $attribute);
-        $this->type(FieldType::CHECKBOX);
-        $this->component(config('nadota.fields.checkbox.component', 'FieldCheckbox'));
+        parent::__construct($name, $attribute, FieldType::CHECKBOX->value, config('nadota.fields.checkbox.component', 'FieldCheckbox'));
     }
 
     public function trueValue(mixed $value): static
@@ -52,5 +52,24 @@ class Checkbox extends Field
         
         // Fallback to boolean cast
         return (bool) $value;
+    }
+
+
+    public function resolveForStore(Request $request, Model $model, ?ResourceInterface $resource, $value): mixed
+    {
+        if ($value != null) {
+            $value = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+        }
+
+        return parent::resolveForStore($request, $model, $resource, $value);
+    }
+
+    public function resolveForUpdate(Request $request, Model $model, ?ResourceInterface $resource, $value): mixed
+    {
+        if ($value != null) {
+            $value = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+        }
+
+        return parent::resolveForUpdate($request, $model, $resource, $value);
     }
 }

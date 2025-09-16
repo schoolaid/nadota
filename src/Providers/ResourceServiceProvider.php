@@ -51,5 +51,20 @@ class ResourceServiceProvider extends ServiceProvider
         }
 
         ResourceManager::registerResource($path);
+
+        // Register built-in resources
+        $this->registerBuiltInResources();
+    }
+
+    /**
+     * Register built-in package resources
+     * @throws Exception
+     */
+    protected function registerBuiltInResources(): void
+    {
+        // Register ActionEventResource if action tracking is enabled
+        if (config('nadota.track_actions', true)) {
+            ResourceManager::registerResourceClass(\SchoolAid\Nadota\Resources\ActionEventResource::class);
+        }
     }
 }

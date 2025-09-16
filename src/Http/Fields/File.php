@@ -18,9 +18,7 @@ class File extends Field
 
     public function __construct(string $name, string $attribute)
     {
-        parent::__construct($name, $attribute);
-        $this->type(FieldType::FILE);
-        $this->component(config('nadota.fields.file.component', 'FieldFile'));
+        parent::__construct($name, $attribute, FieldType::FILE->value, config('nadota.fields.file.component', 'FieldFile'));
         
         // Set default max size from config or 10MB
         $this->maxSize = config('nadota.fields.file.max_size', 10 * 1024 * 1024);

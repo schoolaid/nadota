@@ -11,7 +11,7 @@ class FieldDTO
     public string $id;
     public string $attribute;
     public string $placeholder;
-    public FieldType $type;
+    public string $type;
     public string $component;
 
     public function __construct(
@@ -20,7 +20,7 @@ class FieldDTO
         string $id,
         string $attribute,
         string $placeholder,
-        FieldType $type,
+        string $type,
         string $component
     ) {
         $this->name = $name;
@@ -40,7 +40,7 @@ class FieldDTO
             'id' => $this->id,
             'attribute' => $this->attribute,
             'placeholder' => $this->placeholder,
-            'type' => $this->type->value,
+            'type' => $this->type,
             'component' => $this->component,
         ];
     }

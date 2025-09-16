@@ -88,4 +88,44 @@ class ResourceManager
             abort_if(is_null($model), 404);
         });
     }
+
+    /**
+     * Register a single resource class directly
+     * Used for built-in package resources
+     *
+     * @param string $resourceClass
+     * @throws Exception
+     */
+    public static function registerResourceClass(string $resourceClass): void
+    {
+        if (!is_subclass_of($resourceClass, Resource::class)) {
+            throw new Exception("Class $resourceClass must extend Resource");
+        }
+
+        $resources = Cache::get(config('nadota.key_resources_cache'), collect());
+
+        if (!($resources instanceof \Illuminate\Support\Collection)) {
+            $resources = collect($resources);
+        }
+
+        $key = Helpers::toUri($resourceClass);
+
+        if ($resources->has((array)$key)) {
+            // Resource already registered, skip
+            return;
+        }
+
+        $resource = new $resourceClass();
+
+        if (!isset($resource->model)) {
+            throw new Exception("Resource $resourceClass must have a model property");
+        }
+
+        $resources[$key] = [
+            'class' => $resourceClass,
+            'model' => $resource->model,
+        ];
+
+        Cache::put(config('nadota.key_resources_cache'), $resources);
+    }
 }

@@ -15,6 +15,7 @@ trait ResourceMenuOptions
     {
         return null;
     }
+
     public function displayIcon(): string|null
     {
         return null;
@@ -23,9 +24,5 @@ trait ResourceMenuOptions
     public function orderInMenu(): int
     {
         return 1;
-    }
-    public function menuChildren(): array
-    {
-        return [];
     }
 }

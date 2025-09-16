@@ -2,6 +2,8 @@
 
 namespace SchoolAid\Nadota\Http\Fields\Traits;
 
+use Illuminate\Database\Eloquent\Builder;
+
 trait SortableTrait
 {
     protected bool $sortable = false;
@@ -15,5 +17,10 @@ trait SortableTrait
     public function isSortable(): bool
     {
         return $this->sortable;
+    }
+
+    public function applySorting(Builder $query, $sortDirection, $modelInstance): Builder
+    {
+        return $query->orderBy($this->getAttribute(), $sortDirection);
     }
 }

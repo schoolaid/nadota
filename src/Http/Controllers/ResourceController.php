@@ -10,6 +10,8 @@ use SchoolAid\Nadota\Contracts\ResourceShowInterface;
 use SchoolAid\Nadota\Contracts\ResourceEditInterface;
 use SchoolAid\Nadota\Contracts\ResourceUpdateInterface;
 use SchoolAid\Nadota\Contracts\ResourceDestroyInterface;
+use SchoolAid\Nadota\Contracts\ResourceForceDeleteInterface;
+use SchoolAid\Nadota\Contracts\ResourceRestoreInterface;
 use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 
 class ResourceController extends Controller
@@ -21,7 +23,9 @@ class ResourceController extends Controller
         protected readonly ResourceShowInterface $showService,
         protected readonly ResourceEditInterface $editService,
         protected readonly ResourceUpdateInterface $updateService,
-        protected readonly ResourceDestroyInterface $destroyService
+        protected readonly ResourceDestroyInterface $destroyService,
+        protected readonly ResourceForceDeleteInterface $forceDeleteService,
+        protected readonly ResourceRestoreInterface $restoreService
     ) {
     }
 
@@ -58,5 +62,15 @@ class ResourceController extends Controller
     public function destroy(NadotaRequest $request, $resource, $id)
     {
         return $this->destroyService->handle($request, $id);
+    }
+
+    public function forceDelete(NadotaRequest $request, $resource, $id)
+    {
+        return $this->forceDeleteService->handle($request, $id);
+    }
+
+    public function restore(NadotaRequest $request, $resource, $id)
+    {
+        return $this->restoreService->handle($request, $id);
     }
 }

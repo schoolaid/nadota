@@ -12,6 +12,8 @@ use SchoolAid\Nadota\Contracts\ResourceShowInterface;
 use SchoolAid\Nadota\Contracts\ResourceEditInterface;
 use SchoolAid\Nadota\Contracts\ResourceUpdateInterface;
 use SchoolAid\Nadota\Contracts\ResourceDestroyInterface;
+use SchoolAid\Nadota\Contracts\ResourceForceDeleteInterface;
+use SchoolAid\Nadota\Contracts\ResourceRestoreInterface;
 use SchoolAid\Nadota\Http\Services\MenuService;
 use SchoolAid\Nadota\Http\Services\ResourceAuthorizationService;
 use SchoolAid\Nadota\Http\Services\ResourceIndexService;
@@ -21,6 +23,8 @@ use SchoolAid\Nadota\Http\Services\ResourceShowService;
 use SchoolAid\Nadota\Http\Services\ResourceEditService;
 use SchoolAid\Nadota\Http\Services\ResourceUpdateService;
 use SchoolAid\Nadota\Http\Services\ResourceDestroyService;
+use SchoolAid\Nadota\Http\Services\ResourceForceDeleteService;
+use SchoolAid\Nadota\Http\Services\ResourceRestoreService;
 
 class ServiceBindingServiceProvider extends ServiceProvider
 {
@@ -35,5 +39,7 @@ class ServiceBindingServiceProvider extends ServiceProvider
         $this->app->singleton(ResourceEditInterface::class, ResourceEditService::class);
         $this->app->singleton(ResourceUpdateInterface::class, ResourceUpdateService::class);
         $this->app->singleton(ResourceDestroyInterface::class, ResourceDestroyService::class);
+        $this->app->singleton(ResourceForceDeleteInterface::class, ResourceForceDeleteService::class);
+        $this->app->singleton(ResourceRestoreInterface::class, ResourceRestoreService::class);
     }
 }

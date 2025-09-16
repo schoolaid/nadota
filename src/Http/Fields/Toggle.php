@@ -2,6 +2,8 @@
 
 namespace SchoolAid\Nadota\Http\Fields;
 
+use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
+
 class Toggle extends Field
 {
     protected string $component = 'field-toggle';
@@ -12,9 +14,7 @@ class Toggle extends Field
 
     public function __construct(string $name, string $attribute)
     {
-        parent::__construct($name, $attribute);
-        $this->type = 'toggle';
-        $this->component = config('nadota.fields.toggle.component', 'FieldToggle');
+        parent::__construct($name, $attribute, FieldType::BOOLEAN->value, config('nadota.fields.toggle.component', 'FieldToggle'));
     }
 
     public function trueLabel(string $label): static

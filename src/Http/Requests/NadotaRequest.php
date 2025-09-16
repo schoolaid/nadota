@@ -14,4 +14,11 @@ class NadotaRequest extends FormRequest
     {
         return true;
     }
+
+    public function rules(): array
+    {
+        return [
+            'action' => 'sometimes|string',
+        ];
+    }
 }

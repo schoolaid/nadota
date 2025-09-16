@@ -17,7 +17,7 @@ abstract class Filter implements FilterInterface
     protected string $id;
     public string $key;
 
-    public function __construct(string $name = null, string $field = null, FieldType $type = null, string $component =  null, $id = null)
+    public function __construct(string $name = null, string $field = null, string $type = null, string $component =  null, $id = null)
     {
         if ($name) {
             $this->name = $name;
@@ -28,7 +28,7 @@ abstract class Filter implements FilterInterface
         }
 
         if ($type) {
-            $this->type = $type->value;
+            $this->type = $type;
         }
 
         if($component){
