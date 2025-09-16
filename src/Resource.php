@@ -52,6 +52,10 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
     {
         return $this->displayIcon;
     }
+    public function getUseSoftDeletes(): bool
+    {
+        return $this->usesSoftDeletes;
+    }
     abstract public function fields(NadotaRequest $request);
     public function getQuery(NadotaRequest $request, Model $modelInstance = null): Builder
     {
