@@ -14,22 +14,19 @@ use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 use SchoolAid\Nadota\Http\Traits\ResourceMenuOptions;
 use SchoolAid\Nadota\Http\Traits\ResourcePagination;
 use SchoolAid\Nadota\Http\Traits\ResourceRelatable;
-use SchoolAid\Nadota\Http\Traits\ResourceSearchable;
 use SchoolAid\Nadota\Http\Traits\VisibleWhen;
 
 #[AllowDynamicProperties] abstract class Resource implements Contracts\ResourceInterface
 {
     use ResourcePagination,
         ResourceMenuOptions,
-        ResourceSearchable,
         VisibleWhen,
         InteractsWithFields,
         ResourceFrontUtils,
         ResourceRelatable;
-
     public string $model;
-    public array $with = [];
-    protected bool $softDelete = false;
+    protected bool $usesSoftDeletes = false;
+    protected ?string $displayIcon = null;
     protected ResourceAuthorizationInterface $resourceAuthorization;
     public function __construct(
         ResourceAuthorizationInterface $resourceAuthorization = null
@@ -51,13 +48,16 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
     {
         return Helpers::toUri(get_called_class());
     }
+    public function displayIcon(): string|null
+    {
+        return $this->displayIcon;
+    }
     abstract public function fields(NadotaRequest $request);
     public function getQuery(NadotaRequest $request, Model $modelInstance = null): Builder
     {
         if ($modelInstance) {
             return $modelInstance->newQuery();
         }
-
         return (new $this->model)->newQuery();
     }
     public function getPermissionsForResource(NadotaRequest $request, Model $resource): array
@@ -76,9 +76,9 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
             'restore' => $restore && $hasSoftDelete && $trashed,
         ];
     }
-    public function getUseSoftDeletes(): bool
+    public function usesSoftDeletes(): bool
     {
-        return $this->softDelete;
+        return $this->usesSoftDeletes;
     }
     public function actions(NadotaRequest $request): array
     {
@@ -95,118 +95,5 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
     public function tools(NadotaRequest $request): array
     {
         return [];
-    }
-
-    /**
-     * Perform custom delete logic for the resource.
-     * Override this method to customize delete behavior.
-     *
-     * @param Model $model
-     * @param NadotaRequest $request
-     * @return bool
-     */
-    public function performDelete(Model $model, NadotaRequest $request): bool
-    {
-        return $model->delete();
-    }
-
-    /**
-     * Perform custom force delete logic for the resource.
-     * Override this method to customize force delete behavior.
-     *
-     * @param Model $model
-     * @param NadotaRequest $request
-     * @return bool
-     */
-    public function performForceDelete(Model $model, NadotaRequest $request): bool
-    {
-        return $model->forceDelete();
-    }
-
-    /**
-     * Perform custom restore logic for the resource.
-     * Override this method to customize restore behavior.
-     *
-     * @param Model $model
-     * @param NadotaRequest $request
-     * @return bool
-     */
-    public function performRestore(Model $model, NadotaRequest $request): bool
-    {
-        return $model->restore();
-    }
-
-    /**
-     * Hook called before deleting a resource.
-     * Override to add custom logic before deletion.
-     *
-     * @param Model $model
-     * @param NadotaRequest $request
-     * @return void
-     */
-    public function beforeDelete(Model $model, NadotaRequest $request): void
-    {
-        // Override in child resources to add custom logic
-    }
-
-    /**
-     * Hook called after deleting a resource.
-     * Override to add custom logic after deletion.
-     *
-     * @param Model $model
-     * @param NadotaRequest $request
-     * @return void
-     */
-    public function afterDelete(Model $model, NadotaRequest $request): void
-    {
-        // Override in child resources to add custom logic
-    }
-
-    /**
-     * Hook called before force deleting a resource.
-     *
-     * @param Model $model
-     * @param NadotaRequest $request
-     * @return void
-     */
-    public function beforeForceDelete(Model $model, NadotaRequest $request): void
-    {
-        // Override in child resources to add custom logic
-    }
-
-    /**
-     * Hook called after force deleting a resource.
-     *
-     * @param Model $model
-     * @param NadotaRequest $request
-     * @return void
-     */
-    public function afterForceDelete(Model $model, NadotaRequest $request): void
-    {
-        // Override in child resources to add custom logic
-    }
-
-    /**
-     * Hook called before restoring a resource.
-     *
-     * @param Model $model
-     * @param NadotaRequest $request
-     * @return void
-     */
-    public function beforeRestore(Model $model, NadotaRequest $request): void
-    {
-        // Override in child resources to add custom logic
-    }
-
-    /**
-     * Hook called after restoring a resource.
-     *
-     * @param Model $model
-     * @param NadotaRequest $request
-     * @return void
-     */
-    public function afterRestore(Model $model, NadotaRequest $request): void
-    {
-        // Override in child resources to add custom logic
     }
 }
