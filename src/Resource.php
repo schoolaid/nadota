@@ -24,6 +24,25 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
         InteractsWithFields,
         ResourceFrontUtils,
         ResourceRelatable;
+
+    protected array $searchableAttributes = [];
+    public array $searchableRelations = [];
+    public array $with = [];
+
+    public function getSearchableAttributes(): array
+    {
+        return $this->searchableAttributes;
+    }
+    public function getSearchableRelations(): array
+    {
+        return $this->searchableRelations;
+    }
+
+    public function getWith(): array
+    {
+        return $this->with;
+    }
+
     public string $model;
     protected bool $usesSoftDeletes = false;
     protected ?string $displayIcon = null;
