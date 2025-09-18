@@ -9,7 +9,8 @@ class PaginateAndTransformPipe
 {
     public function handle(IndexRequestDTO $data, Closure $next)
     {
-        $perPage = $data->request->input('perPage', 10);
+        $defaultPerPage = $data->resource->getPerPage();
+        $perPage = $data->request->input('perPage', $defaultPerPage);
 
         /** @var Collection $collection */
         $collection = $data->query->paginate($perPage);

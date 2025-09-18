@@ -33,6 +33,16 @@ class HasMany extends Field
     protected string $orderDirection = 'desc';
 
     /**
+     * Custom fields to display for the relation.
+     */
+    protected ?array $customFields = null;
+
+    /**
+     * Whether to allow creating new related items from this field.
+     */
+    protected bool $canCreate = false;
+
+    /**
      * Create a new HasMany field.
      *
      * @param string $name Display name for the field
@@ -90,6 +100,60 @@ class HasMany extends Field
     public function paginated(bool $paginated = true): static
     {
         $this->paginated = $paginated;
+        return $this;
+    }
+
+    /**
+     * Set custom fields to display for the relation.
+     *
+     * @param array $fields Array of Field instances
+     * @return static
+     */
+    public function fields(array $fields): static
+    {
+        $this->customFields = $fields;
+        return $this;
+    }
+
+    /**
+     * Get the fields to use for select constraints in eager loading.
+     *
+     * @param Request $request
+     * @return array|null
+     */
+    public function getFieldsForSelect(Request $request): ?array
+    {
+        // If custom fields are set, use them
+        if ($this->customFields !== null) {
+            $attributes = collect($this->customFields)
+                ->filter(fn($field) => !$field->isRelationship())
+                ->map(fn($field) => $field->getAttribute())
+                ->toArray();
+
+            // Always include the primary key
+            return array_unique([...$attributes, 'id']);
+        }
+
+        // If resource is set but no custom fields, use resource fields
+        if ($this->getResource()) {
+            $resourceClass = $this->getResource();
+            $resource = new $resourceClass;
+            return $resource->getAttributesForSelect($request);
+        }
+
+        // No fields or resource - return null to select all
+        return null;
+    }
+
+    /**
+     * Enable or disable creation of new related items.
+     *
+     * @param bool $canCreate
+     * @return static
+     */
+    public function canCreate(bool $canCreate = true): static
+    {
+        $this->canCreate = $canCreate;
         return $this;
     }
 
@@ -156,7 +220,10 @@ class HasMany extends Field
      */
     protected function formatWithResource(Collection $items, ResourceInterface $resource, Request $request): array
     {
-        $fields = collect($resource->fieldsForIndex($request));
+        // Use custom fields if provided, otherwise use resource's index fields
+        $fields = $this->customFields !== null
+            ? collect($this->customFields)
+            : collect($resource->fieldsForIndex($request));
 
         return [
             'data' => $items->map(function ($item) use ($fields, $request, $resource) {
@@ -252,6 +319,7 @@ class HasMany extends Field
             'orderDirection' => $this->orderDirection,
             'relationType' => 'hasMany',
             'resource' => $this->getResource() ? $this->getResource()::getKey() : null,
+            'canCreate' => $this->canCreate,
         ]);
     }
 

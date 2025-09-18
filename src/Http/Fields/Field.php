@@ -56,6 +56,16 @@ abstract class Field implements FieldInterface
      */
     protected ?int $minHeight = null;
 
+    /**
+     * Callback for computing display value
+     */
+    protected $displayCallback = null;
+
+    /**
+     * Whether this is a computed field (not stored in database)
+     */
+    protected bool $computed = false;
+
     public function __construct(string $name, string $attribute, string $type = FieldType::TEXT->value, string $component = null)
     {
         $this->fieldData = new FieldDTO(
@@ -101,6 +111,23 @@ abstract class Field implements FieldInterface
         return $data;
     }
 
+    /**
+     * Data callback to compute dynamic data for the component
+     */
+    protected $dataCallback = null;
+
+    /**
+     * Set a callback to compute dynamic data for the component
+     *
+     * @param callable $callback
+     * @return static
+     */
+    public function withData(callable $callback): static
+    {
+        $this->dataCallback = $callback;
+        return $this;
+    }
+
     protected function getProps(Request $request, ?Model $model, ?ResourceInterface $resource): array
     {
         $props = [];
@@ -120,6 +147,11 @@ abstract class Field implements FieldInterface
         if ($this->minHeight !== null) {
             $props['minHeight'] = $this->minHeight;
         }
+
+        if ($this->dataCallback !== null && $model !== null) {
+            $props['data'] = call_user_func($this->dataCallback, $model, $resource);
+        }
+
 
         return $props;
     }
@@ -235,5 +267,92 @@ abstract class Field implements FieldInterface
     public function threeQuartersWidth(): static
     {
         return $this->width('3/4');
+    }
+
+    /**
+     * Define a callback to compute the display value
+     * This makes the field computed (read-only, not stored in database)
+     *
+     * @param callable $callback Receives ($model, $resource) and returns the display value
+     * @return static
+     */
+    public function displayUsing(callable $callback): static
+    {
+        $this->displayCallback = $callback;
+        $this->computed = true;
+
+        // Computed fields are read-only and only shown on index and detail by default
+        $this->readonly();
+        $this->hideFromCreation();
+        $this->hideFromUpdate();
+
+        return $this;
+    }
+
+    /**
+     * Mark this field as computed (not stored in database)
+     *
+     * @param bool $computed
+     * @return static
+     */
+    public function computed(bool $computed = true): static
+    {
+        $this->computed = $computed;
+
+        if ($computed) {
+            // Computed fields are read-only and only shown on index and detail
+            $this->readonly();
+            $this->hideFromCreation();
+            $this->hideFromUpdate();
+        }
+
+        return $this;
+    }
+
+    /**
+     * Check if this is a computed field
+     *
+     * @return bool
+     */
+    public function isComputed(): bool
+    {
+        return $this->computed;
+    }
+
+    /**
+     * Check if field has a display callback
+     *
+     * @return bool
+     */
+    public function hasDisplayCallback(): bool
+    {
+        return $this->displayCallback !== null;
+    }
+
+    /**
+     * Fill the model attribute with the field's value
+     * Computed fields are skipped as they don't store data
+     *
+     * @param \Illuminate\Http\Request $request
+     * @param \Illuminate\Database\Eloquent\Model $model
+     * @return void
+     */
+    public function fill(\Illuminate\Http\Request $request, \Illuminate\Database\Eloquent\Model $model): void
+    {
+        // Don't fill computed fields - they are read-only
+        if ($this->isComputed()) {
+            return;
+        }
+
+        // Don't fill readonly or disabled fields
+        if ($this->isReadonly() || $this->isDisabled()) {
+            return;
+        }
+
+        $requestAttribute = $this->getAttribute();
+
+        if ($request->has($requestAttribute)) {
+            $model->{$this->getAttribute()} = $request->get($requestAttribute);
+        }
     }
 }

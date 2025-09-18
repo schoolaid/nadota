@@ -72,7 +72,7 @@ class ActionEvent extends Model
      */
     public function user(): BelongsTo
     {
-        $userClass = config('auth.providers.users.model', \App\Models\User::class);
+        $userClass = config('auth.providers.users.model', \App\Models\Auth\User::class);
         return $this->belongsTo($userClass, 'user_id');
     }
 

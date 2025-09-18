@@ -4,7 +4,7 @@ namespace SchoolAid\Nadota\Http\Traits;
 
 trait ResourcePagination
 {
-    protected int $perPage = 10;
+    protected int $perPage = 20;
     protected array $allowedPerPage = [10, 20, 50, 100];
     protected int $page = 1;
 

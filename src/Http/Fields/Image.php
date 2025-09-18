@@ -14,6 +14,14 @@ class Image extends File
     protected bool $showPreview = true;
     protected array $thumbnailSizes = [];
     protected ?string $alt = null;
+    protected bool $rounded = false;
+    protected bool $square = false;
+    protected ?string $previewSize = null;
+    protected bool $lazy = true;
+    protected ?string $placeholder = null;
+    protected bool $showOnIndexPreview = true;
+    protected ?string $convertFormat = null;
+    protected ?int $compressionQuality = null;
 
     public function __construct(string $name, string $attribute)
     {
@@ -78,6 +86,106 @@ class Image extends File
     public function alt(string $alt): static
     {
         $this->alt = $alt;
+        return $this;
+    }
+
+    /**
+     * Display the image with rounded corners.
+     */
+    public function rounded(bool $rounded = true): static
+    {
+        $this->rounded = $rounded;
+        return $this;
+    }
+
+    /**
+     * Display the image as a square (aspect ratio 1:1).
+     */
+    public function squared(bool $square = true): static
+    {
+        $this->square = $square;
+        return $this;
+    }
+
+    /**
+     * Display the image as a circle.
+     */
+    public function circle(): static
+    {
+        $this->rounded = true;
+        $this->square = true;
+        return $this;
+    }
+
+    /**
+     * Set the preview size (e.g., 'small', 'medium', 'large', or specific pixels like '200px').
+     */
+    public function previewSize(string $size): static
+    {
+        $this->previewSize = $size;
+        return $this;
+    }
+
+    /**
+     * Enable/disable lazy loading for the image.
+     */
+    public function lazy(bool $lazy = true): static
+    {
+        $this->lazy = $lazy;
+        return $this;
+    }
+
+    /**
+     * Set a placeholder image URL or base64 string.
+     */
+    public function placeholder(string $placeholder): static
+    {
+        $this->placeholder = $placeholder;
+        return $this;
+    }
+
+    /**
+     * Disable preview on index view (useful for performance).
+     */
+    public function disablePreviewOnIndex(): static
+    {
+        $this->showOnIndexPreview = false;
+        return $this;
+    }
+
+    /**
+     * Accept only specific image formats.
+     */
+    public function acceptImages(): static
+    {
+        $this->acceptedTypes = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+        return $this;
+    }
+
+    /**
+     * Accept only web-safe image formats.
+     */
+    public function webSafe(): static
+    {
+        $this->acceptedTypes = ['jpg', 'jpeg', 'png', 'webp'];
+        return $this;
+    }
+
+    /**
+     * Convert uploaded image to a specific format.
+     */
+    public function convertTo(string $format): static
+    {
+        $this->convertFormat = $format;
+        return $this;
+    }
+
+    /**
+     * Set image quality for compression (1-100).
+     */
+    public function quality(int $quality): static
+    {
+        $this->compressionQuality = min(100, max(1, $quality));
         return $this;
     }
 
@@ -212,13 +320,28 @@ class Image extends File
 
     protected function getProps(Request $request, ?Model $model, ?ResourceInterface $resource): array
     {
-        return array_merge(parent::getProps($request, $model, $resource), [
+        $props = parent::getProps($request, $model, $resource);
+
+        // Determine if preview should be shown based on context
+        $showPreview = $this->showPreview;
+        if ($request->is('*/index') && !$this->showOnIndexPreview) {
+            $showPreview = false;
+        }
+
+        return array_merge($props, [
             'maxWidth' => $this->maxWidth,
             'maxHeight' => $this->maxHeight,
-            'showPreview' => $this->showPreview,
+            'showPreview' => $showPreview,
             'thumbnailSizes' => $this->thumbnailSizes,
             'alt' => $this->alt,
             'isImage' => true,
+            'rounded' => $this->rounded,
+            'square' => $this->square,
+            'previewSize' => $this->previewSize,
+            'lazy' => $this->lazy,
+            'placeholder' => $this->placeholder,
+            'convertFormat' => $this->convertFormat,
+            'compressionQuality' => $this->compressionQuality,
         ]);
     }
 }

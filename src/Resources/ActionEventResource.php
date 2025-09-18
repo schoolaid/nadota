@@ -64,23 +64,19 @@ class ActionEventResource extends Resource
         return [
 
             Input::make('Batch ID', 'batch_id')
-                ->searchable()
+
                 ->filterable()
                 ->sortable()
                 ->readonly()
                 ->help('UUID for grouping related actions')
                 ,
 
-            BelongsTo::make('User', 'user')
-                ->searchable()
-                ->filterable()
+            BelongsTo::make('User', 'user_id', 'user')
                 ->sortable()
                 ->displayAttribute('name')
                 ->readonly(),
 
             Input::make('Action Name', 'name')
-                ->searchable()
-                ->filterable()
                 ->sortable()
                 ->readonly()
                 ->help('The name of the action performed'),
@@ -91,14 +87,11 @@ class ActionEventResource extends Resource
                     'finished' => 'Finished',
                     'failed' => 'Failed',
                 ])
-                ->filterable()
                 ->sortable()
                 ->readonly()
                 ->default('running'),
 
             Input::make('Actionable Type', 'actionable_type')
-                ->searchable()
-                ->filterable()
                 ->readonly()
                 
                 ->help('The resource class that was acted upon'),
@@ -117,8 +110,6 @@ class ActionEventResource extends Resource
                 ,
 
             Input::make('Model Type', 'model_type')
-                ->searchable()
-                ->filterable()
                 ->readonly()
                 ->help('The model class that was affected'),
 
@@ -144,7 +135,6 @@ class ActionEventResource extends Resource
 
             DateTime::make('Created At', 'created_at')
                 ->sortable()
-                ->filterable()
                 ->readonly()
                 ->dateOnly(),
 

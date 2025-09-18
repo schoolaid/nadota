@@ -31,7 +31,7 @@ class BuildQueryPipe
      * @param bool $usesSoftDeletes
      * @return Builder
      */
-    protected function addTrashedCondition(Builder $query, $trashedParam, $usesSoftDeletes): Builder
+    protected function addTrashedCondition(Builder $query, mixed $trashedParam, bool $usesSoftDeletes): Builder
     {
         if (!$usesSoftDeletes) {
             return $query;

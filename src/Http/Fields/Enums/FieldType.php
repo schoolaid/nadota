@@ -29,4 +29,5 @@ enum FieldType: string
     case MORPH_ONE = 'morphOne';
     case JSON = 'json';
     case CODE = 'code';
+    case CUSTOM_COMPONENT = 'customComponent';
 }

@@ -14,6 +14,7 @@ use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 use SchoolAid\Nadota\Http\Traits\ResourceMenuOptions;
 use SchoolAid\Nadota\Http\Traits\ResourcePagination;
 use SchoolAid\Nadota\Http\Traits\ResourceRelatable;
+use SchoolAid\Nadota\Http\Traits\ResourceSearchable;
 use SchoolAid\Nadota\Http\Traits\VisibleWhen;
 
 #[AllowDynamicProperties] abstract class Resource implements Contracts\ResourceInterface
@@ -23,25 +24,8 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
         VisibleWhen,
         InteractsWithFields,
         ResourceFrontUtils,
-        ResourceRelatable;
-
-    protected array $searchableAttributes = [];
-    public array $searchableRelations = [];
-    public array $with = [];
-
-    public function getSearchableAttributes(): array
-    {
-        return $this->searchableAttributes;
-    }
-    public function getSearchableRelations(): array
-    {
-        return $this->searchableRelations;
-    }
-
-    public function getWith(): array
-    {
-        return $this->with;
-    }
+        ResourceRelatable,
+        ResourceSearchable;
 
     public string $model;
     protected bool $usesSoftDeletes = false;
