@@ -31,6 +31,15 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
     protected bool $usesSoftDeletes = false;
     protected ?string $displayIcon = null;
     protected ResourceAuthorizationInterface $resourceAuthorization;
+
+    /**
+     * Custom component names for different views
+     */
+    protected string $indexComponent = 'ResourceIndex';
+    protected string $showComponent = 'ResourceShow';
+    protected string $createComponent = 'ResourceCreate';
+    protected string $updateComponent = 'ResourceUpdate';
+    protected string $deleteComponent = 'ResourceDelete';
     public function __construct(
         ResourceAuthorizationInterface $resourceAuthorization = null
     )
@@ -102,5 +111,82 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
     public function tools(NadotaRequest $request): array
     {
         return [];
+    }
+
+    /**
+     * Get the component names for all views
+     */
+    public function getComponents(): array
+    {
+        return [
+            'index' => $this->indexComponent,
+            'show' => $this->showComponent,
+            'create' => $this->createComponent,
+            'update' => $this->updateComponent,
+            'delete' => $this->deleteComponent,
+        ];
+    }
+
+    /**
+     * Get the index component name
+     */
+    public function getIndexComponent(): string
+    {
+        return $this->indexComponent;
+    }
+
+    /**
+     * Get the show component name
+     */
+    public function getShowComponent(): string
+    {
+        return $this->showComponent;
+    }
+
+    /**
+     * Get the create component name
+     */
+    public function getCreateComponent(): string
+    {
+        return $this->createComponent;
+    }
+
+    /**
+     * Get the update component name
+     */
+    public function getUpdateComponent(): string
+    {
+        return $this->updateComponent;
+    }
+
+    /**
+     * Get the delete component name
+     */
+    public function getDeleteComponent(): string
+    {
+        return $this->deleteComponent;
+    }
+
+    /**
+     * Set custom components for views
+     */
+    public function setComponents(array $components): static
+    {
+        if (isset($components['index'])) {
+            $this->indexComponent = $components['index'];
+        }
+        if (isset($components['show'])) {
+            $this->showComponent = $components['show'];
+        }
+        if (isset($components['create'])) {
+            $this->createComponent = $components['create'];
+        }
+        if (isset($components['update'])) {
+            $this->updateComponent = $components['update'];
+        }
+        if (isset($components['delete'])) {
+            $this->deleteComponent = $components['delete'];
+        }
+        return $this;
     }
 }

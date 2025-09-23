@@ -281,11 +281,6 @@ abstract class Field implements FieldInterface
         $this->displayCallback = $callback;
         $this->computed = true;
 
-        // Computed fields are read-only and only shown on index and detail by default
-        $this->readonly();
-        $this->hideFromCreation();
-        $this->hideFromUpdate();
-
         return $this;
     }
 

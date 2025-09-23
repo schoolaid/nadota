@@ -22,7 +22,7 @@ trait TracksActionEvents
     }
 
     /**
-     * Track a create action
+     * Track a creation action
      */
     protected function trackCreate(Model $model, NadotaRequest $request, array $fields = []): void
     {

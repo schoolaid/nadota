@@ -9,9 +9,11 @@ use Illuminate\Http\Request;
 use SchoolAid\Nadota\Contracts\ResourceInterface;
 use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
 use SchoolAid\Nadota\Http\Fields\Field;
+use SchoolAid\Nadota\Http\Fields\Traits\ManagesAttachments;
 
 class HasMany extends Field
 {
+    use ManagesAttachments;
     /**
      * Maximum number of related items to show (when not paginated).
      */
@@ -312,7 +314,7 @@ class HasMany extends Field
     {
         $props = parent::getProps($request, $model, $resource);
 
-        return array_merge($props, [
+        $props = array_merge($props, [
             'limit' => $this->limit,
             'paginated' => $this->paginated,
             'orderBy' => $this->orderBy,
@@ -321,6 +323,26 @@ class HasMany extends Field
             'resource' => $this->getResource() ? $this->getResource()::getKey() : null,
             'canCreate' => $this->canCreate,
         ]);
+
+        // Add attachment configuration
+        if ($this->attachable) {
+            $props['attachment'] = $this->getAttachmentConfig();
+
+            // Add URLs if we have a model
+            if ($model && $resource) {
+                $resourceKey = $resource::getKey();
+                $modelId = $model->getKey();
+                $fieldKey = $this->key();
+
+                $props['attachment']['urls'] = [
+                    'attachable' => "/nadota-api/{$resourceKey}/resource/{$modelId}/attachable/{$fieldKey}",
+                    'attach' => "/nadota-api/{$resourceKey}/resource/{$modelId}/attach/{$fieldKey}",
+                    'detach' => "/nadota-api/{$resourceKey}/resource/{$modelId}/detach/{$fieldKey}",
+                ];
+            }
+        }
+
+        return $props;
     }
 
     /**

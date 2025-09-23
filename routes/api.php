@@ -5,6 +5,7 @@ use SchoolAid\Nadota\Http\Controllers\ResourceController;
 use SchoolAid\Nadota\Http\Controllers\ResourceIndexController;
 use SchoolAid\Nadota\Http\Controllers\MenuController;
 use SchoolAid\Nadota\Http\Controllers\FieldOptionsController;
+use SchoolAid\Nadota\Http\Controllers\AttachmentController;
 
 Route::get('/menu', [MenuController::class, 'menu'])->name('menu');
 
@@ -27,6 +28,12 @@ Route::prefix('/{resourceKey}/resource')->group(function () {
     Route::get('/', [ResourceController::class, 'index'])->name('resource.index');
     Route::get('/create', [ResourceController::class, 'create'])->name('resource.create');
     Route::post('/', [ResourceController::class, 'store'])->name('resource.store');
+
+    // Attachment endpoints - defined before generic {id} routes to avoid conflicts
+    Route::get('/{id}/attachable/{field}', [AttachmentController::class, 'attachable'])->name('resource.attachable')->where('id', '[0-9]+');
+    Route::post('/{id}/attach/{field}', [AttachmentController::class, 'attach'])->name('resource.attach')->where('id', '[0-9]+');
+    Route::post('/{id}/detach/{field}', [AttachmentController::class, 'detach'])->name('resource.detach')->where('id', '[0-9]+');
+
     Route::get('/{id}', [ResourceController::class, 'show'])->name('resource.show');
     Route::get('/{id}/edit', [ResourceController::class, 'edit'])->name('resource.edit');
     Route::put('/{id}', [ResourceController::class, 'update'])->name('resource.update');

@@ -49,7 +49,6 @@ class BelongsToOptionsStrategy implements FieldOptionsStrategy
 
         $keyAttribute = $fieldResource::$attributeKey ?? 'id';
         $fieldResourceInstance = new $fieldResource;
-
         $fieldModel = $field->getModel();
         if (!$fieldModel) {
             return [];
@@ -69,6 +68,7 @@ class BelongsToOptionsStrategy implements FieldOptionsStrategy
 
                 // Search in searchable relations
                 $searchableRelations = $fieldResourceInstance->getSearchableRelations();
+
                 foreach ($searchableRelations as $relationPath) {
                     $parts = explode('.', $relationPath);
 

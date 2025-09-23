@@ -117,6 +117,10 @@ class FieldOptionsService
         ];
     }
 
+    public function getPaginatedOptions(){
+        return [];
+    }
+
     /**
      * Find the appropriate strategy for a field.
      *
@@ -236,10 +240,10 @@ class FieldOptionsService
         $query->limit($limit);
 
         // Get results
-        $results = $query->select([...$fieldResourceInstance->getAttributesForSelect($request), $keyAttribute])->get();
+        $results = $query->select([...$fieldResourceInstance->getAttributesForSelect($request), $keyAttribute])->paginate();
 
         // Format as an option array
-        return $results->map(function ($item) use ($keyAttribute, $field) {
+        return $results->transform(function ($item) use ($keyAttribute, $field) {
             return [
                 'value' => $item->{$keyAttribute},
                 'label' => $field->resolveDisplay($item)

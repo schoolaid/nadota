@@ -9,8 +9,8 @@ use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
 
 class Image extends File
 {
-    protected ?int $maxWidth = null;
-    protected ?int $maxHeight = null;
+    protected ?int $maxImageWidth = null;
+    protected ?int $maxImageHeight = null;
     protected bool $showPreview = true;
     protected array $thumbnailSizes = [];
     protected ?string $alt = null;
@@ -30,35 +30,35 @@ class Image extends File
         // Set default accepted types to common image formats
         $this->acceptedTypes = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
         
-        // Set default max size to 5MB for images
+        // Set the default max size to 5MB for images
         $this->maxSize = config('nadota.fields.image.max_size', 5 * 1024 * 1024);
     }
 
     /**
      * Set maximum image dimensions.
      */
-    public function maxDimensions(int $width, int $height): static
+    public function maxImageDimensions(int $width, int $height): static
     {
-        $this->maxWidth = $width;
-        $this->maxHeight = $height;
+        $this->maxImageWidth = $width;
+        $this->maxImageHeight = $height;
         return $this;
     }
 
     /**
      * Set maximum image width.
      */
-    public function maxWidth(int $width): static
+    public function maxImageWidth(int $width): static
     {
-        $this->maxWidth = $width;
+        $this->maxImageWidth = $width;
         return $this;
     }
 
     /**
      * Set maximum image height.
      */
-    public function maxHeight(int $height): static
+    public function maxImageHeight(int $height): static
     {
-        $this->maxHeight = $height;
+        $this->maxImageHeight = $height;
         return $this;
     }
 
@@ -181,6 +181,22 @@ class Image extends File
     }
 
     /**
+     * Convenience method for setting only width constraint.
+     */
+    public function imageWidth(int $width): static
+    {
+        return $this->maxImageWidth($width);
+    }
+
+    /**
+     * Convenience method for setting only height constraint.
+     */
+    public function imageHeight(int $height): static
+    {
+        return $this->maxImageHeight($height);
+    }
+
+    /**
      * Set image quality for compression (1-100).
      */
     public function quality(int $quality): static
@@ -193,24 +209,24 @@ class Image extends File
     {
         $rules = parent::getRules();
 
-        // Add image validation rule
-        $rules[] = 'image';
-
-        // Add dimension validation if specified
-        if ($this->maxWidth !== null || $this->maxHeight !== null) {
-            $dimensions = 'dimensions:';
-            $constraints = [];
-
-            if ($this->maxWidth !== null) {
-                $constraints[] = "max_width={$this->maxWidth}";
-            }
-
-            if ($this->maxHeight !== null) {
-                $constraints[] = "max_height={$this->maxHeight}";
-            }
-
-            $rules[] = $dimensions . implode(',', $constraints);
-        }
+//        // Add image validation rule
+//        $rules[] = 'image';
+//
+//        // Add dimension validation if specified
+//        if ($this->maxImageWidth !== null || $this->maxImageHeight !== null) {
+//            $dimensions = 'dimensions:';
+//            $constraints = [];
+//
+//            if ($this->maxImageWidth !== null) {
+//                $constraints[] = "max_width={$this->maxImageWidth}";
+//            }
+//
+//            if ($this->maxImageHeight !== null) {
+//                $constraints[] = "max_height={$this->maxImageHeight}";
+//            }
+//
+//            $rules[] = $dimensions . implode(',', $constraints);
+//        }
 
         return $rules;
     }
@@ -329,8 +345,8 @@ class Image extends File
         }
 
         return array_merge($props, [
-            'maxWidth' => $this->maxWidth,
-            'maxHeight' => $this->maxHeight,
+            'maxImageWidth' => $this->maxImageWidth,
+            'maxImageHeight' => $this->maxImageHeight,
             'showPreview' => $showPreview,
             'thumbnailSizes' => $this->thumbnailSizes,
             'alt' => $this->alt,

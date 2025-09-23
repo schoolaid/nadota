@@ -18,12 +18,12 @@ trait FieldResolveTrait
      */
     public function resolve(Request $request, Model $model, ?ResourceInterface $resource): mixed
     {
-        // If field has a display callback, use it to compute the value
+        // If a field has a display callback, use it to compute the value
         if (method_exists($this, 'hasDisplayCallback') && $this->hasDisplayCallback()) {
             return call_user_func($this->displayCallback, $model, $resource);
         }
 
-        // For non-computed fields, get value from model
+        // For non-computed fields, get value from a model
         $value = $model->{$this->getAttribute()};
 
         if ($value !== null) {

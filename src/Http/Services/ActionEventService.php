@@ -143,7 +143,7 @@ class ActionEventService
         array $changes = null
     ): ActionEvent {
         try {
-            $actionEvent = ActionEvent::create([
+            $actionEvent = ActionEvent::query()->create([
                 'batch_id' => $this->getBatchId(),
                 'user_id' => Auth::id() ?? 0,
                 'name' => $action,
@@ -155,6 +155,7 @@ class ActionEventService
                 'model_id' => $model->getKey(),
                 'fields' => $this->sanitizeFields($fields),
                 'status' => 'finished',
+                'exception' => null,
                 'original' => $original ? $this->sanitizeData($original) : null,
                 'changes' => $changes ? $this->sanitizeData($changes) : null,
             ]);
@@ -169,7 +170,7 @@ class ActionEventService
             ]);
 
             // Create a failed event record
-            return ActionEvent::create([
+            return ActionEvent::query()->create([
                 'batch_id' => $this->getBatchId(),
                 'user_id' => Auth::id() ?? 0,
                 'name' => $action,
@@ -227,7 +228,7 @@ class ActionEventService
      */
     public function getModelHistory(Model $model, int $limit = 50)
     {
-        return ActionEvent::where('model_type', get_class($model))
+        return ActionEvent::query()->where('model_type', get_class($model))
             ->where('model_id', $model->getKey())
             ->recent()
             ->limit($limit)
@@ -250,7 +251,7 @@ class ActionEventService
      */
     public function getResourceActivity(string $resourceClass, int $limit = 50)
     {
-        return ActionEvent::byActionableType($resourceClass)
+        return ActionEvent::query()->byActionableType($resourceClass)
             ->recent()
             ->limit($limit)
             ->get();

@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use SchoolAid\Nadota\Contracts\ResourceUpdateInterface;
 use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
+use SchoolAid\Nadota\Http\Fields\File;
 use SchoolAid\Nadota\Http\Fields\Relations\MorphTo;
 use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 use SchoolAid\Nadota\Http\Traits\TracksActionEvents;
@@ -88,35 +89,21 @@ class ResourceUpdateService implements ResourceUpdateInterface
 
             // First pass: handle non-relation fields
             $fields->each(function ($field) use (&$validatedData, $request, $model, $resource) {
-                if ($field instanceof MorphTo) {
-                    // Use the fill method for MorphTo fields
+                // Fields that handle their own filling (Files, MorphTo, etc.)
+                if ($field instanceof File || $field instanceof MorphTo) {
+                    // Use the fill method for special fields
                     $field->fill($request, $model);
-                } elseif ($field->getType() !== FieldType::BELONGS_TO->value) {
+                }
+                // Check if the field has a custom fill method
+                elseif (method_exists($field, 'fill')) {
+                    $field->fill($request, $model);
+                }
+                // Default handling for simple fields
+                else {
                     $attribute = $field->getAttribute();
-                    $value = $validatedData[$attribute] ?? null;
-                    $model->{$attribute} = $field->resolveForUpdate($request, $model, $resource, $value);
-                }
-            });
-
-            $model->save();
-
-            // Second pass: handle BelongsTo relations (needs refresh)
-            $model->refresh();
-            $fields->each(function ($field) use (&$validatedData, $request, $model, $resource) {
-                $attribute = $field->getAttribute();
-
-                if (!array_key_exists($attribute, $validatedData) && $field->hasDefault()) {
-                    $validatedData[$attribute] = $field->resolveDefault($request, $model, $resource);
-                }
-
-                if($field->getType() == FieldType::BELONGS_TO->value) {
-                    $relation = $model->{$attribute}
-                        ->where(
-                            $field->getForeignKey(),
-                            $validatedData[$attribute])
-                        ->first();
-
-                    $model->{$attribute}()->associate($relation);
+                    if (isset($validatedData[$attribute])) {
+                        $model->{$attribute} = $field->resolveForUpdate($request, $model, $resource, $validatedData[$attribute]);
+                    }
                 }
             });
 

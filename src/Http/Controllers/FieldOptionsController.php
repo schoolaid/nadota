@@ -53,7 +53,7 @@ class FieldOptionsController extends Controller
     }
 
     /**
-     * Get options for a specific morph type of a morph field.
+     * Get options for a specific morph type of morph field.
      *
      * @param NadotaRequest $request
      * @param string $resourceKey

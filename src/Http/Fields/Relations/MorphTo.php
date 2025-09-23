@@ -349,7 +349,7 @@ class MorphTo extends Field
      */
     public function fill(Request $request, Model $model): void
     {
-        // Get the type value from request (this should be the resource key, e.g., 'students')
+        // Get the type value from the request (this should be the resource key, e.g., 'students')
         $typeValue = $request->get($this->morphTypeAttribute);
         $idValue = $request->get($this->morphIdAttribute);
 
@@ -360,7 +360,7 @@ class MorphTo extends Field
             return;
         }
 
-        // First check if it's a direct alias match
+        // First, check if it's a direct alias match
         if (isset($this->morphModels[$typeValue])) {
             $model->{$this->morphTypeAttribute} = $this->morphModels[$typeValue];
             $model->{$this->morphIdAttribute} = $idValue;

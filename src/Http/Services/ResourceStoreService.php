@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use SchoolAid\Nadota\Contracts\ResourceStoreInterface;
 use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
+use SchoolAid\Nadota\Http\Fields\File;
 use SchoolAid\Nadota\Http\Fields\Relations\MorphTo;
 use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 use SchoolAid\Nadota\Http\Traits\TracksActionEvents;
@@ -81,12 +82,17 @@ class ResourceStoreService implements ResourceStoreInterface
 
             // Process each field
             $fields->each(function ($field) use (&$validatedData, $request, $model, $resource) {
-                if ($field instanceof MorphTo) {
-                    // Use the fill method for MorphTo fields
+                // Fields that handle their own filling (Files, MorphTo, etc.)
+                if ($field instanceof File || $field instanceof MorphTo) {
+                    // Use the fill method for special fields
                     $field->fill($request, $model);
-                } else {
+                }
+                // Default handling for simple fields
+                else {
                     $attribute = $field->getAttribute();
-                    $model->{$attribute} = $field->resolveForStore($request, $model, $resource, $validatedData[$attribute] ?? null);
+                    if (isset($validatedData[$attribute])) {
+                        $model->{$attribute} = $field->resolveForStore($request, $model, $resource, $validatedData[$attribute]);
+                    }
                 }
             });
             $model->save();
