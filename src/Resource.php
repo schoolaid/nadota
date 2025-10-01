@@ -29,6 +29,7 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
 
     public string $model;
     protected bool $usesSoftDeletes = false;
+    protected ?string $title = null;
     protected ?string $displayIcon = null;
     protected ResourceAuthorizationInterface $resourceAuthorization;
 
@@ -54,7 +55,7 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
     }
     public function title(): string
     {
-        return Str::plural(Str::title(Str::snake(class_basename(get_called_class()), ' ')));
+        return $this->title ?? Str::plural(Str::title(Str::snake(class_basename(get_called_class()), ' ')));
     }
     public static function getKey(): string
     {
@@ -90,6 +91,8 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
             'delete' => $this->authorizedTo($request, 'delete', $resource),
             'forceDelete' => $forceDelete && $hasSoftDelete,
             'restore' => $restore && $hasSoftDelete && $trashed,
+            'attach' => $this->authorizedTo($request, 'attach', $resource),
+            'detach' => $this->authorizedTo($request, 'detach', $resource),
         ];
     }
     public function usesSoftDeletes(): bool
