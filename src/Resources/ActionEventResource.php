@@ -29,7 +29,7 @@ class ActionEventResource extends Resource
      *
      * @var string
      */
-    public static string $title = 'Action Events';
+    public ?string $title = 'Action Events';
 
     /**
      * The columns that should be searched.
