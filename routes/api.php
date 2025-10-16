@@ -24,6 +24,7 @@ Route::prefix('/{resourceKey}/resource')->group(function () {
     // Morph field options endpoint
     Route::get('/field/{fieldName}/morph-options/{morphType}', [FieldOptionsController::class, 'morphOptions'])->name('resource.field.morph.options');
 });
+
 Route::prefix('/{resourceKey}/resource')->group(function () {
     Route::get('/', [ResourceController::class, 'index'])->name('resource.index');
     Route::get('/create', [ResourceController::class, 'create'])->name('resource.create');

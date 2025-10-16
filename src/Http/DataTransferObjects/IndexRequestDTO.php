@@ -20,6 +20,7 @@ class IndexRequestDTO
     {
         $this->prepareModel();
         $this->query = $this->resource->getQuery($this->request, $this->modelInstance);
+        $this->query = $this->resource->queryIndex($this->request, $this->query);
     }
     protected function prepareModel(): void
     {

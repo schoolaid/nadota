@@ -72,7 +72,10 @@ return [
             'type' => 'checkboxList',
             'component' => 'FieldCheckboxList'
         ],
-        
+        'keyvalue' => [
+            'type' => 'keyvalue',
+            'component' => 'FieldKeyValue'
+        ],
         // File Fields
         'file' => [
             'type' => 'file',

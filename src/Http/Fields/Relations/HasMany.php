@@ -10,6 +10,7 @@ use SchoolAid\Nadota\Contracts\ResourceInterface;
 use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
 use SchoolAid\Nadota\Http\Fields\Field;
 use SchoolAid\Nadota\Http\Fields\Traits\ManagesAttachments;
+use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 
 class HasMany extends Field
 {
@@ -220,7 +221,7 @@ class HasMany extends Field
      * @param Request $request
      * @return array
      */
-    protected function formatWithResource(Collection $items, ResourceInterface $resource, Request $request): array
+    protected function formatWithResource(Collection $items, ResourceInterface $resource, NadotaRequest $request): array
     {
         // Use custom fields if provided, otherwise use resource's index fields
         $fields = $this->customFields !== null

@@ -50,13 +50,13 @@ class AttachmentController extends Controller
     /**
      * Attach items to a relationship.
      */
-    public function attach(NadotaRequest $request, string $id, string $field): JsonResponse
+    public function attach(NadotaRequest $request, string $resourceKey, string $resourceId, string $field): JsonResponse
     {
         $request->prepareResource();
         $resource = $request->getResource();
 
         // Find the parent model
-        $model = $resource->getQuery($request)->findOrFail($id);
+        $model = $resource->getQuery($request)->findOrFail($resourceId);
 
         // Check permissions
         if (!$resource->authorizedTo($request, 'update', $model)) {
@@ -75,7 +75,7 @@ class AttachmentController extends Controller
             return response()->json(['message' => 'Field is not attachable'], 422);
         }
 
-        // Attach based on field type
+        // Attach based on a field type
         $relationType = $fieldInstance->getType();
 
         switch ($relationType) {
@@ -89,7 +89,7 @@ class AttachmentController extends Controller
     /**
      * Detach items from a relationship.
      */
-    public function detach(NadotaRequest $request, string $id, string $field): JsonResponse
+    public function detach(NadotaRequest $request, string $resourceKey, string $id, string $field): JsonResponse
     {
         $request->prepareResource();
         $resource = $request->getResource();
@@ -114,7 +114,7 @@ class AttachmentController extends Controller
             return response()->json(['message' => 'Field is not attachable'], 422);
         }
 
-        // Detach based on field type
+        // Detach based on a field type
         $relationType = $fieldInstance->getType();
 
         switch ($relationType) {

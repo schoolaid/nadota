@@ -29,11 +29,11 @@ class BelongsTo extends Field
     public function resolve(Request $request, Model $model, ?ResourceInterface $resource): mixed
     {
         $value = $model->{$this->getRelation()};
+
         if ($value !== null) {
             $resourceKey = null;
 
             $label = $this->resolveDisplay($value);
-
             if ($label === null) {
                 $commonAttributes = ['name', 'title', 'label', 'display_name', 'full_name', 'description'];
                 foreach ($commonAttributes as $attr) {
@@ -42,6 +42,7 @@ class BelongsTo extends Field
                         break;
                     }
                 }
+
 
                 if ($label === null) {
                     $label = $value->getKey();

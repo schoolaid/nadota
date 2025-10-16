@@ -10,10 +10,13 @@ class ApplySortingPipe
 {
     public function handle(IndexRequestDTO $data, Closure $next)
     {
-
-        $sortField = $data->request->input('sortField') ?? 'created_at';
+        $sortField = $data->request->input('sortField') ?? null;
         $sortDirection = $data->request->input('sortDirection') ?? 'desc';
         $fields = $data->getFields();
+
+        if(!$sortField){
+            return $next($data);
+        }
 
         /** @var Field $field */
         $field = $fields->first(fn($field) => $field->key() === $sortField);

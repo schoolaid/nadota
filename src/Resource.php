@@ -29,7 +29,7 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
 
     public string $model;
     protected bool $usesSoftDeletes = false;
-    protected ?string $title = null;
+    protected ?string $title;
     protected ?string $displayIcon = null;
     protected ResourceAuthorizationInterface $resourceAuthorization;
 

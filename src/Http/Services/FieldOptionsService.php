@@ -240,7 +240,7 @@ class FieldOptionsService
         $query->limit($limit);
 
         // Get results
-        $results = $query->select([...$fieldResourceInstance->getAttributesForSelect($request), $keyAttribute])->paginate();
+        $results = $query->select([...$fieldResourceInstance->getAttributesForSelect($request), $keyAttribute])->get();
 
         // Format as an option array
         return $results->transform(function ($item) use ($keyAttribute, $field) {

@@ -189,8 +189,7 @@ class File extends Field
         if (!$value) {
             return null;
         }
-
-        // Return file information
+            // Return file information
         return [
             'path' => $value,
             'name' => basename($value),
@@ -367,12 +366,26 @@ class File extends Field
      */
     protected function generateFilename(UploadedFile $file): string
     {
+        $originalName = $file->getClientOriginalName();
         $extension = $file->getClientOriginalExtension();
-        $filename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+
+        // Get filename without extension
+        $pathInfo = pathinfo($originalName);
+        $filename = $pathInfo['filename'] ?? 'file';
+
+        // If no extension, try to get from mime type
+        if (empty($extension)) {
+            $extension = $file->guessExtension() ?: 'bin';
+        }
 
         // Sanitize filename
         $filename = preg_replace('/[^A-Za-z0-9\-_]/', '-', $filename);
         $filename = substr($filename, 0, 100); // Limit length
+
+        // Handle empty filename
+        if (empty($filename)) {
+            $filename = 'file';
+        }
 
         // Add timestamp for uniqueness
         $timestamp = time();

@@ -30,4 +30,6 @@ enum FieldType: string
     case JSON = 'json';
     case CODE = 'code';
     case CUSTOM_COMPONENT = 'customComponent';
+    case KEY_VALUE = 'keyValue';
+    case ARRAY = 'array';
 }

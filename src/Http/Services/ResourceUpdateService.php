@@ -94,10 +94,6 @@ class ResourceUpdateService implements ResourceUpdateInterface
                     // Use the fill method for special fields
                     $field->fill($request, $model);
                 }
-                // Check if the field has a custom fill method
-                elseif (method_exists($field, 'fill')) {
-                    $field->fill($request, $model);
-                }
                 // Default handling for simple fields
                 else {
                     $attribute = $field->getAttribute();

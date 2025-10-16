@@ -103,7 +103,7 @@ class CustomComponent extends Field
      */
     public function resolve(\Illuminate\Http\Request $request, \Illuminate\Database\Eloquent\Model $model, ?\SchoolAid\Nadota\Contracts\ResourceInterface $resource): mixed
     {
-        // Return null or component data if callback is defined
+        // Return null or component data if the callback is defined
         if ($this->dataCallback !== null) {
             return call_user_func($this->dataCallback, $model, $resource);
         }

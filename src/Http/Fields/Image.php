@@ -285,7 +285,7 @@ class Image extends File
     }
 
     /**
-     * Generate thumbnail path based on original path and size.
+     * Generate a thumbnail path based on original path and size.
      */
     protected function generateThumbnailPath(string $path, string $size): string
     {

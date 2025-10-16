@@ -154,7 +154,7 @@ class HasManyAttachmentService
 
         // Get the foreign key
         $foreignKey = $parentModel->{$relationName}()->getForeignKeyName();
-
+        
         // Find and detach items
         $detached = $parentModel->{$relationName}()
             ->whereIn($parentModel->{$relationName}()->getRelated()->getKeyName(), $itemIds)
@@ -167,7 +167,7 @@ class HasManyAttachmentService
     }
 
     /**
-     * Get label for an attachable item.
+     * Get a label for an attachable item.
      */
     protected function getItemLabel(Model $item, HasMany $field): string
     {

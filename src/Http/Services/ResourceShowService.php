@@ -28,6 +28,7 @@ class ResourceShowService implements ResourceShowInterface
                 return $field->toArray($request, $model, $resource);
             });
 
+
         return response()->json([
             'data' => [
                 'id' => $model->getKey(),
