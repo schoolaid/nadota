@@ -87,45 +87,34 @@ class MenuService implements MenuServiceInterface
      */
     private function addToMenuPath(array &$menuStructure, string $path, MenuItem $menuItem): void
     {
-        $segments = array_filter(explode('.', $path)); // Remove empty segments
-        
-        if (empty($segments)) {
+        // Treat the whole path literal as a single section label (preserve
+        // dot characters for i18n keys like "resource.title").
+        $label = trim($path);
+        if ($label === '') {
             return;
         }
 
-        // Get or create the section path
-        $current = &$menuStructure;
-        
-        foreach ($segments as $segment) {
-            // Create a section if it doesn't exist
-            if (!isset($current[$segment])) {
-                $current[$segment] = new MenuSection(
-                    $segment,
-                    'Boxes'
-                );
-            } elseif ($current[$segment] instanceof MenuItem) {
-                // Convert MenuItem to MenuSection if it needs to hold children
-                $existingItem = $current[$segment];
-                $current[$segment] = new MenuSection(
-                    $existingItem->getLabel(),
-                    $existingItem->getIcon(),
-                    [$existingItem], // Keep existing item as a first child
-                    $existingItem->getOrder(),
-                    false
-                );
-            }
+        // If there's no top-level section with this exact label, create one.
+        if (!isset($menuStructure[$label])) {
+            $menuStructure[$label] = new MenuSection($label, 'Boxes');
+        } elseif ($menuStructure[$label] instanceof MenuItem) {
+            // Convert existing MenuItem into a MenuSection so it can hold children.
+            $existingItem = $menuStructure[$label];
+            $menuStructure[$label] = new MenuSection(
+                $existingItem->getLabel(),
+                $existingItem->getIcon(),
+                [$existingItem],
+                $existingItem->getOrder(),
+                false
+            );
         }
-        // Now add the menu item to the last section
-        $targetSection = $menuStructure;
-        foreach ($segments as $segment) {
-            $targetSection = $targetSection[$segment];
-        }
-        
-        if ($targetSection instanceof MenuSection) {
-            $children = $targetSection->getChildren();
-            $children[] = $menuItem;
-            $targetSection->setChildren($children);
-        }
+
+        $section = $menuStructure[$label];
+
+        // Append the menu item as a child of this section.
+        $children = $section->getChildren();
+        $children[] = $menuItem;
+        $section->setChildren($children);
     }
     
     /**
