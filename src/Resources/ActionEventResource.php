@@ -71,7 +71,7 @@ class ActionEventResource extends Resource
                 ->help('UUID for grouping related actions')
                 ,
 
-            BelongsTo::make('User', 'user_id', 'user')
+            BelongsTo::make('User', 'user')
                 ->sortable()
                 ->displayAttribute('name')
                 ->readonly(),

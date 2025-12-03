@@ -10,7 +10,7 @@ it('can be instantiated', function () {
     expect($field)
         ->toBeField()
         ->toHaveFieldAttribute('simpleTags')
-        ->and($field->fieldData->name)->toBe('Tags');
+        ->and($field->fieldData->label)->toBe('Tags');
 });
 
 it('returns belongsToMany relation type', function () {
@@ -179,7 +179,7 @@ it('serializes to array correctly', function () {
     $array = $field->toArray($request, $testModel, null);
     
     expect($array)
-        ->toHaveKey('name', 'Tags')
+        ->toHaveKey('label', 'Tags')
         ->toHaveKey('attribute', 'simpleTags')
         ->toHaveKey('relationType', 'belongsToMany')
         ->toHaveKey('sortable', true)

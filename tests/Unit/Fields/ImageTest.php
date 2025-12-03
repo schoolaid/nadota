@@ -9,7 +9,7 @@ it('can be instantiated', function () {
     expect($field)
         ->toBeField()
         ->toHaveFieldAttribute('avatar')
-        ->and($field->fieldData->name)->toBe('Avatar');
+        ->and($field->fieldData->label)->toBe('Avatar');
 });
 
 it('has correct type and component', function () {
@@ -134,7 +134,7 @@ it('resolves image value with additional properties', function () {
     
     expect($value)->toBeArray()
         ->toHaveKey('path', 'images/avatar.jpg')
-        ->toHaveKey('name', 'avatar.jpg')
+        ->toHaveKey('label', 'avatar.jpg')
         ->toHaveKey('isImage', true)
         ->toHaveKey('showPreview', true)
         ->toHaveKey('alt', 'User avatar')
@@ -196,7 +196,7 @@ it('serializes to array correctly', function () {
     $array = $field->toArray($request, $model, null);
     
     expect($array)
-        ->toHaveKey('name', 'Avatar')
+        ->toHaveKey('label', 'Avatar')
         ->toHaveKey('attribute', 'name')
         ->toHaveKey('type', 'image')
         ->toHaveKey('component', 'field-image')

@@ -101,7 +101,7 @@ it('serializes to array correctly', function () {
     $array = $field->toArray($request, $model, null);
     
     expect($array)
-        ->toHaveKey('name', 'Published At')
+        ->toHaveKey('label', 'Published At')
         ->toHaveKey('attribute', 'published_at')
         ->toHaveKey('sortable', true)
         ->toHaveKey('props')

@@ -40,12 +40,15 @@ trait FieldDataAccessorsTrait
         return $this->fieldData->type;
     }
 
-    public function getName(): string
+    public function getLabel(): string
     {
-        return $this->fieldData->name;
+        return $this->fieldData->label;
     }
 
-    public function getLabel(): string
+    /**
+     * Alias for getLabel() - for backwards compatibility
+     */
+    public function getName(): string
     {
         return $this->fieldData->label;
     }
@@ -60,9 +63,9 @@ trait FieldDataAccessorsTrait
         return $this->fieldData->component;
     }
 
-    public function getId(): string
+    public function getKey(): string
     {
-        return $this->fieldData->id;
+        return $this->fieldData->key;
     }
 
     /**

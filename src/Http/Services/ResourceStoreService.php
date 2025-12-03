@@ -23,7 +23,9 @@ class ResourceStoreService implements ResourceStoreInterface
 
         $fields = collect($resource->fields($request))
             ->filter(function ($field) {
-                return $field->isShowOnCreation();
+                return $field->isShowOnCreation()
+                    && !$field->isReadonly()
+                    && !$field->isComputed();
             });
 
         // Build validation rules including MorphTo fields
@@ -44,7 +46,7 @@ class ResourceStoreService implements ResourceStoreInterface
                     if (isset($fieldRules[$idAttribute])) {
                         $rules[$idAttribute] = $fieldRules[$idAttribute];
                     }
-                    // If rules are provided as single string, apply to id field
+                    // If rules are provided as a single string, apply to id field
                     if (!isset($fieldRules[$typeAttribute]) && !isset($fieldRules[$idAttribute])) {
                         $rules[$idAttribute] = $fieldRules;
                     }
@@ -114,5 +116,29 @@ class ResourceStoreService implements ResourceStoreInterface
             'message' => 'Resource created successfully',
             'data' => $model,
         ], 201);
+    }
+
+    /**
+     * Replace :id placeholder in validation rules.
+     * This is useful for unique rules that need to exclude a specific record.
+     *
+     * @param mixed $rules
+     * @param mixed $id The ID to replace :id with
+     * @return mixed
+     */
+    private function replaceIdPlaceholder($rules, $id)
+    {
+        if (is_array($rules)) {
+            foreach ($rules as &$rule) {
+                if (is_string($rule)) {
+                    $rule = str_replace(':id', $id, $rule);
+                }
+            }
+            return $rules;
+        } elseif (is_string($rules)) {
+            return str_replace(':id', $id, $rules);
+        }
+
+        return $rules;
     }
 }

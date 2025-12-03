@@ -6,11 +6,12 @@ use SchoolAid\Nadota\Tests\Models\RelatedModel;
 
 it('can be instantiated', function () {
     $field = BelongsTo::make('Test Model', 'testModel');
-    
+
     expect($field)
         ->toBeField()
-        ->toHaveFieldAttribute('testModel')
-        ->and($field->fieldData->name)->toBe('Test Model');
+        ->toHaveFieldAttribute('test_model_id')
+        ->and($field->fieldData->label)->toBe('Test Model')
+        ->and($field->getRelation())->toBe('testModel');
 });
 
 it('returns belongsTo relation type', function () {
@@ -122,13 +123,11 @@ it('serializes to array correctly', function () {
     $array = $field->toArray($request, $relatedModel, null);
     
     expect($array)
-        ->toHaveKey('name', 'Test Model')
-        ->toHaveKey('attribute', 'testModel')
-        ->toHaveKey('relationType', 'belongsTo')
+        ->toHaveKey('label', 'Test Model')
+        ->toHaveKey('attribute', 'test_model_id')
         ->toHaveKey('sortable', true)
         ->toHaveKey('filterable', true)
-        ->toHaveKey('value')
-        ->toHaveKey('options');
+        ->toHaveKey('value');
 });
 
 it('can set display attribute', function () {
@@ -138,8 +137,15 @@ it('can set display attribute', function () {
     expect($field->getAttributeForDisplay())->toBe('email');
 });
 
-it('uses id as default foreign key', function () {
+it('infers foreign key from relation name', function () {
     $field = BelongsTo::make('Test Model', 'testModel');
-    
-    expect($field->getForeignKey())->toBe('id');
+
+    expect($field->getForeignKey())->toBe('test_model_id');
+});
+
+it('allows custom foreign key override', function () {
+    $field = BelongsTo::make('Creator', 'creator')
+        ->foreignKey('created_by_user_id');
+
+    expect($field->getForeignKey())->toBe('created_by_user_id');
 });

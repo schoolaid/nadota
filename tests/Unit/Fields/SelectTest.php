@@ -137,7 +137,7 @@ it('serializes to array correctly', function () {
     $array = $field->toArray($request, $model, null);
     
     expect($array)
-        ->toHaveKey('name', 'Status')
+        ->toHaveKey('label', 'Status')
         ->toHaveKey('attribute', 'status')
         ->toHaveKey('value', 'active')
         ->toHaveKey('props')

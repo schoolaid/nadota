@@ -243,7 +243,7 @@ class Image extends File
         $imageData = array_merge($fileData, [
             'isImage' => true,
             'showPreview' => $this->showPreview,
-            'alt' => $this->alt ?: $this->fieldData->name,
+            'alt' => $this->alt ?: $this->fieldData->label,
             'thumbnails' => $this->getThumbnails($fileData['path']),
             'dimensions' => $this->getImageDimensions($fileData['path']),
         ]);

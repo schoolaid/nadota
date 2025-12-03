@@ -34,7 +34,7 @@ class ResourceController extends Controller
         return $this->indexService->handle($request);
     }
 
-    public function create(NadotaRequest $request)
+    public function create(NadotaRequest $request): \Illuminate\Http\JsonResponse
     {
         return $this->createService->handle($request);
     }

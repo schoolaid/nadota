@@ -9,7 +9,7 @@ it('can be instantiated', function () {
     expect($field)
         ->toBeField()
         ->toHaveFieldAttribute('secret_key')
-        ->and($field->fieldData->name)->toBe('Secret Key');
+        ->and($field->fieldData->label)->toBe('Secret Key');
 });
 
 it('has correct type and component', function () {
@@ -66,7 +66,7 @@ it('serializes to array correctly', function () {
     $array = $field->toArray($request, $model, null);
     
     expect($array)
-        ->toHaveKey('name', 'Secret Key')
+        ->toHaveKey('label', 'Secret Key')
         ->toHaveKey('attribute', 'name')
         ->toHaveKey('type', 'hidden')
         ->toHaveKey('component', 'field-hidden')

@@ -94,19 +94,19 @@ class BelongsToOptionsStrategy implements FieldOptionsStrategy
         // Apply limit
         $query->limit($limit);
 
-        // Get attributes to select
-        $selectAttributes = [];
-        if (method_exists($fieldResourceInstance, 'getAttributesForSelect')) {
-            $selectAttributes = $fieldResourceInstance->getAttributesForSelect($request);
+        // Get columns to select
+        $selectColumns = [];
+        if (method_exists($fieldResourceInstance, 'getSelectColumns')) {
+            $selectColumns = $fieldResourceInstance->getSelectColumns($request);
         }
 
         // Always include the key attribute
-        if (!in_array($keyAttribute, $selectAttributes)) {
-            $selectAttributes[] = $keyAttribute;
+        if (!in_array($keyAttribute, $selectColumns)) {
+            $selectColumns[] = $keyAttribute;
         }
 
         // Get results
-        $results = $query->select($selectAttributes)->get();
+        $results = $query->select($selectColumns)->get();
 
         // Format as an option array
         return $results->map(function ($item) use ($keyAttribute, $field) {

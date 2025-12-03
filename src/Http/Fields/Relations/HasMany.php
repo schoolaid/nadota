@@ -11,6 +11,7 @@ use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
 use SchoolAid\Nadota\Http\Fields\Field;
 use SchoolAid\Nadota\Http\Fields\Traits\ManagesAttachments;
 use SchoolAid\Nadota\Http\Requests\NadotaRequest;
+use SchoolAid\Nadota\Http\Resources\RelationResource;
 
 class HasMany extends Field
 {
@@ -119,36 +120,6 @@ class HasMany extends Field
     }
 
     /**
-     * Get the fields to use for select constraints in eager loading.
-     *
-     * @param Request $request
-     * @return array|null
-     */
-    public function getFieldsForSelect(Request $request): ?array
-    {
-        // If custom fields are set, use them
-        if ($this->customFields !== null) {
-            $attributes = collect($this->customFields)
-                ->filter(fn($field) => !$field->isRelationship())
-                ->map(fn($field) => $field->getAttribute())
-                ->toArray();
-
-            // Always include the primary key
-            return array_unique([...$attributes, 'id']);
-        }
-
-        // If resource is set but no custom fields, use resource fields
-        if ($this->getResource()) {
-            $resourceClass = $this->getResource();
-            $resource = new $resourceClass;
-            return $resource->getAttributesForSelect($request);
-        }
-
-        // No fields or resource - return null to select all
-        return null;
-    }
-
-    /**
      * Enable or disable creation of new related items.
      *
      * @param bool $canCreate
@@ -228,27 +199,36 @@ class HasMany extends Field
             ? collect($this->customFields)
             : collect($resource->fieldsForIndex($request));
 
-        return [
-            'data' => $items->map(function ($item) use ($fields, $request, $resource) {
-                return [
-                    'key' => $item->getKey(),
-                    'fields' => $fields->map(function ($field) use ($item, $request, $resource) {
-                        return $field->toArray($request, $item, $resource);
-                    })->toArray(),
-                    'permissions' => $resource->getPermissionsForResource($request, $item)
-                ];
-            })->toArray(),
-            'meta' => [
-                'total' => $items->count(),
-                'hasMore' => $this->limit !== null && $items->count() >= $this->limit,
-                'resource' => $resource::getKey(),
-                'fields' => $fields->map(fn($field) => [
-                    'key' => $field->key(),
-                    'name' => $field->getName(),
-                    'sortable' => $field->isSortable(),
-                ])->toArray()
-            ]
-        ];
+        $relationResource = RelationResource::make($fields, $resource, $this->exceptFieldKeys)
+            ->withLabelResolver(fn($item, $res) => $this->resolveLabel($item, $res));
+
+        return $relationResource->formatCollection($items, $request, [
+            'hasMore' => $this->limit !== null && $items->count() >= $this->limit,
+        ]);
+    }
+
+    /**
+     * Resolve display label for the related model.
+     */
+    protected function resolveLabel(Model $item, ?ResourceInterface $resource): mixed
+    {
+        // Priority 1: Display callback set on field
+        if ($this->hasDisplayCallback()) {
+            return $this->resolveDisplay($item);
+        }
+
+        // Priority 2: Display attribute set on field
+        if ($this->displayAttribute) {
+            return $item->{$this->displayAttribute} ?? $item->getKey();
+        }
+
+        // Priority 3: Resource's displayLabel method
+        if ($resource && method_exists($resource, 'displayLabel')) {
+            return $resource->displayLabel($item);
+        }
+
+        // Fallback: primary key
+        return $item->getKey();
     }
 
     /**

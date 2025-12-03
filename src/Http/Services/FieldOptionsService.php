@@ -148,7 +148,7 @@ class FieldOptionsService
      */
     protected function findField(NadotaRequest $request, ResourceInterface $resource, string $fieldName): ?Field
     {
-        // Cache the fields collection to avoid multiple calls
+        // Cache the field collection to avoid multiple calls
         static $fieldsCache = [];
         $cacheKey = get_class($resource) . '_' . $fieldName;
 
@@ -158,7 +158,7 @@ class FieldOptionsService
 
         $fields = collect($resource->fields($request));
 
-        // Try to find by key first (most common case)
+        // Try to find by key first (the most common case)
         $field = $fields->first(function ($field) use ($fieldName) {
             return $field->key() === $fieldName;
         });
@@ -240,7 +240,7 @@ class FieldOptionsService
         $query->limit($limit);
 
         // Get results
-        $results = $query->select([...$fieldResourceInstance->getAttributesForSelect($request), $keyAttribute])->get();
+        $results = $query->select([...$fieldResourceInstance->getSelectColumns($request), $keyAttribute])->get();
 
         // Format as an option array
         return $results->transform(function ($item) use ($keyAttribute, $field) {

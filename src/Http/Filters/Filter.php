@@ -43,6 +43,7 @@ abstract class Filter implements FilterInterface
             $this->id = Helpers::slug($this->name);
         }
 
+        
         $this->key = $this->key();
     }
     abstract public function apply(NadotaRequest $request, $query, $value);
@@ -69,7 +70,8 @@ abstract class Filter implements FilterInterface
 
     public function key(): string
     {
-        return str_replace(' ', '', strtolower($this->name));
+        // Usar field (atributo) como key para garantizar unicidad
+        return $this->field ?? str_replace(' ', '', strtolower($this->name));
     }
 
     public function default(): string
@@ -85,10 +87,10 @@ abstract class Filter implements FilterInterface
     public function toArray($request): array
     {
         return [
-            'id' => $this->id(),
             'key' => $this->key(),
-            'name' => $this->name(),
+            'label' => $this->name(),
             'component' => $this->component(),
+            'type' => $this->type,
             'options' => collect($this->resources($request))->map(function ($value, $label) {
                 return is_array($value)
                     ? collect($value)->put('label', $label)->all()

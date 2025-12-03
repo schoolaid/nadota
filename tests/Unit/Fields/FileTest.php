@@ -10,7 +10,7 @@ it('can be instantiated', function () {
     expect($field)
         ->toBeField()
         ->toHaveFieldAttribute('document')
-        ->and($field->fieldData->name)->toBe('Document');
+        ->and($field->fieldData->label)->toBe('Document');
 });
 
 it('has correct type and component', function () {
@@ -127,7 +127,7 @@ it('resolves file value from model correctly', function () {
     
     expect($value)->toBeArray()
         ->toHaveKey('path', 'documents/test.pdf')
-        ->toHaveKey('name', 'test.pdf')
+        ->toHaveKey('label', 'test.pdf')
         ->toHaveKey('downloadable', true);
 });
 
@@ -175,7 +175,7 @@ it('serializes to array correctly', function () {
     $array = $field->toArray($request, $model, null);
     
     expect($array)
-        ->toHaveKey('name', 'Document')
+        ->toHaveKey('label', 'Document')
         ->toHaveKey('attribute', 'name')
         ->toHaveKey('type', 'file')
         ->toHaveKey('component', 'field-file')

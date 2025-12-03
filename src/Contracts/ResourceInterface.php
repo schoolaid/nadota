@@ -13,4 +13,14 @@ interface ResourceInterface
     public function authorizedTo(NadotaRequest $request, string $action, $model = null): bool;
     public function title(): string;
     public static function getKey(): string;
+
+    // Lifecycle hooks for delete operations
+    public function beforeDelete(Model $model, NadotaRequest $request): void;
+    public function performDelete(Model $model, NadotaRequest $request): bool;
+    public function afterDelete(Model $model, NadotaRequest $request): void;
+
+    // Lifecycle hooks for restore operations
+    public function beforeRestore(Model $model, NadotaRequest $request): void;
+    public function performRestore(Model $model, NadotaRequest $request): bool;
+    public function afterRestore(Model $model, NadotaRequest $request): void;
 }

@@ -9,7 +9,7 @@ it('can be instantiated', function () {
     expect($field)
         ->toBeField()
         ->toHaveFieldAttribute('age')
-        ->and($field->fieldData->name)->toBe('Age');
+        ->and($field->fieldData->label)->toBe('Age');
 });
 
 it('has correct type and component', function () {
@@ -117,7 +117,7 @@ it('serializes to array correctly', function () {
     $array = $field->toArray($request, $model, null);
     
     expect($array)
-        ->toHaveKey('name', 'Age')
+        ->toHaveKey('label', 'Age')
         ->toHaveKey('attribute', 'age')
         ->toHaveKey('type', 'number')
         ->toHaveKey('component', 'field-number')

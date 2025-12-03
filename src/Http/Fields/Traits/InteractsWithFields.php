@@ -8,7 +8,7 @@ namespace SchoolAid\Nadota\Http\Fields\Traits;
  */
 trait InteractsWithFields
 {
-    use ManagesFieldSelection;
+    use BuildsSelectColumns;
     use ManagesRelationLoading;
     use ManagesFieldVisibility;
     use TransformsFieldData;

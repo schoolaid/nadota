@@ -12,11 +12,11 @@ class ResourceShowService implements ResourceShowInterface
     {
         $request->prepareResource();
         $resource = $request->getResource();
-        $attributes = $resource->getAttributesForSelect($request);
-        $relationAttributes = $resource->getRelationAttributesForSelect($request);
+        $attributes = $resource->getSelectColumns($request);
+        $eagerLoadRelations = $resource->getEagerLoadRelations($request);
 
         $model = $resource->getQuery($request)
-            ->with([...$resource->with, ...$relationAttributes])
+            ->with([...$resource->getWithOnShow(), ...$eagerLoadRelations])
             ->select(...$attributes)
             ->findOrFail($id);
 

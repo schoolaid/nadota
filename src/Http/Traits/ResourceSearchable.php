@@ -5,6 +5,14 @@ namespace SchoolAid\Nadota\Http\Traits;
 trait ResourceSearchable
 {
     /**
+     * The key used for global search in query parameters.
+     * This helps avoid conflicts with filters that might use 'search' as a key.
+     *
+     * @var string
+     */
+    protected string $searchKey = 'globalSearch';
+
+    /**
      * The attributes that should be searchable on the resource.
      *
      * @var array
@@ -19,6 +27,26 @@ trait ResourceSearchable
      * @var array
      */
     protected array $searchableRelations = [];
+
+    /**
+     * Get the search key for the resource.
+     *
+     * @return string
+     */
+    public function getSearchKey(): string
+    {
+        return $this->searchKey;
+    }
+
+    /**
+     * Check if global search is enabled for this resource.
+     *
+     * @return bool
+     */
+    public function isSearchable(): bool
+    {
+        return !empty($this->searchableAttributes) || !empty($this->searchableRelations);
+    }
 
     /**
      * Get the searchable attributes for the resource.

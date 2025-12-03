@@ -9,7 +9,7 @@ it('can be instantiated', function () {
     expect($field)
         ->toBeField()
         ->toHaveFieldAttribute('email')
-        ->and($field->fieldData->name)->toBe('Email Address');
+        ->and($field->fieldData->label)->toBe('Email Address');
 });
 
 it('has correct type and component', function () {
@@ -77,7 +77,7 @@ it('serializes to array correctly', function () {
     $array = $field->toArray($request, $model, null);
     
     expect($array)
-        ->toHaveKey('name', 'Email Address')
+        ->toHaveKey('label', 'Email Address')
         ->toHaveKey('attribute', 'email')
         ->toHaveKey('type', 'email')
         ->toHaveKey('component', 'field-email')

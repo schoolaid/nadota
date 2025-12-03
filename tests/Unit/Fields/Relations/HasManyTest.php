@@ -11,7 +11,7 @@ it('can be instantiated', function () {
     expect($field)
         ->toBeField()
         ->toHaveFieldAttribute('relatedModels')
-        ->and($field->fieldData->name)->toBe('Related Models');
+        ->and($field->fieldData->label)->toBe('Related Models');
 });
 
 it('returns hasMany relation type', function () {
@@ -177,7 +177,7 @@ it('serializes to array correctly', function () {
     $array = $field->toArray($request, $testModel, null);
     
     expect($array)
-        ->toHaveKey('name', 'Related Models')
+        ->toHaveKey('label', 'Related Models')
         ->toHaveKey('attribute', 'relatedModels')
         ->toHaveKey('relationType', 'hasMany')
         ->toHaveKey('sortable', true)

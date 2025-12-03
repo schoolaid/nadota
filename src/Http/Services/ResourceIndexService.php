@@ -17,6 +17,7 @@ class ResourceIndexService implements ResourceIndexInterface
 
         $pipes = [
             Pipes\BuildQueryPipe::class,
+            Pipes\ApplySearchPipe::class,
             Pipes\ApplyFiltersPipe::class,
             Pipes\ApplySortingPipe::class,
             Pipes\PaginateAndTransformPipe::class,

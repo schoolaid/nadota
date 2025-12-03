@@ -18,7 +18,11 @@ class BuildQueryPipe
                 $data->resource->getUseSoftDeletes()
         );
 
-        $this->addRelations($data->query, $data->getFields());
+        $this->addRelations(
+            $data->query,
+            $data->getFields(),
+            $data->resource->getWithOnIndex()
+        );
 
         return $next($data);
     }
@@ -72,14 +76,18 @@ class BuildQueryPipe
         return $query;
     }
 
-    protected function addRelations(Builder $query, Collection $fields): void
+    protected function addRelations(Builder $query, Collection $fields, array $resourceWith = []): void
     {
-        $relations = $fields
+        // Relations from fields
+        $fieldRelations = $fields
             ->filter(fn($field) => $field->isRelationship() && $field->isAppliedInIndexQuery())
             ->map(fn($field) => $field->getRelation())
             ->unique()
             ->values()
             ->all();
+
+        // Merge with resource-configured relations
+        $relations = array_unique(array_merge($fieldRelations, $resourceWith));
 
         if (!empty($relations)) {
             $query->with($relations);

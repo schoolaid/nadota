@@ -10,7 +10,7 @@ it('can be instantiated', function () {
     expect($field)
         ->toBeField()
         ->toHaveFieldAttribute('profile')
-        ->and($field->fieldData->name)->toBe('Profile');
+        ->and($field->fieldData->label)->toBe('Profile');
 });
 
 it('returns hasOne relation type', function () {
@@ -123,7 +123,7 @@ it('serializes to array correctly', function () {
     $array = $field->toArray($request, $testModel, null);
     
     expect($array)
-        ->toHaveKey('name', 'Profile')
+        ->toHaveKey('label', 'Profile')
         ->toHaveKey('attribute', 'profile')
         ->toHaveKey('relationType', 'hasOne')
         ->toHaveKey('sortable', true)

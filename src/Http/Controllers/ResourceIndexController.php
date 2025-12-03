@@ -93,6 +93,55 @@ class ResourceIndexController extends Controller
     }
 
     /**
+     * Get all configuration for a resource in a single request
+     * Combines: info, fields, filters, and actions
+     */
+    public function config(NadotaRequest $request): array
+    {
+        $request->authorized('viewAny');
+        $resource = $request->getResource();
+        $resource->canCreate = $resource->authorizedTo($request, 'create');
+
+        // Get fields for index
+        $fields = collect($resource->fields($request))
+            ->filter(fn($field) => $field->showOnIndex())
+            ->map(fn($field) => $field->toArray($request))
+            ->values()
+            ->toArray();
+
+        // Get filters
+        $filters = array_merge(
+            $this->getFieldFilters($resource->fields($request), $request),
+            $this->getResourceFilters($resource, $request)
+        );
+
+        // Get actions
+        $actions = collect($resource->actions($request))
+            ->map(fn($action) => $action->toArray($request))
+            ->values()
+            ->toArray();
+
+        return [
+            'resource' => [
+                'key' => $resource->getKey(),
+                'label' => $resource->title(),
+                'canCreate' => $resource->canCreate,
+                'softDeletes' => $resource->getUseSoftDeletes(),
+                'perPage' => $resource->getPerPage(),
+                'allowedPerPage' => $resource->getAllowedPerPage(),
+                'components' => $resource->getComponents(),
+                'search' => [
+                    'key' => $resource->getSearchKey(),
+                    'enabled' => $resource->isSearchable(),
+                ],
+            ],
+            'fields' => $fields,
+            'filters' => $filters,
+            'actions' => $actions,
+        ];
+    }
+
+    /**
      * TODO: New service
      * @param mixed $resource
      * @param NadotaRequest $request

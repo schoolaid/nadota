@@ -2,31 +2,26 @@
 
 namespace SchoolAid\Nadota\Http\Fields\DataTransferObjects;
 
-use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
-
 class FieldDTO
 {
-    public string $name;
     public string $label;
-    public string $id;
     public string $attribute;
+    public string $key;
     public string $placeholder;
     public string $type;
     public string $component;
 
     public function __construct(
-        string $name,
         string $label,
-        string $id,
         string $attribute,
+        string $key,
         string $placeholder,
         string $type,
         string $component
     ) {
-        $this->name = $name;
         $this->label = $label;
-        $this->id = $id;
         $this->attribute = $attribute;
+        $this->key = $key;
         $this->placeholder = $placeholder;
         $this->type = $type;
         $this->component = $component;
@@ -35,10 +30,9 @@ class FieldDTO
     public function toArray(): array
     {
         return [
-            'name' => $this->name,
             'label' => $this->label,
-            'id' => $this->id,
             'attribute' => $this->attribute,
+            'key' => $this->key,
             'placeholder' => $this->placeholder,
             'type' => $this->type,
             'component' => $this->component,

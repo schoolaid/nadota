@@ -34,6 +34,16 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
     protected ResourceAuthorizationInterface $resourceAuthorization;
 
     /**
+     * Relations to an eager load on index queries
+     */
+    protected array $withOnIndex = [];
+
+    /**
+     * Relations to an eager load on show/detail queries
+     */
+    protected array $withOnShow = [];
+
+    /**
      * Custom component names for different views
      */
     protected string $indexComponent = 'ResourceIndex';
@@ -57,6 +67,29 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
     {
         return $this->title ?? Str::plural(Str::title(Str::snake(class_basename(get_called_class()), ' ')));
     }
+
+    /**
+     * Get the display label for a model instance.
+     * Override this method to customize how models are displayed in relationships.
+     *
+     * @param Model $model
+     * @return string
+     */
+    public function displayLabel(Model $model): string
+    {
+        // Try common attributes by default
+        $commonAttributes = ['name', 'title', 'label', 'display_name', 'full_name', 'description'];
+
+        foreach ($commonAttributes as $attr) {
+            if (isset($model->{$attr}) && $model->{$attr} !== null) {
+                return (string) $model->{$attr};
+            }
+        }
+
+        // Fallback to primary key
+        return (string) $model->getKey();
+    }
+
     public static function getKey(): string
     {
         return Helpers::toUri(get_called_class());
@@ -114,6 +147,22 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
     public function tools(NadotaRequest $request): array
     {
         return [];
+    }
+
+    /**
+     * Get relations to an eager load on index
+     */
+    public function getWithOnIndex(): array
+    {
+        return $this->withOnIndex;
+    }
+
+    /**
+     * Get relations to an eager load on show/detail
+     */
+    public function getWithOnShow(): array
+    {
+        return $this->withOnShow;
     }
 
     /**
@@ -191,5 +240,66 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
             $this->deleteComponent = $components['delete'];
         }
         return $this;
+    }
+
+    /**
+     * Hook called before deleting a resource
+     * Override this method to perform custom logic before deletion
+     */
+    public function beforeDelete(Model $model, NadotaRequest $request): void
+    {
+        // Override in child resource if needed
+    }
+
+    /**
+     * Perform the actual delete operation
+     * Override this method to customize the delete behavior
+     *
+     * @return bool True if delete was successful, false otherwise
+     */
+    public function performDelete(Model $model, NadotaRequest $request): bool
+    {
+        if ($this->usesSoftDeletes()) {
+            return $model->delete();
+        }
+        return $model->delete();
+    }
+
+    /**
+     * Hook called after successfully deleting a resource
+     * Override this method to perform custom logic after deletion
+     */
+    public function afterDelete(Model $model, NadotaRequest $request): void
+    {
+        // Override in child resource if needed
+    }
+
+    /**
+     * Hook called before restoring a soft-deleted resource
+     * Override this method to perform custom logic before restoration
+     */
+    public function beforeRestore(Model $model, NadotaRequest $request): void
+    {
+        // Override in child resource if needed
+    }
+
+    /**
+     * Perform the actual restore operation
+     * Override this method to customize the restore behavior
+     *
+     * @return bool True if restore was successful, false otherwise
+     */
+    public function performRestore(Model $model, NadotaRequest $request): bool
+    {
+        return $model->restore();
+    }
+
+    /**
+     * Hook called after successfully restoring a resource
+     * Override this method to perform custom logic after restoration
+     */
+    public function afterRestore(Model $model, NadotaRequest $request): void
+    {
+        // Override in child resource if needed
     }
 }

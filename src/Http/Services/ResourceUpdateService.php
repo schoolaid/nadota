@@ -25,7 +25,9 @@ class ResourceUpdateService implements ResourceUpdateInterface
 
         $fields = collect($resource->fields($request))
             ->filter(function ($field) {
-                return $field->isShowOnUpdate();
+                return $field->isShowOnUpdate()
+                    && !$field->isReadonly()
+                    && !$field->isComputed();
             });
 
         // Build validation rules including MorphTo fields

@@ -66,14 +66,13 @@ abstract class Field implements FieldInterface
      */
     protected bool $computed = false;
 
-    public function __construct(string $name, string $attribute, string $type = FieldType::TEXT->value, string $component = null)
+    public function __construct(string $label, string $attribute, string $type = FieldType::TEXT->value, string $component = null)
     {
         $this->fieldData = new FieldDTO(
-            name: $name,
-            label: $name,
-            id: str_replace(' ', '_', $name),
+            label: $label,
             attribute: $attribute,
-            placeholder: $name,
+            key: $attribute,
+            placeholder: $label,
             type: $type,
             component: $component ?? config('nadota.fields.input.component')
         );
@@ -81,7 +80,7 @@ abstract class Field implements FieldInterface
 
     public function key(): string
     {
-        return str_replace(' ', '', strtolower($this->fieldData->name));
+        return $this->fieldData->key;
     }
 
     public function toArray(NadotaRequest $request, ?Model $model = null, ?ResourceInterface $resource = null): array
@@ -325,14 +324,138 @@ abstract class Field implements FieldInterface
     }
 
     /**
+     * Get the columns this field needs for SELECT queries.
+     * Override in relationship fields to return appropriate columns.
+     *
+     * @param string $modelClass The parent model class
+     * @return array Array of column names
+     */
+    public function getColumnsForSelect(string $modelClass): array
+    {
+        // Regular fields just need their attribute
+        $attribute = $this->getAttribute();
+
+        return $attribute ? [$attribute] : [];
+    }
+
+    /**
+     * Columns to exclude from the related model.
+     */
+    protected ?array $exceptColumns = null;
+
+    /**
+     * Field keys/relations to exclude from the related model.
+     */
+    protected ?array $exceptFieldKeys = null;
+
+    /**
+     * Exclude specific columns from the related model selection.
+     * Requires a resource to be set.
+     *
+     * @param array $columns Column names to exclude
+     * @return static
+     */
+    public function except(array $columns): static
+    {
+        $this->exceptColumns = $columns;
+        return $this;
+    }
+
+    /**
+     * Exclude specific fields from the related model by key or relation name.
+     * This excludes both the field columns AND their eager loading.
+     *
+     * @param array $fieldKeys Field keys or relation names to exclude
+     * @return static
+     */
+    public function exceptFields(array $fieldKeys): static
+    {
+        $this->exceptFieldKeys = $fieldKeys;
+        return $this;
+    }
+
+    /**
+     * Get the excluded field keys.
+     */
+    public function getExceptFieldKeys(): ?array
+    {
+        return $this->exceptFieldKeys;
+    }
+
+    /**
+     * Get columns to select from the related model when eager loading.
+     * Override in relationship fields to customize eager loading.
+     *
+     * @param Request $request
+     * @return array|null Columns array, or null to select all
+     */
+    public function getRelatedColumns(Request $request): ?array
+    {
+        // If a field has a resource, use its columns
+        if ($this->getResource()) {
+            $resourceClass = $this->getResource();
+            $resource = new $resourceClass;
+
+            // Get filtered fields (excluding exceptFieldKeys)
+            $fields = $this->getFilteredResourceFields($resource, $request);
+
+            // Get columns from filtered fields
+            $columns = collect($fields)
+                ->filter(fn($field) => $field->isAppliedInShowQuery())
+                ->flatMap(fn($field) => $field->getColumnsForSelect($resource->model))
+                ->filter()
+                ->unique()
+                ->values()
+                ->toArray();
+
+            // Always include a primary key
+            $columns = array_unique([...$columns, $resourceClass::$attributeKey]);
+
+            // Apply except column filter if set
+            if ($this->exceptColumns !== null) {
+                $columns = array_values(array_diff($columns, $this->exceptColumns));
+            }
+
+            return $columns;
+        }
+
+        // Default: select all columns
+        return null;
+    }
+
+    /**
+     * Get resource fields filtered by exceptFieldKeys.
+     */
+    protected function getFilteredResourceFields($resource, Request $request): array
+    {
+        $fields = $resource->fields($request);
+
+        if ($this->exceptFieldKeys === null) {
+            return $fields;
+        }
+
+        return collect($fields)
+            ->filter(function ($field) {
+                $key = $field->key();
+                $relation = method_exists($field, 'getRelation') ? $field->getRelation() : null;
+
+                // Exclude if key or relation matches
+                return !in_array($key, $this->exceptFieldKeys) &&
+                       ($relation === null || !in_array($relation, $this->exceptFieldKeys));
+            })
+            ->values()
+            ->toArray();
+    }
+
+    /**
      * Fill the model attribute with the field's value
      * Computed fields are skipped as they don't store data
      *
-     * @param \Illuminate\Http\Request $request
-     * @param \Illuminate\Database\Eloquent\Model $model
+     * @param Request $request
+     * @param Model $model
      * @return void
      */
-    public function fill(\Illuminate\Http\Request $request, \Illuminate\Database\Eloquent\Model $model): void
+    public function fill(Request $request, Model $model): void
     {
         // Don't fill computed fields - they are read-only
         if ($this->isComputed()) {

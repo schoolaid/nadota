@@ -126,7 +126,7 @@ it('serializes to array correctly', function () {
     $array = $field->toArray($request, $model, null);
     
     expect($array)
-        ->toHaveKey('name', 'Name')
+        ->toHaveKey('label', 'Name')
         ->toHaveKey('attribute', 'name')
         ->toHaveKey('sortable', true)
         ->toHaveKey('searchable', true)

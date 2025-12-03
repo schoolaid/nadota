@@ -10,6 +10,7 @@ use SchoolAid\Nadota\Http\Controllers\AttachmentController;
 Route::get('/menu', [MenuController::class, 'menu'])->name('menu');
 
 Route::prefix('/{resourceKey}/resource')->group(function () {
+    Route::get('/config', [ResourceIndexController::class, 'config'])->name('resource.config');
     Route::get('/info', [ResourceIndexController::class, 'info'])->name('resource.info');
     Route::get('/fields', [ResourceIndexController::class, 'fields'])->name('resource.fields');
     Route::get('/filters', [ResourceIndexController::class, 'filters'])->name('resource.filters');

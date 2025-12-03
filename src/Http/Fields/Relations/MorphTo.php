@@ -9,6 +9,7 @@ use Illuminate\Support\Str;
 use SchoolAid\Nadota\Contracts\ResourceInterface;
 use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
 use SchoolAid\Nadota\Http\Fields\Field;
+use SchoolAid\Nadota\Http\Resources\RelationResource;
 use SchoolAid\Nadota\ResourceManager;
 
 class MorphTo extends Field
@@ -44,6 +45,11 @@ class MorphTo extends Field
      * @var string|null
      */
     protected ?string $morphIdAttribute = null;
+
+    /**
+     * Custom fields to select from the related model.
+     */
+    protected ?array $customFields = null;
 
     /**
      * Create a new MorphTo field.
@@ -137,6 +143,62 @@ class MorphTo extends Field
     }
 
     /**
+     * Get the columns this field needs for SELECT queries.
+     * Returns both the type and id columns for polymorphic relations.
+     * Resolves actual column names from Eloquent relationship.
+     *
+     * @param string $modelClass The parent model class
+     * @return array
+     */
+    public function getColumnsForSelect(string $modelClass): array
+    {
+        return $this->resolveMorphColumnsFromModel($modelClass);
+    }
+
+    /**
+     * Resolve the morph columns from the Eloquent relationship.
+     *
+     * @param string $modelClass The parent model class
+     * @return array [typeColumn, idColumn]
+     */
+    public function resolveMorphColumnsFromModel(string $modelClass): array
+    {
+        try {
+            $model = new $modelClass;
+            $relationName = $this->getRelation();
+
+            if (method_exists($model, $relationName)) {
+                $relation = $model->{$relationName}();
+
+                if ($relation instanceof \Illuminate\Database\Eloquent\Relations\MorphTo) {
+                    return [
+                        $relation->getMorphType(),
+                        $relation->getForeignKeyName(),
+                    ];
+                }
+            }
+        } catch (\Throwable $e) {
+            // Fall back to inferred attributes
+        }
+
+        return array_filter([
+            $this->morphTypeAttribute,
+            $this->morphIdAttribute,
+        ]);
+    }
+
+    /**
+     * Set custom fields to select from the related model.
+     *
+     * @param array $fields Array of Field instances
+     * @return static
+     */
+    public function fields(array $fields): static
+    {
+        $this->customFields = $fields;
+        return $this;
+    }
+    /**
      * Resolve the field value for display.
      *
      * @param Request $request
@@ -173,44 +235,84 @@ class MorphTo extends Field
         // Find the alias for this morph type
         $alias = $this->getMorphAlias($morphType);
 
-        // Use the resolveDisplay method for the label
-        $label = $this->resolveDisplay($relatedModel);
+        // Get the resource for this morph type if available
+        $morphResource = isset($this->morphResources[$alias])
+            ? new $this->morphResources[$alias]
+            : null;
 
-        // If no label was resolved, try to auto-detect using displayAttribute first
-        if ($label === null && $this->displayAttribute) {
-            $label = $relatedModel->{$this->displayAttribute} ?? null;
+        // If we have a resource for this morph type, format with fields
+        if ($morphResource) {
+            return $this->formatWithResource($relatedModel, $morphResource, $request, $alias, $resource);
         }
 
-        // If still no label, try common attributes
-        if ($label === null) {
-            $commonAttributes = ['name', 'title', 'label', 'display_name', 'full_name', 'description'];
-            foreach ($commonAttributes as $attr) {
-                if (isset($relatedModel->{$attr})) {
-                    $label = $relatedModel->{$attr};
-                    break;
-                }
-            }
-            // Fallback to primary key
-            if ($label === null) {
-                $label = $relatedModel->getKey();
-            }
-        }
+        // Otherwise, return basic formatting
+        return $this->formatBasic($relatedModel, $alias, $resource);
+    }
 
-        // Get resource key if available
-        $resourceKey = null;
-        if (isset($this->morphResources[$alias])) {
-            $resourceClass = $this->morphResources[$alias];
-            $resourceKey = $resourceClass::getKey();
-        }
+    /**
+     * Format related model using resource fields.
+     */
+    protected function formatWithResource(
+        Model $item,
+        ResourceInterface $morphResource,
+        Request $request,
+        string $alias,
+        ?ResourceInterface $parentResource
+    ): array {
+        // Use custom fields if provided, otherwise use resource's index fields
+        $fields = $this->customFields !== null
+            ? collect($this->customFields)
+            : collect($morphResource->fieldsForIndex($request));
 
+        $extra = [
+            'type' => $alias,
+            'typeLabel' => $this->getMorphTypeLabel($alias),
+            'optionsUrl' => $this->getMorphOptionsUrl($parentResource, $alias),
+        ];
+
+        return RelationResource::make($fields, $morphResource, $this->exceptFieldKeys)
+            ->withLabelResolver(fn($model, $res) => $this->resolveLabel($model, $res))
+            ->withoutPermissions()
+            ->formatItem($item, $request, $extra);
+    }
+
+    /**
+     * Format related model without resource (basic formatting).
+     */
+    protected function formatBasic(Model $item, string $alias, ?ResourceInterface $parentResource): array
+    {
         return [
             'type' => $alias,
             'typeLabel' => $this->getMorphTypeLabel($alias),
-            'key' => $relatedModel->getKey(),
-            'label' => $label,
-            'resource' => $resourceKey,
-            'optionsUrl' => $this->getMorphOptionsUrl($resource, $alias)
+            'key' => $item->getKey(),
+            'label' => $this->resolveLabel($item, null),
+            'resource' => null,
+            'optionsUrl' => $this->getMorphOptionsUrl($parentResource, $alias),
         ];
+    }
+
+    /**
+     * Resolve display label for the related model.
+     */
+    protected function resolveLabel(Model $item, ?ResourceInterface $resource): mixed
+    {
+        // Priority 1: Display callback set on field
+        if ($this->hasDisplayCallback()) {
+            return $this->resolveDisplay($item);
+        }
+
+        // Priority 2: Display attribute set on field
+        if ($this->displayAttribute) {
+            return $item->{$this->displayAttribute} ?? $item->getKey();
+        }
+
+        // Priority 3: Resource's displayLabel method
+        if ($resource && method_exists($resource, 'displayLabel')) {
+            return $resource->displayLabel($item);
+        }
+
+        // Fallback: primary key
+        return $item->getKey();
     }
 
     /**

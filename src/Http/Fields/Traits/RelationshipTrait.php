@@ -7,7 +7,7 @@ use SchoolAid\Nadota\Resource;
 
 trait RelationshipTrait
 {
-    protected string $relation;
+    protected ?string $relation = null;
     protected ?string $displayAttribute = null;
     protected $displayCallback = null;
     protected bool $isRelationship = false;
@@ -102,7 +102,7 @@ trait RelationshipTrait
         return $this->relatedResource ?? null;
     }
 
-    public function getRelation(): string
+    public function getRelation(): ?string
     {
         return $this->relation;
     }

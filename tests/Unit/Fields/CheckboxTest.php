@@ -78,7 +78,7 @@ it('serializes to array correctly', function () {
     $array = $field->toArray($request, $model, null);
     
     expect($array)
-        ->toHaveKey('name', 'Active')
+        ->toHaveKey('label', 'Active')
         ->toHaveKey('attribute', 'is_active')
         ->toHaveKey('filterable', true)
         ->toHaveKey('value', true)
