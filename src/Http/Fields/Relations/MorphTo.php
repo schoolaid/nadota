@@ -52,20 +52,31 @@ class MorphTo extends Field
     protected ?array $customFields = null;
 
     /**
+     * Whether to include fields in the response.
+     * Default false for lighter responses. Use ->withFields() to enable.
+     */
+    protected bool $withFields = false;
+
+    /**
      * Create a new MorphTo field.
      *
      * @param string $name Display name for the field
      * @param string $relation Morph relation method name on the model
+     * @param array|null $resources Array of morph resources ['alias' => ResourceClass::class]
      */
-    public function __construct(string $name, string $relation)
+    public function __construct(string $name, string $relation, ?array $resources = null)
     {
         // Infer the morph attributes from the relation name
         $this->morphTypeAttribute = Str::snake($relation) . '_type';
         $this->morphIdAttribute = Str::snake($relation) . '_id';
 
-        parent::__construct($name, $this->morphIdAttribute, FieldType::MORPH_TO->value, config('nadota.fields.morphTo.component', 'field-morph-to'));
+        parent::__construct($name, $this->morphIdAttribute, FieldType::MORPH_TO->value, static::safeConfig('nadota.fields.morphTo.component', 'field-morph-to'));
         $this->relation($relation);
         $this->isRelationship = true;
+
+        if ($resources) {
+            $this->resources($resources);
+        }
     }
 
     /**
@@ -143,6 +154,26 @@ class MorphTo extends Field
     }
 
     /**
+     * Get the available morph models.
+     *
+     * @return array
+     */
+    public function getMorphModels(): array
+    {
+        return $this->morphModels;
+    }
+
+    /**
+     * Get the available morph resources.
+     *
+     * @return array
+     */
+    public function getMorphResources(): array
+    {
+        return $this->morphResources;
+    }
+
+    /**
      * Get the columns this field needs for SELECT queries.
      * Returns both the type and id columns for polymorphic relations.
      * Resolves actual column names from Eloquent relationship.
@@ -198,6 +229,19 @@ class MorphTo extends Field
         $this->customFields = $fields;
         return $this;
     }
+
+    /**
+     * Enable including fields in the response.
+     *
+     * @param bool $value
+     * @return static
+     */
+    public function withFields(bool $value = true): static
+    {
+        $this->withFields = $value;
+        return $this;
+    }
+
     /**
      * Resolve the field value for display.
      *
@@ -228,7 +272,11 @@ class MorphTo extends Field
         // Get the related model instance
         $relatedModel = $model->{$relationName};
 
-        if ($relatedModel === null) {
+        // Ensure we have a Model instance, not a scalar value
+        if (!$relatedModel instanceof Model) {
+            if ($this->hasDefault()) {
+                return $this->resolveDefault($request, $model, $resource);
+            }
             return null;
         }
 
@@ -236,9 +284,14 @@ class MorphTo extends Field
         $alias = $this->getMorphAlias($morphType);
 
         // Get the resource for this morph type if available
-        $morphResource = isset($this->morphResources[$alias])
-            ? new $this->morphResources[$alias]
-            : null;
+        $morphResource = null;
+        if (isset($this->morphResources[$alias])) {
+            $morphResourceClass = $this->morphResources[$alias];
+            // Verify it's a valid Nadota Resource
+            if (is_subclass_of($morphResourceClass, ResourceInterface::class)) {
+                $morphResource = new $morphResourceClass;
+            }
+        }
 
         // If we have a resource for this morph type, format with fields
         if ($morphResource) {
@@ -270,24 +323,32 @@ class MorphTo extends Field
             'optionsUrl' => $this->getMorphOptionsUrl($parentResource, $alias),
         ];
 
-        return RelationResource::make($fields, $morphResource, $this->exceptFieldKeys)
+        $relationResource = RelationResource::make($fields, $morphResource, $this->exceptFieldKeys)
             ->withLabelResolver(fn($model, $res) => $this->resolveLabel($model, $res))
-            ->withoutPermissions()
-            ->formatItem($item, $request, $extra);
+            ->withoutPermissions();
+
+        // Only include fields if explicitly enabled
+        if (!$this->withFields) {
+            $relationResource->withoutFields();
+        }
+
+        return $relationResource->formatItem($item, $request, $extra);
     }
 
     /**
      * Format related model without resource (basic formatting).
+     * Uses same structure as index/show for consistency.
      */
     protected function formatBasic(Model $item, string $alias, ?ResourceInterface $parentResource): array
     {
         return [
-            'type' => $alias,
-            'typeLabel' => $this->getMorphTypeLabel($alias),
-            'key' => $item->getKey(),
+            'id' => $item->getKey(),
             'label' => $this->resolveLabel($item, null),
             'resource' => null,
+            'type' => $alias,
+            'typeLabel' => $this->getMorphTypeLabel($alias),
             'optionsUrl' => $this->getMorphOptionsUrl($parentResource, $alias),
+            'deletedAt' => $item->deleted_at ?? null,
         ];
     }
 
@@ -378,7 +439,7 @@ class MorphTo extends Field
 
         $resourceKey = $resource::getKey();
         $fieldName = $this->key();
-        $apiPrefix = config('nadota.api.prefix', 'nadota-api');
+        $apiPrefix = static::safeConfig('nadota.api.prefix', 'nadota-api');
 
         return "/{$apiPrefix}/{$resourceKey}/resource/field/{$fieldName}/morph-options/{$alias}";
     }
@@ -396,7 +457,7 @@ class MorphTo extends Field
         // Get base configuration for URLs
         $parentResourceKey = $parentResource ? $parentResource::getKey() : null;
         $fieldName = $this->key();
-        $apiPrefix = config('nadota.api.prefix', 'nadota-api');
+        $apiPrefix = static::safeConfig('nadota.api.prefix', 'nadota-api');
 
         foreach ($this->morphModels as $alias => $modelClass) {
             // Get resource key if available
@@ -509,7 +570,7 @@ class MorphTo extends Field
         if ($resource) {
             $resourceKey = $resource::getKey();
             $fieldName = $this->key();
-            $apiPrefix = config('nadota.api.prefix', 'nadota-api');
+            $apiPrefix = static::safeConfig('nadota.api.prefix', 'nadota-api');
             $baseOptionsUrl = "/{$apiPrefix}/{$resourceKey}/resource/field/{$fieldName}/morph-options";
         }
 

@@ -15,7 +15,7 @@ class Code extends Field
 
     public function __construct(string $name, string $attribute)
     {
-        parent::__construct($name, $attribute, FieldType::CODE->value, config('nadota.fields.code.component', 'FieldCode'));
+        parent::__construct($name, $attribute, FieldType::CODE->value, static::safeConfig('nadota.fields.code.component', 'FieldCode'));
 
         // Code fields are not suitable for index view by default
         $this->hideFromIndex();

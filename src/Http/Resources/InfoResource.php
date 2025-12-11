@@ -21,6 +21,7 @@ class InfoResource extends JsonResource
                 'key' => $this->resource->getSearchKey(),
                 'enabled' => $this->resource->isSearchable(),
             ],
+            'selection' => $this->resource->getSelectionConfig(),
         ];
     }
 }

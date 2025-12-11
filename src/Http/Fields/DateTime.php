@@ -14,7 +14,7 @@ class DateTime extends Field
     protected bool $timeOnly = false;
     public function __construct(string $name, string $attribute)
     {
-        parent::__construct($name, $attribute, FieldType::DATETIME->value, config('nadota.fields.datetime.component', 'FieldDateTime'));
+        parent::__construct($name, $attribute, FieldType::DATETIME->value, static::safeConfig('nadota.fields.datetime.component', 'FieldDateTime'));
     }
     public function format(string $format): static
     {

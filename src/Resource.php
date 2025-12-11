@@ -51,6 +51,23 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
     protected string $createComponent = 'ResourceCreate';
     protected string $updateComponent = 'ResourceUpdate';
     protected string $deleteComponent = 'ResourceDelete';
+
+    /**
+     * Show checkbox on each row for bulk selection
+     */
+    protected bool $showRowCheckbox = false;
+
+    /**
+     * Show select all checkbox in table header
+     */
+    protected bool $showSelectAll = false;
+
+    /**
+     * Custom Laravel Resource class for show response.
+     * When set, bypasses the default Nadota response format.
+     */
+    protected ?string $showResponseResource = null;
+
     public function __construct(
         ResourceAuthorizationInterface $resourceAuthorization = null
     )
@@ -144,6 +161,33 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
     {
         return $query;
     }
+
+    /**
+     * Customize the query used when fetching options for this resource in relation fields.
+     * Override this method to add scopes, filters, or conditions.
+     *
+     * @param Builder $query The base query
+     * @param NadotaRequest $request The current request
+     * @param array $params Additional parameters (search, limit, exclude, etc.)
+     * @return Builder
+     */
+    public function optionsQuery(Builder $query, NadotaRequest $request, array $params = []): Builder
+    {
+        return $query;
+    }
+
+    /**
+     * Provide a custom search implementation for options (e.g., Meilisearch, Algolia).
+     * Return null to use the default database search.
+     *
+     * @param NadotaRequest $request The current request
+     * @param array $params Parameters including 'search', 'limit', 'exclude', etc.
+     * @return \Illuminate\Support\Collection|array|null Return collection/array of models, or null for default behavior
+     */
+    public function optionsSearch(NadotaRequest $request, array $params = []): \Illuminate\Support\Collection|array|null
+    {
+        return null;
+    }
     public function tools(NadotaRequest $request): array
     {
         return [];
@@ -163,6 +207,14 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
     public function getWithOnShow(): array
     {
         return $this->withOnShow;
+    }
+
+    /**
+     * Get the custom Laravel Resource class for show response.
+     */
+    public function getShowResponseResource(): ?string
+    {
+        return $this->showResponseResource;
     }
 
     /**
@@ -217,6 +269,33 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
     public function getDeleteComponent(): string
     {
         return $this->deleteComponent;
+    }
+
+    /**
+     * Check if row checkbox should be shown
+     */
+    public function showRowCheckbox(): bool
+    {
+        return $this->showRowCheckbox;
+    }
+
+    /**
+     * Check if select all checkbox should be shown
+     */
+    public function showSelectAll(): bool
+    {
+        return $this->showSelectAll;
+    }
+
+    /**
+     * Get selection configuration
+     */
+    public function getSelectionConfig(): array
+    {
+        return [
+            'showRowCheckbox' => $this->showRowCheckbox,
+            'showSelectAll' => $this->showSelectAll,
+        ];
     }
 
     /**

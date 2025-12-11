@@ -12,7 +12,7 @@ class Number extends Field
 
     public function __construct(string $name, string $attribute)
     {
-        parent::__construct($name, $attribute, FieldType::NUMBER->value,  config('nadota.fields.number.component', 'FieldNumber'));
+        parent::__construct($name, $attribute, FieldType::NUMBER->value, static::safeConfig('nadota.fields.number.component', 'FieldNumber'));
     }
 
     public function min(float $min): static

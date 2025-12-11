@@ -140,9 +140,28 @@ return [
     'action_events' => [
         'enabled' => env('NADOTA_TRACK_ACTIONS', true),
         'table' => 'action_events',
-        'exclude_fields' => ['password', 'remember_token', 'api_token'],
+
+        // Fields to exclude from logging (sensitive data)
+        'exclude_fields' => [
+            'password',
+            'remember_token',
+            'api_token',
+            'token',
+            'secret',
+            'api_key',
+            'private_key',
+        ],
+
+        // What data to track
         'track_fields' => true,
         'track_original' => true,
         'track_changes' => true,
+
+        // Dispatch Laravel events (ActionLogged) for external listeners
+        'dispatch_events' => env('NADOTA_DISPATCH_ACTION_EVENTS', true),
+
+        // Queue configuration for async logging
+        'queue' => env('NADOTA_ACTION_EVENTS_QUEUE', false),
+        'queue_name' => env('NADOTA_ACTION_EVENTS_QUEUE_NAME', 'default'),
     ],
 ];

@@ -13,7 +13,7 @@ class Json extends Field
 
     public function __construct(string $name, string $attribute)
     {
-        parent::__construct($name, $attribute, FieldType::JSON->value, config('nadota.fields.json.component', 'FieldJson'));
+        parent::__construct($name, $attribute, FieldType::JSON->value, static::safeConfig('nadota.fields.json.component', 'FieldJson'));
 
         // JSON fields are not suitable for index view by default
         $this->hideFromIndex();

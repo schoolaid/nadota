@@ -32,4 +32,7 @@ enum FieldType: string
     case CUSTOM_COMPONENT = 'customComponent';
     case KEY_VALUE = 'keyValue';
     case ARRAY = 'array';
+    case HTML = 'html';
+    case TIME = 'time';
+    case COLOR = 'color';
 }

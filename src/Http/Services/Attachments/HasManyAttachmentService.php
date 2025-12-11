@@ -34,13 +34,13 @@ class HasManyAttachmentService
         if ($search = $request->get('search')) {
             $searchFields = $field->getAttachableSearchFields();
 
-            // If we have a resource, use its searchable fields
+            // If we have a resource, use its searchable fields via getter method
             if ($field->getResource()) {
                 $resourceClass = $field->getResource();
                 $resource = new $resourceClass;
 
-                if (property_exists($resource, 'searchableAttributes')) {
-                    $searchFields = $resource->searchableAttributes;
+                if (method_exists($resource, 'getSearchableAttributes')) {
+                    $searchFields = $resource->getSearchableAttributes();
                 }
             }
 

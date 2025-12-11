@@ -2,17 +2,22 @@
 
 namespace SchoolAid\Nadota\Http\Controllers;
 
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\App;
 use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 use SchoolAid\Nadota\Http\Services\FieldOptionsService;
-use Illuminate\Routing\Controller;
 
 class FieldOptionsController extends Controller
 {
     public function __construct(
-        protected FieldOptionsService $fieldOptionsService
-    ) {}
+        protected FieldOptionsService $fieldOptionsService,
+        NadotaRequest $request
+    ) {
+        if (!App::runningInConsole()) {
+            $request->validateResource();
+        }
+    }
 
     /**
      * Get options for a specific field.
@@ -36,12 +41,12 @@ class FieldOptionsController extends Controller
     /**
      * Get paginated options for a specific field.
      *
-     * @param Request $request
+     * @param NadotaRequest $request
      * @param string $resourceKey
      * @param string $fieldName
      * @return JsonResponse
      */
-    public function paginated(Request $request, string $resourceKey, string $fieldName): JsonResponse
+    public function paginated(NadotaRequest $request, string $resourceKey, string $fieldName): JsonResponse
     {
         $options = $this->fieldOptionsService->getPaginatedOptions(
             $request,

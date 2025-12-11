@@ -30,19 +30,30 @@ class BelongsTo extends Field
     protected ?array $customFields = null;
 
     /**
+     * Whether to include fields in the response.
+     * Default false for lighter responses. Use ->withFields() to enable.
+     */
+    protected bool $withFields = false;
+
+    /**
      * Create a new BelongsTo field.
      *
      * @param string|null $name Display the name for the field
      * @param string $relation The relation method name on the model (e.g., 'user', 'category')
+     * @param string|null $resource The resource class for the related model
      */
-    public function __construct(?string $name, string $relation)
+    public function __construct(?string $name, string $relation, ?string $resource = null)
     {
         // Infer the foreign key attribute from the relation name (e.g., 'user' -> 'user_id')
         $attribute = Str::snake($relation) . '_id';
 
-        parent::__construct($name, $attribute, FieldType::BELONGS_TO->value, config('nadota.fields.belongsTo.component', 'field'));
+        parent::__construct($name, $attribute, FieldType::BELONGS_TO->value, static::safeConfig('nadota.fields.belongsTo.component', 'field'));
         $this->relation($relation);
         $this->isRelationship = true;
+
+        if ($resource) {
+            $this->resource($resource);
+        }
     }
 
     /**
@@ -124,6 +135,18 @@ class BelongsTo extends Field
     }
 
     /**
+     * Enable including fields in the response.
+     *
+     * @param bool $value
+     * @return static
+     */
+    public function withFields(bool $value = true): static
+    {
+        $this->withFields = $value;
+        return $this;
+    }
+
+    /**
      * Resolve the field value for display.
      *
      * @param Request $request
@@ -133,9 +156,17 @@ class BelongsTo extends Field
      */
     public function resolve(Request $request, Model $model, ?ResourceInterface $resource): mixed
     {
-        $relatedModel = $model->{$this->getRelation()};
+        $relationName = $this->getRelation();
 
-        if ($relatedModel === null) {
+        // Try to get the relation - if it returns a non-Model value, the relation might not exist
+        if (!method_exists($model, $relationName)) {
+            return null;
+        }
+
+        $relatedModel = $model->{$relationName};
+
+        // Ensure we have a Model instance, not a scalar value (like FK id)
+        if (!$relatedModel instanceof Model) {
             if ($this->hasDefault()) {
                 return $this->resolveDefault($request, $model, $resource);
             }
@@ -145,6 +176,12 @@ class BelongsTo extends Field
         // If we have a resource, format with fields
         if ($this->getResource()) {
             $resourceClass = $this->getResource();
+
+            // Verify it's a valid Nadota Resource
+            if (!is_subclass_of($resourceClass, ResourceInterface::class)) {
+                return $this->formatBasic($relatedModel);
+            }
+
             $relatedResource = new $resourceClass;
             return $this->formatWithResource($relatedModel, $relatedResource, $request);
         }
@@ -163,21 +200,29 @@ class BelongsTo extends Field
             ? collect($this->customFields)
             : collect($resource->fieldsForIndex($request));
 
-        return RelationResource::make($fields, $resource, $this->exceptFieldKeys)
+        $relationResource = RelationResource::make($fields, $resource, $this->exceptFieldKeys)
             ->withLabelResolver(fn($model, $res) => $this->resolveLabel($model, $res))
-            ->withoutPermissions()
-            ->formatItem($item, $request);
+            ->withoutPermissions();
+
+        // Only include fields if explicitly enabled
+        if (!$this->withFields) {
+            $relationResource->withoutFields();
+        }
+
+        return $relationResource->formatItem($item, $request);
     }
 
     /**
      * Format related model without resource (basic formatting).
+     * Uses same structure as index/show for consistency.
      */
     protected function formatBasic(Model $item): array
     {
         return [
-            'key' => $item->getKey(),
+            'id' => $item->getKey(),
             'label' => $this->resolveLabel($item, null),
             'resource' => null,
+            'deletedAt' => $item->deleted_at ?? null,
         ];
     }
 

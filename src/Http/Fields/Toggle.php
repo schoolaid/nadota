@@ -14,7 +14,7 @@ class Toggle extends Field
 
     public function __construct(string $name, string $attribute)
     {
-        parent::__construct($name, $attribute, FieldType::BOOLEAN->value, config('nadota.fields.toggle.component', 'FieldToggle'));
+        parent::__construct($name, $attribute, FieldType::BOOLEAN->value, static::safeConfig('nadota.fields.toggle.component', 'FieldToggle'));
     }
 
     public function trueLabel(string $label): static

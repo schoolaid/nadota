@@ -23,4 +23,17 @@ class RangeFilter extends Filter
 
         return $query;
     }
+
+    public function isRange(): bool
+    {
+        return true;
+    }
+
+    public function getFilterKeys(): array
+    {
+        return [
+            'from' => "{$this->field}_from",
+            'to' => "{$this->field}_to",
+        ];
+    }
 }

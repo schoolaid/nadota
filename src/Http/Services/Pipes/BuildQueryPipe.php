@@ -18,13 +18,47 @@ class BuildQueryPipe
                 $data->resource->getUseSoftDeletes()
         );
 
-        $this->addRelations(
-            $data->query,
-            $data->getFields(),
-            $data->resource->getWithOnIndex()
-        );
+        // Get fields filtered for index context
+        $fields = $data->getFields()
+            ->filter(fn($field) => $field->isAppliedInIndexQuery());
+
+
+        // Apply optimized column selection
+        $this->applyColumnSelection($data, $fields);
+
+        // Apply optimized eager loading
+        $this->applyEagerLoading($data, $fields);
 
         return $next($data);
+    }
+
+    /**
+     * Apply optimized column selection to the query
+     */
+    protected function applyColumnSelection(IndexRequestDTO $data, Collection $fields): void
+    {
+        $columns = $data->resource->getSelectColumns($data->request, $fields);
+
+        $data->query->select($columns);
+    }
+
+    /**
+     * Apply optimized eager loading with column constraints
+     */
+    protected function applyEagerLoading(IndexRequestDTO $data, Collection $fields): void
+    {
+        $eagerLoadRelations = $data->resource->getEagerLoadRelations($data->request, $fields);
+        $resourceWith = $data->resource->getWithOnIndex();
+
+        // Merge resource-configured relations (without constraints) with field relations (with constraints)
+        $allRelations = array_merge(
+            array_fill_keys($resourceWith, fn($query) => $query),
+            $eagerLoadRelations
+        );
+
+        if (!empty($allRelations)) {
+            $data->query->with($allRelations);
+        }
     }
 
     /**
@@ -74,23 +108,5 @@ class BuildQueryPipe
         }
 
         return $query;
-    }
-
-    protected function addRelations(Builder $query, Collection $fields, array $resourceWith = []): void
-    {
-        // Relations from fields
-        $fieldRelations = $fields
-            ->filter(fn($field) => $field->isRelationship() && $field->isAppliedInIndexQuery())
-            ->map(fn($field) => $field->getRelation())
-            ->unique()
-            ->values()
-            ->all();
-
-        // Merge with resource-configured relations
-        $relations = array_unique(array_merge($fieldRelations, $resourceWith));
-
-        if (!empty($relations)) {
-            $query->with($relations);
-        }
     }
 }

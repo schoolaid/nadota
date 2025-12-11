@@ -9,6 +9,7 @@ use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 use SchoolAid\Nadota\ResourceManager;
 use SchoolAid\Nadota\Menu\MenuItem;
 use SchoolAid\Nadota\Menu\MenuSection;
+use SchoolAid\Nadota\Menu\MenuSectionDefinition;
 use SchoolAid\Nadota\Http\Resources\Menu\MenuResource;
 use SchoolAid\Nadota\Contracts\MenuItemInterface;
 
@@ -52,13 +53,13 @@ class MenuService implements MenuServiceInterface
                 true
             );
 
-            $parentPath = $resourceInstance->displayInSubMenu();
-            if ($parentPath === null) {
+            $sectionKey = $resourceInstance->displayInSubMenu();
+            if ($sectionKey === null) {
                 // Top-level menu item
                 $menuStructure[$resourceInstance->title()] = $menuItem;
             } else {
-                // Handle dot notation for nested menus
-                $this->addToMenuPath($menuStructure, $parentPath, $menuItem);
+                // Add to configured section
+                $this->addToMenuPath($menuStructure, $sectionKey, $menuItem, $request);
             }
         }
 
@@ -83,35 +84,48 @@ class MenuService implements MenuServiceInterface
     }
 
     /**
-     * Add a menu item to the structure using dot notation path
+     * Add a menu item to the structure using section key
      */
-    private function addToMenuPath(array &$menuStructure, string $path, MenuItem $menuItem): void
+    private function addToMenuPath(array &$menuStructure, string $sectionKey, MenuItem $menuItem, NadotaRequest $request): void
     {
-        // Treat the whole path literal as a single section label (preserve
-        // dot characters for i18n keys like "resource.title").
-        $label = trim($path);
-        if ($label === '') {
+        $sectionKey = trim($sectionKey);
+        if ($sectionKey === '') {
             return;
         }
 
-        // If there's no top-level section with this exact label, create one.
-        if (!isset($menuStructure[$label])) {
-            $menuStructure[$label] = new MenuSection($label, 'Boxes');
-        } elseif ($menuStructure[$label] instanceof MenuItem) {
-            // Convert existing MenuItem into a MenuSection so it can hold children.
-            $existingItem = $menuStructure[$label];
-            $menuStructure[$label] = new MenuSection(
-                $existingItem->getLabel(),
-                $existingItem->getIcon(),
-                [$existingItem],
-                $existingItem->getOrder(),
-                false
-            );
+        // Try to get configured section definition
+        $sectionDefinition = NadotaService::getMenuSection($sectionKey);
+
+        if ($sectionDefinition !== null) {
+            // Check visibility
+            if (!$sectionDefinition->isVisible($request)) {
+                return;
+            }
+
+            // Create section from definition if not exists
+            if (!isset($menuStructure[$sectionKey])) {
+                $menuStructure[$sectionKey] = $sectionDefinition->toMenuSection();
+            }
+        } else {
+            // Fallback: create section with key as label (backwards compatibility)
+            if (!isset($menuStructure[$sectionKey])) {
+                $menuStructure[$sectionKey] = new MenuSection($sectionKey, 'Boxes');
+            } elseif ($menuStructure[$sectionKey] instanceof MenuItem) {
+                // Convert existing MenuItem into a MenuSection
+                $existingItem = $menuStructure[$sectionKey];
+                $menuStructure[$sectionKey] = new MenuSection(
+                    $existingItem->getLabel(),
+                    $existingItem->getIcon(),
+                    [$existingItem],
+                    $existingItem->getOrder(),
+                    false
+                );
+            }
         }
 
-        $section = $menuStructure[$label];
+        $section = $menuStructure[$sectionKey];
 
-        // Append the menu item as a child of this section.
+        // Append the menu item as a child of this section
         $children = $section->getChildren();
         $children[] = $menuItem;
         $section->setChildren($children);

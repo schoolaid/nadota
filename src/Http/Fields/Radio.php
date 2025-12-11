@@ -11,7 +11,7 @@ class Radio extends Field
 
     public function __construct(string $name, string $attribute)
     {
-        parent::__construct($name, $attribute, FieldType::RADIO->value, config('nadota.fields.radio.component', 'FieldRadio'));
+        parent::__construct($name, $attribute, FieldType::RADIO->value, static::safeConfig('nadota.fields.radio.component', 'FieldRadio'));
     }
 
     public function options(array $options): static

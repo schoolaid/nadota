@@ -71,7 +71,7 @@ class KeyValue extends Field
 
     public function __construct(string $name, string $attribute)
     {
-        parent::__construct($name, $attribute, FieldType::KEY_VALUE->value, config('nadota.fields.keyvalue.component', 'FieldKeyValue'));
+        parent::__construct($name, $attribute, FieldType::KEY_VALUE->value, static::safeConfig('nadota.fields.keyvalue.component', 'FieldKeyValue'));
 
         // Key-value fields are typically better for detail/forms than index
         $this->hideFromIndex();

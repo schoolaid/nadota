@@ -15,7 +15,7 @@ class Password extends Field
 
     public function __construct(string $name, string $attribute)
     {
-        parent::__construct($name, $attribute, FieldType::PASSWORD->value, config('nadota.fields.password.component', 'FieldPassword'));
+        parent::__construct($name, $attribute, FieldType::PASSWORD->value, static::safeConfig('nadota.fields.password.component', 'FieldPassword'));
         
         $this->onlyOnForms();
     }

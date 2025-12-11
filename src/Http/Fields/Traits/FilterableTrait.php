@@ -50,6 +50,32 @@ trait FilterableTrait
         return $this->filterable;
     }
 
+    public function isFilterableRange(): bool
+    {
+        return $this->filterAsRange;
+    }
+
+    /**
+     * Get the filter keys for this field.
+     * For range filters, returns 'from' and 'to' keys.
+     * For single filters, returns the attribute key.
+     */
+    public function getFilterKeys(): array
+    {
+        $attribute = $this->fieldData->attribute;
+
+        if ($this->filterAsRange) {
+            return [
+                'from' => "{$attribute}_from",
+                'to' => "{$attribute}_to",
+            ];
+        }
+
+        return [
+            'value' => $attribute,
+        ];
+    }
+
     public function filters(): array
     {
         $filters = [];
@@ -107,9 +133,10 @@ trait FilterableTrait
             // Campos numéricos - NumberFilter (por defecto exacto, puede ser range)
             FieldType::NUMBER->value => new NumberFilter($label, $attribute, $type, null, null, false),
 
-            // Campos de fecha - DateFilter (por defecto single, puede ser range)
+            // Campos de fecha/hora - DateFilter (por defecto single, puede ser range)
             FieldType::DATE->value,
-            FieldType::DATETIME->value => new DateFilter($label, $attribute, $type, null, null, false),
+            FieldType::DATETIME->value,
+            FieldType::TIME->value => new DateFilter($label, $attribute, $type, null, null, false),
 
             // Campos booleanos - BooleanFilter
             FieldType::BOOLEAN->value,
@@ -128,7 +155,8 @@ trait FilterableTrait
             FieldType::CODE->value,
             FieldType::CUSTOM_COMPONENT->value,
             FieldType::KEY_VALUE->value,
-            FieldType::ARRAY->value => null,
+            FieldType::ARRAY->value,
+            FieldType::HTML->value => null,
 
             // Por defecto, usar DefaultFilter
             default => new DefaultFilter($label, $attribute, $type),
@@ -143,7 +171,8 @@ trait FilterableTrait
         return match ($type) {
             FieldType::NUMBER->value => new NumberFilter($name, $attribute, $type, null, null, true),
             FieldType::DATE->value,
-            FieldType::DATETIME->value => new DateFilter($name, $attribute, $type, null, null, true),
+            FieldType::DATETIME->value,
+            FieldType::TIME->value => new DateFilter($name, $attribute, $type, null, null, true),
             default => new RangeFilter($name, $attribute, $type),
         };
     }

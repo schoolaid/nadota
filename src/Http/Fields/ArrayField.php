@@ -66,7 +66,7 @@ class ArrayField extends Field
 
     public function __construct(string $name, string $attribute)
     {
-        parent::__construct($name, $attribute, FieldType::ARRAY->value, config('nadota.fields.array.component', 'FieldArray'));
+        parent::__construct($name, $attribute, FieldType::ARRAY->value, static::safeConfig('nadota.fields.array.component', 'FieldArray'));
 
         // Arrays are typically better for detail/forms than index
         $this->hideFromIndex();

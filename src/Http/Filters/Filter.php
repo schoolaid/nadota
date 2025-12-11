@@ -84,6 +84,25 @@ abstract class Filter implements FilterInterface
         return [];
     }
 
+    /**
+     * Get the filter keys for this filter.
+     * Override in subclasses for range filters.
+     */
+    public function getFilterKeys(): array
+    {
+        return [
+            'value' => $this->field ?? $this->key(),
+        ];
+    }
+
+    /**
+     * Check if this filter is a range filter.
+     */
+    public function isRange(): bool
+    {
+        return false;
+    }
+
     public function toArray($request): array
     {
         return [
@@ -98,6 +117,8 @@ abstract class Filter implements FilterInterface
             })->values()->all(),
             'value' => $this->default() ?: '',
             'props' => $this->props(),
+            'isRange' => $this->isRange(),
+            'filterKeys' => $this->getFilterKeys(),
         ];
     }
 }

@@ -25,13 +25,13 @@ class Image extends File
 
     public function __construct(string $name, string $attribute)
     {
-        parent::__construct($name, $attribute, FieldType::IMAGE->value, config('nadota.fields.image.component', 'FieldImage'));
-        
+        parent::__construct($name, $attribute, FieldType::IMAGE->value, static::safeConfig('nadota.fields.image.component', 'FieldImage'));
+
         // Set default accepted types to common image formats
         $this->acceptedTypes = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-        
+
         // Set the default max size to 5MB for images
-        $this->maxSize = config('nadota.fields.image.max_size', 5 * 1024 * 1024);
+        $this->maxSize = static::safeConfig('nadota.fields.image.max_size', 5 * 1024 * 1024);
     }
 
     /**

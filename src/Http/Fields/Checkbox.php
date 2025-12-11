@@ -14,7 +14,7 @@ class Checkbox extends Field
 
     public function __construct(string $name, string $attribute)
     {
-        parent::__construct($name, $attribute, FieldType::CHECKBOX->value, config('nadota.fields.checkbox.component', 'FieldCheckbox'));
+        parent::__construct($name, $attribute, FieldType::CHECKBOX->value, static::safeConfig('nadota.fields.checkbox.component', 'FieldCheckbox'));
     }
 
     public function trueValue(mixed $value): static

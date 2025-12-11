@@ -43,8 +43,8 @@ class BooleanFilter extends Filter
     public function resources(NadotaRequest $request): array
     {
         return [
-            'true' => 'Sí',
-            'false' => 'No'
+            'Sí' => true,
+            'No' => false,
         ];
     }
 

@@ -6,7 +6,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use SchoolAid\Nadota\Contracts\ResourceStoreInterface;
-use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
 use SchoolAid\Nadota\Http\Fields\File;
 use SchoolAid\Nadota\Http\Fields\Relations\MorphTo;
 use SchoolAid\Nadota\Http\Requests\NadotaRequest;
@@ -99,7 +98,7 @@ class ResourceStoreService implements ResourceStoreInterface
             });
             $model->save();
 
-            // Track the create action
+            // Track the creation action
             $this->trackCreate($model, $request, $validatedData);
 
             DB::commit();

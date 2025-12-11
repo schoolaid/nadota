@@ -51,5 +51,22 @@ class NumberFilter extends Filter
             'isRange' => $this->isRange,
         ]);
     }
+
+    public function isRange(): bool
+    {
+        return $this->isRange;
+    }
+
+    public function getFilterKeys(): array
+    {
+        if ($this->isRange) {
+            return [
+                'from' => "{$this->field}_from",
+                'to' => "{$this->field}_to",
+            ];
+        }
+
+        return parent::getFilterKeys();
+    }
 }
 

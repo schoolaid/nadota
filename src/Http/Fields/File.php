@@ -20,17 +20,17 @@ class File extends Field
     protected bool $downloadable = true;
     protected ?string $downloadRoute = null;
     protected bool $useTemporaryUrl = false;
-    protected ?int $temporaryUrlMinutes = 5;
+    protected ?int $temporaryUrlMinutes = 29;
     protected bool $cacheUrl = false;
     protected ?int $cacheMinutes = 30;
     protected ?string $cachePrefix = null;
 
     public function __construct(string $name, string $attribute)
     {
-        parent::__construct($name, $attribute, FieldType::FILE->value, config('nadota.fields.file.component', 'FieldFile'));
-        
+        parent::__construct($name, $attribute, FieldType::FILE->value, static::safeConfig('nadota.fields.file.component', 'FieldFile'));
+
         // Set default max size from config or 10MB
-        $this->maxSize = config('nadota.fields.file.max_size', 10 * 1024 * 1024);
+        $this->maxSize = static::safeConfig('nadota.fields.file.max_size', 10 * 1024 * 1024);
     }
 
     /**
@@ -190,17 +190,19 @@ class File extends Field
             return null;
         }
             // Return file information
-        return [
+        $data = [
             'path' => $value,
             'name' => basename($value),
             'url' => $this->getFileUrl($value, $model),
             'downloadable' => $this->downloadable,
             'downloadUrl' => $this->getDownloadUrl($value, $model),
-            'size' => $this->getFileSize($value),
-            'mimeType' => $this->getFileMimeType($value),
+//            'size' => $this->getFileSize($value),
+//            'mimeType' => $this->getFileMimeType($value),
             'cached' => $this->cacheUrl,
             'temporary' => $this->useTemporaryUrl,
         ];
+
+        return $data;
     }
 
     /**
@@ -214,11 +216,12 @@ class File extends Field
 
         $disk = $this->disk ?? config('filesystems.default');
 
+
         // If caching is enabled
         if ($this->cacheUrl && $model) {
-            $cacheKey = $this->getCacheKey($model, $path);
+//            $cacheKey = $this->getCacheKey($model, $path);
 
-            return Cache::remember($cacheKey, now()->addMinutes($this->cacheMinutes), function () use ($disk, $path) {
+            return Cache::remember($path, now()->addMinutes($this->cacheMinutes * 60), function () use ($disk, $path) {
                 return $this->generateFileUrl($disk, $path);
             });
         }

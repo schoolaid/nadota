@@ -37,6 +37,22 @@ abstract class Field implements FieldInterface
     protected FieldDTO $fieldData;
 
     /**
+     * Safely get a config value, returning default if container is not available.
+     *
+     * @param string $key
+     * @param mixed $default
+     * @return mixed
+     */
+    protected static function safeConfig(string $key, mixed $default = null): mixed
+    {
+        try {
+            return config($key, $default);
+        } catch (\Throwable $e) {
+            return $default;
+        }
+    }
+
+    /**
      * Field width (e.g., 'full', '1/2', '1/3', '1/4', '2/3', '3/4', or custom CSS value)
      */
     protected ?string $width = null;
@@ -66,7 +82,7 @@ abstract class Field implements FieldInterface
      */
     protected bool $computed = false;
 
-    public function __construct(string $label, string $attribute, string $type = FieldType::TEXT->value, string $component = null)
+    public function __construct(string $label, string $attribute, string $type = FieldType::TEXT->value, ?string $component = null)
     {
         $this->fieldData = new FieldDTO(
             label: $label,
@@ -74,7 +90,7 @@ abstract class Field implements FieldInterface
             key: $attribute,
             placeholder: $label,
             type: $type,
-            component: $component ?? config('nadota.fields.input.component')
+            component: $component ?? static::safeConfig('nadota.fields.input.component', 'field')
         );
     }
 
@@ -94,6 +110,8 @@ abstract class Field implements FieldInterface
             'sortable' => $this->isSortable(),
             'searchable' => $this->isSearchable(),
             'filterable' => $this->isFilterable(),
+            'filterableRange' => $this->isFilterableRange(),
+            'filterKeys' => $this->getFilterKeys(),
             'showOnIndex' => $this->isShowOnIndex($request, $model),
             'showOnDetail' => $this->isShowOnDetail($request, $model),
             'showOnCreation' => $this->isShowOnCreation($request, $model),
@@ -394,6 +412,12 @@ abstract class Field implements FieldInterface
         // If a field has a resource, use its columns
         if ($this->getResource()) {
             $resourceClass = $this->getResource();
+
+            // Verify the resource class implements ResourceInterface (is a Nadota Resource)
+            if (!is_subclass_of($resourceClass, ResourceInterface::class)) {
+                return null;
+            }
+
             $resource = new $resourceClass;
 
             // Get filtered fields (excluding exceptFieldKeys)

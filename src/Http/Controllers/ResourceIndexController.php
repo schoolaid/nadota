@@ -104,7 +104,7 @@ class ResourceIndexController extends Controller
 
         // Get fields for index
         $fields = collect($resource->fields($request))
-            ->filter(fn($field) => $field->showOnIndex())
+            ->filter(fn($field) => $field->isShowOnIndex())
             ->map(fn($field) => $field->toArray($request))
             ->values()
             ->toArray();
@@ -115,8 +115,9 @@ class ResourceIndexController extends Controller
             $this->getResourceFilters($resource, $request)
         );
 
-        // Get actions
+        // Get actions (only those visible on index)
         $actions = collect($resource->actions($request))
+            ->filter(fn($action) => $action->showOnIndex())
             ->map(fn($action) => $action->toArray($request))
             ->values()
             ->toArray();
@@ -134,6 +135,7 @@ class ResourceIndexController extends Controller
                     'key' => $resource->getSearchKey(),
                     'enabled' => $resource->isSearchable(),
                 ],
+                'selection' => $resource->getSelectionConfig(),
             ],
             'fields' => $fields,
             'filters' => $filters,

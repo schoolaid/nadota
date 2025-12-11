@@ -2,14 +2,23 @@
 
 namespace SchoolAid\Nadota\Http\Services\FieldOptions\Strategies;
 
+use Illuminate\Support\Collection;
 use SchoolAid\Nadota\Contracts\ResourceInterface;
 use SchoolAid\Nadota\Http\Fields\Field;
 use SchoolAid\Nadota\Http\Fields\Relations\MorphTo;
 use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 use SchoolAid\Nadota\Http\Services\FieldOptions\Contracts\FieldOptionsStrategy;
+use SchoolAid\Nadota\Http\Services\FieldOptions\Traits\SearchesOptions;
 
+/**
+ * Strategy for MorphTo fields.
+ * This strategy requires special handling because it needs a morphType parameter
+ * to determine which model to query.
+ */
 class MorphToOptionsStrategy implements FieldOptionsStrategy
 {
+    use SearchesOptions;
+
     /**
      * Check if this strategy can handle the given field.
      *
@@ -26,7 +35,7 @@ class MorphToOptionsStrategy implements FieldOptionsStrategy
      *
      * @param NadotaRequest $request
      * @param ResourceInterface $resource
-     * @param Field $field
+     * @param Field|MorphTo $field
      * @param array $params
      * @return array
      */
@@ -36,19 +45,23 @@ class MorphToOptionsStrategy implements FieldOptionsStrategy
         Field $field,
         array $params = []
     ): array {
-        // Get the morph type from params
+        // Get the morph type from params (required for MorphTo)
         $morphType = $params['morphType'] ?? null;
 
         if (!$morphType) {
             return [];
         }
 
-        // Get search and limit from params or request
-        $search = $params['search'] ?? $request->get('search', '');
-        $limit = $params['limit'] ?? $request->get('limit', 10);
+        // Get common parameters
+        $commonParams = $this->getCommonParams($request, $params);
+        $search = $commonParams['search'];
+        $limit = $commonParams['limit'];
+        $exclude = $commonParams['exclude'];
+        $orderBy = $commonParams['orderBy'];
+        $orderDirection = $commonParams['orderDirection'];
 
         // Get the morph models from the field
-        $morphModels = $this->getMorphModels($field);
+        $morphModels = $field->getMorphModels();
 
         if (!isset($morphModels[$morphType])) {
             return [];
@@ -59,85 +72,116 @@ class MorphToOptionsStrategy implements FieldOptionsStrategy
         $model = new $modelClass;
 
         // Get the resource class if available
-        $morphResources = $this->getMorphResources($field);
+        $morphResources = $field->getMorphResources();
         $resourceClass = $morphResources[$morphType] ?? null;
+        $resourceInstance = $resourceClass ? new $resourceClass : null;
+
+        // Get key attribute
+        $keyAttribute = $resourceInstance
+            ? ($resourceClass::$attributeKey ?? $model->getKeyName())
+            : $model->getKeyName();
 
         // Build the query
-        $query = $model::query();
+        $query = $modelClass::query();
 
-        // If we have a resource, use its searchable attributes
-        if ($resourceClass && !empty($search)) {
-            $resourceInstance = new $resourceClass;
+        // Apply resource's optionsQuery customization
+        $query = $this->applyResourceOptionsQuery($query, $resourceInstance, $request, $params);
 
-            $query->where(function($q) use ($search, $resourceInstance) {
-                // Search in searchable attributes
-                $searchableAttributes = $resourceInstance->getSearchableAttributes();
-                foreach ($searchableAttributes as $attribute) {
-                    $q->orWhere($attribute, 'like', '%' . $search . '%');
-                }
-
-                // Search in searchable relations
-                $searchableRelations = $resourceInstance->getSearchableRelations();
-                foreach ($searchableRelations as $relationPath) {
-                    $parts = explode('.', $relationPath);
-
-                    if (count($parts) === 2) {
-                        $relation = $parts[0];
-                        $attribute = $parts[1];
-
-                        $q->orWhereHas($relation, function($relationQuery) use ($attribute, $search) {
-                            $relationQuery->where($attribute, 'like', '%' . $search . '%');
-                        });
-                    } elseif (count($parts) > 2) {
-                        $nestedPath = implode('.', array_slice($parts, 0, -1));
-                        $attribute = end($parts);
-
-                        $q->orWhereHas($nestedPath, function($relationQuery) use ($attribute, $search) {
-                            $relationQuery->where($attribute, 'like', '%' . $search . '%');
-                        });
-                    }
-                }
-            });
-        } elseif (!empty($search)) {
-            // Fallback to searching common attributes
-            $query->where(function($q) use ($search) {
-                $q->orWhere('name', 'like', '%' . $search . '%')
-                  ->orWhere('title', 'like', '%' . $search . '%')
-                  ->orWhere('label', 'like', '%' . $search . '%');
-            });
+        // Apply search
+        if (!empty($search)) {
+            $this->applySearch($query, $search, $resourceInstance);
         }
+
+        // Apply exclude
+        $exclude = $this->normalizeExclude($exclude);
+        if (!empty($exclude)) {
+            $this->applyExclude($query, $exclude, $keyAttribute);
+        }
+
+        // Apply ordering
+        $this->applyOrdering($query, $orderBy, $orderDirection);
 
         // Apply limit
         $query->limit($limit);
 
+        // Get select columns
+        $selectColumns = $this->buildSelectColumns($resourceInstance, $request, $keyAttribute);
+
         // Get results
-        $results = $query->get();
+        $results = $query->select($selectColumns)->get();
 
-        // Format as an option array
-        return $results->map(function ($item) use ($field) {
-            // Use the field's resolveDisplay method
+        // Format as options
+        return $this->formatAsOptions($results, $keyAttribute, function ($item) use ($field) {
+            return $this->resolveLabel($field, $item);
+        });
+    }
+
+    /**
+     * Normalize exclude parameter to array.
+     *
+     * @param mixed $exclude
+     * @return array
+     */
+    protected function normalizeExclude(mixed $exclude): array
+    {
+        if (is_string($exclude)) {
+            return array_filter(explode(',', $exclude));
+        }
+
+        return is_array($exclude) ? $exclude : [];
+    }
+
+    /**
+     * Build select columns for the query.
+     *
+     * @param ResourceInterface|null $resourceInstance
+     * @param NadotaRequest $request
+     * @param string $keyAttribute
+     * @return array
+     */
+    protected function buildSelectColumns(
+        ?ResourceInterface $resourceInstance,
+        NadotaRequest $request,
+        string $keyAttribute
+    ): array {
+        $selectColumns = [];
+
+        if ($resourceInstance && method_exists($resourceInstance, 'getSelectColumns')) {
+            $selectColumns = $resourceInstance->getSelectColumns($request);
+        }
+
+        // Always include the key attribute
+        if (!empty($selectColumns) && !in_array($keyAttribute, $selectColumns)) {
+            $selectColumns[] = $keyAttribute;
+        }
+
+        // If empty, select all
+        if (empty($selectColumns)) {
+            return ['*'];
+        }
+
+        return $selectColumns;
+    }
+
+    /**
+     * Resolve the display label for an item.
+     *
+     * @param Field $field
+     * @param mixed $item
+     * @return mixed
+     */
+    protected function resolveLabel(Field $field, mixed $item): mixed
+    {
+        // Try field's resolveDisplay first
+        if (method_exists($field, 'resolveDisplay')) {
             $label = $field->resolveDisplay($item);
-
-            // If no label, try common attributes
-            if (!$label) {
-                $commonAttributes = ['name', 'title', 'label', 'display_name', 'full_name', 'description'];
-                foreach ($commonAttributes as $attr) {
-                    if (isset($item->{$attr})) {
-                        $label = $item->{$attr};
-                        break;
-                    }
-                }
-                // Fallback to primary key
-                if (!$label) {
-                    $label = $item->getKey();
-                }
+            if ($label !== null && $label !== '') {
+                return $label;
             }
+        }
 
-            return [
-                'value' => $item->getKey(),
-                'label' => $label
-            ];
-        })->toArray();
+        // Fallback to default label resolution
+        return $this->resolveDefaultLabel($item);
     }
 
     /**
@@ -147,38 +191,6 @@ class MorphToOptionsStrategy implements FieldOptionsStrategy
      */
     public function getPriority(): int
     {
-        return 90; // Slightly lower priority than BelongsTo
-    }
-
-    /**
-     * Get morph models from the field using reflection.
-     *
-     * @param MorphTo $field
-     * @return array
-     */
-    protected function getMorphModels(MorphTo $field): array
-    {
-        // Use reflection to access protected property
-        $reflection = new \ReflectionClass($field);
-        $property = $reflection->getProperty('morphModels');
-        $property->setAccessible(true);
-
-        return $property->getValue($field);
-    }
-
-    /**
-     * Get morph resources from the field using reflection.
-     *
-     * @param MorphTo $field
-     * @return array
-     */
-    protected function getMorphResources(MorphTo $field): array
-    {
-        // Use reflection to access protected property
-        $reflection = new \ReflectionClass($field);
-        $property = $reflection->getProperty('morphResources');
-        $property->setAccessible(true);
-
-        return $property->getValue($field);
+        return 90; // Below BelongsTo but above most others
     }
 }

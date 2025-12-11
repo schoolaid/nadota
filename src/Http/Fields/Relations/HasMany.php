@@ -42,6 +42,12 @@ class HasMany extends Field
     protected ?array $customFields = null;
 
     /**
+     * Whether to include fields in the response.
+     * Default false for lighter responses. Use ->withFields() to enable.
+     */
+    protected bool $withFields = false;
+
+    /**
      * Whether to allow creating new related items from this field.
      */
     protected bool $canCreate = false;
@@ -51,12 +57,16 @@ class HasMany extends Field
      *
      * @param string $name Display name for the field
      * @param string $relation Relation method name on the model
+     * @param string|null $resource The resource class for the related model
      */
-    public function __construct(string $name, string $relation)
+    public function __construct(string $name, string $relation, ?string $resource = null)
     {
-        parent::__construct($name, '', FieldType::HAS_MANY->value, config('nadota.fields.hasMany.component', 'field-has-many'));
+        parent::__construct($name, '', FieldType::HAS_MANY->value, static::safeConfig('nadota.fields.hasMany.component', 'field-has-many'));
         $this->relation($relation);
         $this->isRelationship = true;
+
+        // Set key to relation name for URL generation (attribute stays empty to avoid column selection)
+        $this->fieldData->key = $relation;
 
         // HasMany should not show on index by default
         $this->showOnIndex = false;
@@ -67,6 +77,10 @@ class HasMany extends Field
         // Don't apply in index query
         $this->applyInIndexQuery = false;
         $this->applyInShowQuery = true;
+
+        if ($resource) {
+            $this->resource($resource);
+        }
     }
 
     /**
@@ -120,6 +134,18 @@ class HasMany extends Field
     }
 
     /**
+     * Enable including fields in the response.
+     *
+     * @param bool $value
+     * @return static
+     */
+    public function withFields(bool $value = true): static
+    {
+        $this->withFields = $value;
+        return $this;
+    }
+
+    /**
      * Enable or disable creation of new related items.
      *
      * @param bool $canCreate
@@ -147,34 +173,18 @@ class HasMany extends Field
             return [];
         }
 
-        // Build the query for the relation
-        $query = $model->{$relationName}();
+        // Use already loaded relation to avoid N+1 queries
+        $relatedItems = $model->{$relationName};
 
-        // Apply ordering if specified
-        if ($this->orderBy) {
-            $query->orderBy($this->orderBy, $this->orderDirection);
-        } else {
-            // Default ordering by created_at or id
-            $relatedModel = $query->getRelated();
-            if (in_array('created_at', $relatedModel->getFillable()) ||
-                $relatedModel->timestamps) {
-                $query->orderBy('created_at', 'desc');
-            } else {
-                $query->orderBy($relatedModel->getKeyName(), 'desc');
-            }
+        // Ensure we have a collection
+        if (!$relatedItems instanceof Collection) {
+            return [];
         }
-
-        // Apply limit if specified
-        if ($this->limit !== null && !$this->paginated) {
-            $query->limit($this->limit);
-        }
-
-        // Get the related items
-        $relatedItems = $query->get();
 
         // If we have a resource, format each item with its fields
         if ($this->getResource()) {
             $resourceClass = $this->getResource();
+
             $relatedResource = new $resourceClass;
 
             return $this->formatWithResource($relatedItems, $relatedResource, $request);
@@ -202,9 +212,13 @@ class HasMany extends Field
         $relationResource = RelationResource::make($fields, $resource, $this->exceptFieldKeys)
             ->withLabelResolver(fn($item, $res) => $this->resolveLabel($item, $res));
 
-        return $relationResource->formatCollection($items, $request, [
-            'hasMore' => $this->limit !== null && $items->count() >= $this->limit,
-        ]);
+        // Only include fields if explicitly enabled
+        if (!$this->withFields) {
+            $relationResource->withoutFields();
+        }
+
+
+        return $relationResource->formatCollection($items, $request);
     }
 
     /**
@@ -233,6 +247,7 @@ class HasMany extends Field
 
     /**
      * Format related items without resource.
+     * Uses same structure as index/show for consistency.
      *
      * @param Collection $items
      * @return array
@@ -257,9 +272,10 @@ class HasMany extends Field
                 }
 
                 return [
-                    'key' => $item->getKey(),
+                    'id' => $item->getKey(),
                     'label' => $label ?? "Item #{$item->getKey()}",
-                    'attributes' => $item->toArray()
+                    'attributes' => $item->toArray(),
+                    'deletedAt' => $item->deleted_at ?? null,
                 ];
             })->toArray(),
             'meta' => [
@@ -284,6 +300,65 @@ class HasMany extends Field
     }
 
     /**
+     * Get columns to select for the related model in eager loading.
+     * Includes the foreign key to maintain the relationship.
+     *
+     * @param Request $request
+     * @return array|null
+     */
+    public function getRelatedColumns(Request $request): ?array
+    {
+        $columns = parent::getRelatedColumns($request);
+
+        // If parent returned null (select all), no need to add FK
+        if ($columns === null) {
+            return null;
+        }
+
+        // Get the FK from the Eloquent relation
+        $foreignKey = $this->resolveForeignKey($request);
+
+        if ($foreignKey && !in_array($foreignKey, $columns)) {
+            $columns[] = $foreignKey;
+        }
+
+        return $columns;
+    }
+
+    /**
+     * Resolve the foreign key name from the Eloquent relationship.
+     *
+     * @param Request $request
+     * @return string|null
+     */
+    protected function resolveForeignKey(Request $request): ?string
+    {
+        try {
+            // Get parent model class from the request's resource
+            if (!method_exists($request, 'getResource')) {
+                return null;
+            }
+
+            $parentResource = $request->getResource();
+            $parentModelClass = $parentResource->model;
+            $parentModel = new $parentModelClass;
+            $relationName = $this->getRelation();
+
+            if (method_exists($parentModel, $relationName)) {
+                $relation = $parentModel->{$relationName}();
+
+                if ($relation instanceof \Illuminate\Database\Eloquent\Relations\HasMany) {
+                    return $relation->getForeignKeyName();
+                }
+            }
+        } catch (\Throwable $e) {
+            // Silently fail
+        }
+
+        return null;
+    }
+
+    /**
      * Get props for frontend component.
      *
      * @param Request $request
@@ -305,6 +380,11 @@ class HasMany extends Field
             'canCreate' => $this->canCreate,
         ]);
 
+        // Add pagination URL if paginated and we have model context
+        if ($this->paginated && $model && $resource) {
+            $props['paginationUrl'] = $this->buildPaginationUrl($model, $resource);
+        }
+
         // Add attachment configuration
         if ($this->attachable) {
             $props['attachment'] = $this->getAttachmentConfig();
@@ -324,6 +404,113 @@ class HasMany extends Field
         }
 
         return $props;
+    }
+
+    /**
+     * Build the pagination URL for this relation.
+     *
+     * @param Model $model
+     * @param ResourceInterface $resource
+     * @return string
+     */
+    protected function buildPaginationUrl(Model $model, ResourceInterface $resource): string
+    {
+        $apiPrefix = static::safeConfig('nadota.api.prefix', 'nadota-api');
+        $resourceKey = $resource::getKey();
+        $modelId = $model->getKey();
+        $fieldKey = $this->key();
+
+        return "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/relation/{$fieldKey}";
+    }
+
+    /**
+     * Check if this field is configured for pagination.
+     *
+     * @return bool
+     */
+    public function isPaginated(): bool
+    {
+        return $this->paginated;
+    }
+
+    /**
+     * Get the configured limit.
+     *
+     * @return int|null
+     */
+    public function getLimit(): ?int
+    {
+        return $this->limit;
+    }
+
+    /**
+     * Get the configured order by field.
+     *
+     * @return string|null
+     */
+    public function getOrderBy(): ?string
+    {
+        return $this->orderBy;
+    }
+
+    /**
+     * Get the configured order direction.
+     *
+     * @return string
+     */
+    public function getOrderDirection(): string
+    {
+        return $this->orderDirection;
+    }
+
+    /**
+     * Get the custom fields configured for this relation.
+     *
+     * @return array|null
+     */
+    public function getCustomFields(): ?array
+    {
+        return $this->customFields;
+    }
+
+    /**
+     * Check if fields should be included in the response.
+     *
+     * @return bool
+     */
+    public function shouldIncludeFields(): bool
+    {
+        return $this->withFields;
+    }
+
+    /**
+     * Get the field keys to exclude from the response.
+     *
+     * @return array|null
+     */
+    public function getExceptFieldKeys(): ?array
+    {
+        return $this->exceptFieldKeys ?? null;
+    }
+
+    /**
+     * HasMany does not have pivot columns.
+     *
+     * @return bool
+     */
+    public function hasPivotColumns(): bool
+    {
+        return false;
+    }
+
+    /**
+     * HasMany does not have pivot columns.
+     *
+     * @return array
+     */
+    public function getPivotColumns(): array
+    {
+        return [];
     }
 
     /**

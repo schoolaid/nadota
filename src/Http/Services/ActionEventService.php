@@ -8,10 +8,17 @@ use Illuminate\Support\Str;
 use SchoolAid\Nadota\Models\ActionEvent;
 use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 use SchoolAid\Nadota\Contracts\ResourceInterface;
+use SchoolAid\Nadota\Events\ActionLogged;
+use SchoolAid\Nadota\Jobs\LogActionEvent;
 
 class ActionEventService
 {
     protected ?string $batchId = null;
+
+    /**
+     * Cached sensitive keys from config
+     */
+    protected ?array $sensitiveKeys = null;
 
     /**
      * Get or create a batch ID for grouping related actions
@@ -59,7 +66,7 @@ class ActionEventService
         ResourceInterface $resource,
         NadotaRequest $request,
         array $fields = [],
-        array $originalData = null
+        ?array $originalData = null
     ): ActionEvent {
         $original = $originalData ?? $model->getOriginal();
         $changes = $model->getChanges();
@@ -139,47 +146,65 @@ class ActionEventService
         ResourceInterface $resource,
         NadotaRequest $request,
         array $fields = [],
-        array $original = null,
-        array $changes = null
+        ?array $original = null,
+        ?array $changes = null
     ): ActionEvent {
+        $data = [
+            'batch_id' => $this->getBatchId(),
+            'user_id' => Auth::id(),
+            'name' => $action,
+            'actionable_type' => get_class($resource),
+            'actionable_id' => 0, // Resource doesn't have ID, using 0
+            'target_type' => get_class($model),
+            'target_id' => $model->getKey() ?? 0,
+            'model_type' => get_class($model),
+            'model_id' => $model->getKey(),
+            'fields' => $this->sanitizeFields($fields),
+            'status' => 'finished',
+            'exception' => null,
+            'original' => $original ? $this->sanitizeData($original) : null,
+            'changes' => $changes ? $this->sanitizeData($changes) : null,
+        ];
+
+        // Check if we should use queue for async processing
+        if ($this->shouldUseQueue()) {
+            return $this->logAsync($data, $action);
+        }
+
+        return $this->logSync($data, $action);
+    }
+
+    /**
+     * Log action synchronously
+     */
+    protected function logSync(array $data, string $action): ActionEvent
+    {
         try {
-            $actionEvent = ActionEvent::query()->create([
-                'batch_id' => $this->getBatchId(),
-                'user_id' => Auth::id() ?? 0,
-                'name' => $action,
-                'actionable_type' => get_class($resource),
-                'actionable_id' => 0, // Resource doesn't have ID, using 0
-                'target_type' => get_class($model),
-                'target_id' => $model->getKey() ?? 0,
-                'model_type' => get_class($model),
-                'model_id' => $model->getKey(),
-                'fields' => $this->sanitizeFields($fields),
-                'status' => 'finished',
-                'exception' => null,
-                'original' => $original ? $this->sanitizeData($original) : null,
-                'changes' => $changes ? $this->sanitizeData($changes) : null,
-            ]);
+            $actionEvent = ActionEvent::query()->create($data);
+
+            // Dispatch event for listeners
+            $this->dispatchEvent($actionEvent, $action);
 
             return $actionEvent;
         } catch (\Exception $e) {
             // Log error but don't break the main operation
             \Log::error('Failed to log action event', [
                 'action' => $action,
-                'model' => get_class($model),
+                'model' => $data['model_type'] ?? 'unknown',
                 'error' => $e->getMessage()
             ]);
 
             // Create a failed event record
             return ActionEvent::query()->create([
-                'batch_id' => $this->getBatchId(),
-                'user_id' => Auth::id() ?? 0,
+                'batch_id' => $data['batch_id'],
+                'user_id' => $data['user_id'],
                 'name' => $action,
-                'actionable_type' => get_class($resource),
+                'actionable_type' => $data['actionable_type'],
                 'actionable_id' => 0,
-                'target_type' => get_class($model),
-                'target_id' => $model->getKey() ?? 0,
-                'model_type' => get_class($model),
-                'model_id' => $model->getKey(),
+                'target_type' => $data['target_type'],
+                'target_id' => $data['target_id'] ?? 0,
+                'model_type' => $data['model_type'],
+                'model_id' => $data['model_id'],
                 'fields' => [],
                 'status' => 'failed',
                 'exception' => $e->getMessage(),
@@ -188,11 +213,65 @@ class ActionEventService
     }
 
     /**
+     * Log action asynchronously via queue
+     */
+    protected function logAsync(array $data, string $action): ActionEvent
+    {
+        // Dispatch to queue
+        $queue = config('nadota.action_events.queue_name', 'default');
+        LogActionEvent::dispatch($data, $action)->onQueue($queue);
+
+        // Return a temporary ActionEvent instance (not persisted yet)
+        $actionEvent = new ActionEvent($data);
+        $actionEvent->status = 'running';
+
+        return $actionEvent;
+    }
+
+    /**
+     * Dispatch the ActionLogged event
+     */
+    protected function dispatchEvent(ActionEvent $actionEvent, string $action): void
+    {
+        if (config('nadota.action_events.dispatch_events', true)) {
+            event(new ActionLogged($actionEvent, $action));
+        }
+    }
+
+    /**
+     * Check if queue should be used for logging
+     */
+    protected function shouldUseQueue(): bool
+    {
+        return config('nadota.action_events.queue', false);
+    }
+
+    /**
+     * Get sensitive keys from config (cached)
+     */
+    protected function getSensitiveKeys(): array
+    {
+        if ($this->sensitiveKeys === null) {
+            $this->sensitiveKeys = config('nadota.action_events.exclude_fields', [
+                'password',
+                'token',
+                'secret',
+                'api_key',
+                'private_key',
+                'remember_token',
+                'api_token',
+            ]);
+        }
+
+        return $this->sensitiveKeys;
+    }
+
+    /**
      * Sanitize fields to remove sensitive data
      */
     protected function sanitizeFields(array $fields): array
     {
-        $sensitiveKeys = ['password', 'token', 'secret', 'api_key', 'private_key'];
+        $sensitiveKeys = $this->getSensitiveKeys();
 
         foreach ($fields as $key => $value) {
             foreach ($sensitiveKeys as $sensitive) {
@@ -210,7 +289,7 @@ class ActionEventService
      */
     protected function sanitizeData(array $data): array
     {
-        $sensitiveKeys = ['password', 'token', 'secret', 'api_key', 'private_key', 'remember_token'];
+        $sensitiveKeys = $this->getSensitiveKeys();
 
         foreach ($data as $key => $value) {
             foreach ($sensitiveKeys as $sensitive) {

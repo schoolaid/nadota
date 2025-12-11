@@ -14,19 +14,23 @@ class RelationResource
     protected ?array $exceptFieldKeys;
     protected ?\Closure $labelResolver;
     protected bool $includePermissions;
+    protected bool $includeFields;
+    protected array $pivotColumns = [];
 
     public function __construct(
         Collection $fields,
         ?ResourceInterface $resource = null,
         ?array $exceptFieldKeys = null,
         ?\Closure $labelResolver = null,
-        bool $includePermissions = true
+        bool $includePermissions = true,
+        bool $includeFields = true
     ) {
         $this->fields = $this->filterFields($fields, $exceptFieldKeys);
         $this->resource = $resource;
         $this->exceptFieldKeys = $exceptFieldKeys;
         $this->labelResolver = $labelResolver;
         $this->includePermissions = $includePermissions;
+        $this->includeFields = $includeFields;
     }
 
     /**
@@ -48,22 +52,50 @@ class RelationResource
     }
 
     /**
-     * Format a single model (for BelongsTo, MorphTo).
+     * Format a single model (for BelongsTo, MorphTo, BelongsToMany items).
+     * Uses the same structure as index/show for consistency.
      */
     public function formatItem(Model $item, Request $request, array $extra = []): array
     {
+        // Use the same structure as index/show response
         $data = [
-            'key' => $item->getKey(),
+            'id' => $item->getKey(),
             'label' => $this->resolveLabel($item),
             'resource' => $this->resource ? $this->resource::getKey() : null,
-            'fields' => $this->formatFields($item, $request),
         ];
+
+        // Use 'attributes' instead of 'fields' to match index/show structure
+        if ($this->includeFields) {
+            $data['attributes'] = $this->formatFields($item, $request);
+        }
+
+        // Include deletedAt to match index/show structure
+        $data['deletedAt'] = $item->deleted_at ?? null;
+
+        // Include pivot data if available and columns are specified
+        if (!empty($this->pivotColumns) && isset($item->pivot)) {
+            $data['pivot'] = $this->extractPivotData($item);
+        }
 
         if ($this->includePermissions && $this->resource) {
             $data['permissions'] = $this->resource->getPermissionsForResource($request, $item);
         }
 
         return array_merge($data, $extra);
+    }
+
+    /**
+     * Extract pivot data from a model.
+     */
+    protected function extractPivotData(Model $item): array
+    {
+        $pivotData = [];
+
+        foreach ($this->pivotColumns as $column) {
+            $pivotData[$column] = $item->pivot->{$column} ?? null;
+        }
+
+        return $pivotData;
     }
 
     /**
@@ -74,7 +106,7 @@ class RelationResource
         Request $request,
         array $meta = []
     ): array {
-        return [
+        $data = [
             'data' => $items->map(fn($item) => $this->formatItem($item, $request))->values()->toArray(),
             'meta' => array_merge([
                 'total' => $items->count(),
@@ -82,6 +114,8 @@ class RelationResource
                 'fields' => $this->getFieldsMeta(),
             ], $meta),
         ];
+
+        return $data;
     }
 
     /**
@@ -137,6 +171,33 @@ class RelationResource
     public function withoutPermissions(): static
     {
         $this->includePermissions = false;
+        return $this;
+    }
+
+    /**
+     * Create a new instance without fields.
+     */
+    public function withoutFields(): static
+    {
+        $this->includeFields = false;
+        return $this;
+    }
+
+    /**
+     * Create a new instance with fields.
+     */
+    public function withFields(): static
+    {
+        $this->includeFields = true;
+        return $this;
+    }
+
+    /**
+     * Set pivot columns to include in the response.
+     */
+    public function withPivotColumns(array $columns): static
+    {
+        $this->pivotColumns = $columns;
         return $this;
     }
 

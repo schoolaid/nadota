@@ -9,14 +9,13 @@ trait TransformsFieldData
     /**
      * Transform model data for the index / list view.
      */
-    public function transformForIndex($item, NadotaRequest $request, $actions, $fields): array
+    public function transformForIndex($item, NadotaRequest $request, $fields): array
     {
         return [
             'id' => $item[$this::$attributeKey],
             'attributes' => $this->transformFieldsToArray($fields, $request, $item),
             'deletedAt' => $item->deleted_at ?? null,
             'permissions' => $this->getPermissionsForResource($request, $item),
-            'actions' => $actions,
         ];
     }
 
