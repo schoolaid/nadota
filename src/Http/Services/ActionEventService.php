@@ -40,6 +40,23 @@ class ActionEventService
     }
 
     /**
+     * Resolve the user ID for the action event
+     * Returns null if no user is authenticated (for system actions, registrations, etc.)
+     */
+    protected function resolveUserId(): ?int
+    {
+        // First check if there's an authenticated user
+        $userId = Auth::id();
+
+        if ($userId !== null) {
+            return $userId;
+        }
+
+        // Return configured system user ID or null
+        return config('nadota.action_events.system_user_id', null);
+    }
+
+    /**
      * Log a create action
      */
     public function logCreate(
@@ -151,7 +168,7 @@ class ActionEventService
     ): ActionEvent {
         $data = [
             'batch_id' => $this->getBatchId(),
-            'user_id' => Auth::id(),
+            'user_id' => $this->resolveUserId(),
             'name' => $action,
             'actionable_type' => get_class($resource),
             'actionable_id' => 0, // Resource doesn't have ID, using 0

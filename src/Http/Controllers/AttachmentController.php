@@ -4,13 +4,19 @@ namespace SchoolAid\Nadota\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
+use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
 use SchoolAid\Nadota\Http\Requests\NadotaRequest;
+use SchoolAid\Nadota\Http\Services\Attachments\BelongsToManyAttachmentService;
+use SchoolAid\Nadota\Http\Services\Attachments\Contracts\AttachmentServiceInterface;
 use SchoolAid\Nadota\Http\Services\Attachments\HasManyAttachmentService;
+use SchoolAid\Nadota\Http\Services\Attachments\MorphToManyAttachmentService;
 
 class AttachmentController extends Controller
 {
     public function __construct(
-        private HasManyAttachmentService $hasManyService
+        private HasManyAttachmentService $hasManyService,
+        private BelongsToManyAttachmentService $belongsToManyService,
+        private MorphToManyAttachmentService $morphToManyService
     ) {}
 
     /**
@@ -25,26 +31,27 @@ class AttachmentController extends Controller
         $model = $resource->getQuery($request)->findOrFail($id);
 
         // Get the field
-        $fields = collect($resource->fields($request));
-        $fieldInstance = $fields->firstWhere(fn($f) => $f->key() === $field);
+        $fieldInstance = $this->findField($request, $resource, $field);
 
         if (!$fieldInstance) {
-            return response()->json(['message' => 'Field not found'], 404);
+            return response()->json(['success' => false, 'message' => 'Field not found'], 404);
         }
 
         if (!$fieldInstance->isAttachable()) {
-            return response()->json(['message' => 'Field is not attachable'], 422);
+            return response()->json(['success' => false, 'message' => 'Field is not attachable'], 422);
         }
 
-        // Get attachable items based on field type
-        $relationType = $fieldInstance->getType();
+        // Get the service for this field type
+        $service = $this->getServiceForField($fieldInstance);
 
-        switch ($relationType) {
-            case \SchoolAid\Nadota\Http\Fields\Enums\FieldType::HAS_MANY->value:
-                return $this->hasManyService->getAttachableItems($request, $model, $fieldInstance);
-            default:
-                return response()->json(['message' => 'Attachment not supported for this field type: ' . $relationType], 422);
+        if (!$service) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Attachment not supported for this field type: ' . $fieldInstance->getType()
+            ], 422);
         }
+
+        return $service->getAttachableItems($request, $model, $fieldInstance);
     }
 
     /**
@@ -59,31 +66,32 @@ class AttachmentController extends Controller
         $model = $resource->getQuery($request)->findOrFail($resourceId);
 
         // Check permissions
-        if (!$resource->authorizedTo($request, 'update', $model)) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+        if (!$resource->authorizedTo($request, 'attach', $model)) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
         // Get the field
-        $fields = collect($resource->fields($request));
-        $fieldInstance = $fields->firstWhere(fn($f) => $f->key() === $field);
+        $fieldInstance = $this->findField($request, $resource, $field);
 
         if (!$fieldInstance) {
-            return response()->json(['message' => 'Field not found'], 404);
+            return response()->json(['success' => false, 'message' => 'Field not found'], 404);
         }
 
         if (!$fieldInstance->isAttachable()) {
-            return response()->json(['message' => 'Field is not attachable'], 422);
+            return response()->json(['success' => false, 'message' => 'Field is not attachable'], 422);
         }
 
-        // Attach based on a field type
-        $relationType = $fieldInstance->getType();
+        // Get the service for this field type
+        $service = $this->getServiceForField($fieldInstance);
 
-        switch ($relationType) {
-            case \SchoolAid\Nadota\Http\Fields\Enums\FieldType::HAS_MANY->value:
-                return $this->hasManyService->attach($request, $model, $fieldInstance);
-            default:
-                return response()->json(['message' => 'Attachment not supported for this field type: ' . $relationType], 422);
+        if (!$service) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Attachment not supported for this field type: ' . $fieldInstance->getType()
+            ], 422);
         }
+
+        return $service->attach($request, $model, $fieldInstance);
     }
 
     /**
@@ -98,30 +106,115 @@ class AttachmentController extends Controller
         $model = $resource->getQuery($request)->findOrFail($id);
 
         // Check permissions
-        if (!$resource->authorizedTo($request, 'update', $model)) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+        if (!$resource->authorizedTo($request, 'detach', $model)) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
         // Get the field
-        $fields = collect($resource->fields($request));
-        $fieldInstance = $fields->firstWhere(fn($f) => $f->key() === $field);
+        $fieldInstance = $this->findField($request, $resource, $field);
 
         if (!$fieldInstance) {
-            return response()->json(['message' => 'Field not found'], 404);
+            return response()->json(['success' => false, 'message' => 'Field not found'], 404);
         }
 
         if (!$fieldInstance->isAttachable()) {
-            return response()->json(['message' => 'Field is not attachable'], 422);
+            return response()->json(['success' => false, 'message' => 'Field is not attachable'], 422);
         }
 
-        // Detach based on a field type
-        $relationType = $fieldInstance->getType();
+        // Get the service for this field type
+        $service = $this->getServiceForField($fieldInstance);
 
-        switch ($relationType) {
-            case \SchoolAid\Nadota\Http\Fields\Enums\FieldType::HAS_MANY->value:
-                return $this->hasManyService->detach($request, $model, $fieldInstance);
-            default:
-                return response()->json(['message' => 'Detachment not supported for this field type: ' . $relationType], 422);
+        if (!$service) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Detachment not supported for this field type: ' . $fieldInstance->getType()
+            ], 422);
         }
+
+        return $service->detach($request, $model, $fieldInstance);
+    }
+
+    /**
+     * Sync items in a relationship (replace all).
+     */
+    public function sync(NadotaRequest $request, string $resourceKey, string $id, string $field): JsonResponse
+    {
+        $request->prepareResource();
+        $resource = $request->getResource();
+
+        // Find the parent model
+        $model = $resource->getQuery($request)->findOrFail($id);
+
+        // Check permissions (use attach permission for sync)
+        if (!$resource->authorizedTo($request, 'attach', $model)) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        // Get the field
+        $fieldInstance = $this->findField($request, $resource, $field);
+
+        if (!$fieldInstance) {
+            return response()->json(['success' => false, 'message' => 'Field not found'], 404);
+        }
+
+        if (!$fieldInstance->isAttachable()) {
+            return response()->json(['success' => false, 'message' => 'Field is not attachable'], 422);
+        }
+
+        // Get the service for this field type
+        $service = $this->getServiceForField($fieldInstance);
+
+        if (!$service) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Sync not supported for this field type: ' . $fieldInstance->getType()
+            ], 422);
+        }
+
+        if (!$service->supportsSync()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Sync operation not supported for this relation type'
+            ], 422);
+        }
+
+        return $service->sync($request, $model, $fieldInstance);
+    }
+
+    /**
+     * Find a field by name in the resource.
+     */
+    protected function findField(NadotaRequest $request, $resource, string $fieldName)
+    {
+        $fields = collect($resource->fields($request));
+
+        // Try by key first
+        $field = $fields->firstWhere(fn($f) => $f->key() === $fieldName);
+
+        // Try by relation name
+        if (!$field) {
+            $field = $fields->first(function ($f) use ($fieldName) {
+                return method_exists($f, 'getRelation') && $f->getRelation() === $fieldName;
+            });
+        }
+
+        return $field;
+    }
+
+    /**
+     * Get the appropriate service for a field type.
+     */
+    protected function getServiceForField($field): ?AttachmentServiceInterface
+    {
+        $type = $field->getType();
+
+        return match ($type) {
+            FieldType::HAS_MANY->value => $this->hasManyService,
+            FieldType::BELONGS_TO_MANY->value => $this->belongsToManyService,
+            FieldType::MORPH_TO_MANY->value => $this->morphToManyService,
+            // MorphedByMany uses the same service as MorphToMany
+            'morphedByMany' => $this->morphToManyService,
+            default => null,
+        };
     }
 }

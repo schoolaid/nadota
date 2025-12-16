@@ -108,11 +108,21 @@ class FieldOptionsService
             ];
         }
 
+        // Build exclude list (manual + auto from related records)
+        $exclude = $request->get('exclude', []);
+        $resourceId = $request->get('resourceId');
+
+        // Auto-exclude already attached records if resourceId is provided
+        if ($resourceId) {
+            $attachedIds = $this->getAttachedIds($resource, $field, $resourceId);
+            $exclude = $this->mergeExcludeIds($exclude, $attachedIds);
+        }
+
         // Use strategy to fetch options
         $params = array_merge([
             'search' => $request->get('search', ''),
             'limit' => $request->get('limit', OptionsConfig::DEFAULT_LIMIT),
-            'exclude' => $request->get('exclude', []),
+            'exclude' => $exclude,
             'orderBy' => $request->get('orderBy'),
             'orderDirection' => $request->get('orderDirection', OptionsConfig::DEFAULT_ORDER_DIRECTION),
         ], $additionalParams);
@@ -204,15 +214,22 @@ class FieldOptionsService
 
         // Get parameters
         $search = $request->get('search', '');
-        $perPage = $request->get('per_page', OptionsConfig::DEFAULT_PER_PAGE);
+        $perPage = min((int) $request->get('per_page', OptionsConfig::DEFAULT_PER_PAGE), OptionsConfig::MAX_PER_PAGE);
         $page = $request->get('page', 1);
         $exclude = $request->get('exclude', []);
+        $resourceId = $request->get('resourceId');
         $orderBy = $request->get('orderBy');
         $orderDirection = $request->get('orderDirection', OptionsConfig::DEFAULT_ORDER_DIRECTION);
 
-        // Normalize exclude
-        if (is_string($exclude)) {
-            $exclude = array_filter(explode(',', $exclude));
+        // Auto-exclude already attached records if resourceId is provided
+        if ($resourceId) {
+            $attachedIds = $this->getAttachedIds($resource, $field, $resourceId);
+            $exclude = $this->mergeExcludeIds($exclude, $attachedIds);
+        } else {
+            // Normalize exclude
+            if (is_string($exclude)) {
+                $exclude = array_filter(explode(',', $exclude));
+            }
         }
 
         // Get key attribute
@@ -437,5 +454,76 @@ class FieldOptionsService
         }
 
         return $field;
+    }
+
+    /**
+     * Get IDs of records already attached to a resource via a relation field.
+     *
+     * @param ResourceInterface $resource
+     * @param Field $field
+     * @param mixed $resourceId
+     * @return array
+     */
+    protected function getAttachedIds(ResourceInterface $resource, Field $field, mixed $resourceId): array
+    {
+        // Only works for relationship fields
+        if (!method_exists($field, 'getRelation')) {
+            return [];
+        }
+
+        $relationName = $field->getRelation();
+
+        if (!$relationName) {
+            return [];
+        }
+
+        try {
+            // Get the parent model
+            $modelClass = $resource->model;
+            $model = $modelClass::find($resourceId);
+
+            if (!$model) {
+                return [];
+            }
+
+            // Check if the relation exists
+            if (!method_exists($model, $relationName)) {
+                return [];
+            }
+
+            // Get the relation
+            $relation = $model->{$relationName}();
+
+            // Get the related model's key name
+            $relatedKeyName = $relation->getRelated()->getKeyName();
+
+            // Pluck the IDs
+            return $model->{$relationName}()->pluck($relatedKeyName)->toArray();
+        } catch (\Throwable $e) {
+            // Silently fail - don't break the options request
+            return [];
+        }
+    }
+
+    /**
+     * Merge exclude IDs from request with auto-excluded IDs.
+     *
+     * @param mixed $exclude
+     * @param array $attachedIds
+     * @return array
+     */
+    protected function mergeExcludeIds(mixed $exclude, array $attachedIds): array
+    {
+        // Normalize exclude from request
+        if (is_string($exclude)) {
+            $exclude = array_filter(explode(',', $exclude));
+        }
+
+        if (!is_array($exclude)) {
+            $exclude = [];
+        }
+
+        // Merge and deduplicate
+        return array_values(array_unique(array_merge($exclude, $attachedIds)));
     }
 }

@@ -13,6 +13,11 @@ class OptionsConfig
     public const DEFAULT_LIMIT = 15;
 
     /**
+     * Maximum number of options allowed (prevents expensive queries).
+     */
+    public const MAX_LIMIT = 100;
+
+    /**
      * Default order direction.
      */
     public const DEFAULT_ORDER_DIRECTION = 'asc';
@@ -21,6 +26,11 @@ class OptionsConfig
      * Default pagination per page.
      */
     public const DEFAULT_PER_PAGE = 15;
+
+    /**
+     * Maximum pagination per page allowed.
+     */
+    public const MAX_PER_PAGE = 100;
 
     /**
      * Common attributes to search when no searchable attributes are configured.

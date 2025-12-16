@@ -163,13 +163,38 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
     }
 
     /**
-     * Customize the query used when fetching options for this resource in relation fields.
-     * Override this method to add scopes, filters, or conditions.
+     * Customize the query used when fetching options for this resource.
+     *
+     * This method is called when:
+     * - Fetching options via GET /{resource}/resource/options
+     * - Fetching relation field options via GET /{resource}/resource/field/{field}/options
+     *
+     * Override this method to add scopes, filters, or conditions specific to options.
      *
      * @param Builder $query The base query
      * @param NadotaRequest $request The current request
-     * @param array $params Additional parameters (search, limit, exclude, etc.)
+     * @param array $params Additional parameters:
+     *                      - 'search': string - Search term
+     *                      - 'limit': int - Max results (capped at 100)
+     *                      - 'exclude': array - IDs to exclude
+     *                      - 'orderBy': string|null - Order field
+     *                      - 'orderDirection': string - 'asc' or 'desc'
      * @return Builder
+     *
+     * @example
+     * ```php
+     * // Only show active records in options
+     * public function optionsQuery(Builder $query, NadotaRequest $request, array $params = []): Builder
+     * {
+     *     return $query->where('is_active', true);
+     * }
+     *
+     * // Filter by tenant
+     * public function optionsQuery(Builder $query, NadotaRequest $request, array $params = []): Builder
+     * {
+     *     return $query->where('tenant_id', $request->user()->tenant_id);
+     * }
+     * ```
      */
     public function optionsQuery(Builder $query, NadotaRequest $request, array $params = []): Builder
     {
@@ -177,12 +202,42 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
     }
 
     /**
-     * Provide a custom search implementation for options (e.g., Meilisearch, Algolia).
-     * Return null to use the default database search.
+     * Provide a custom search implementation for options (e.g., Meilisearch, Algolia, Scout).
+     *
+     * Return null to use the default database LIKE search.
+     * When returning a collection, the system will format results using displayLabel().
      *
      * @param NadotaRequest $request The current request
-     * @param array $params Parameters including 'search', 'limit', 'exclude', etc.
-     * @return \Illuminate\Support\Collection|array|null Return collection/array of models, or null for default behavior
+     * @param array $params Parameters:
+     *                      - 'search': string - Search term
+     *                      - 'limit': int - Max results (capped at 100)
+     *                      - 'exclude': array - IDs to exclude
+     *                      - 'orderBy': string|null - Order field
+     *                      - 'orderDirection': string - 'asc' or 'desc'
+     * @return \Illuminate\Support\Collection|array|null Return models collection, or null for default DB search
+     *
+     * @example
+     * ```php
+     * // Using Laravel Scout with Meilisearch
+     * public function optionsSearch(NadotaRequest $request, array $params = []): Collection|array|null
+     * {
+     *     $search = $params['search'] ?? '';
+     *     $limit = $params['limit'] ?? 15;
+     *     $exclude = $params['exclude'] ?? [];
+     *
+     *     if (empty($search)) {
+     *         return null; // Fall back to default database query
+     *     }
+     *
+     *     $query = Student::search($search)->take($limit);
+     *
+     *     if (!empty($exclude)) {
+     *         $query->whereNotIn('id', $exclude);
+     *     }
+     *
+     *     return $query->get();
+     * }
+     * ```
      */
     public function optionsSearch(NadotaRequest $request, array $params = []): \Illuminate\Support\Collection|array|null
     {
@@ -191,6 +246,19 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
     public function tools(NadotaRequest $request): array
     {
         return [];
+    }
+
+    /**
+     * Build the URL to fetch action events for a model.
+     * Override this method to customize the URL generation.
+     */
+    public function buildActionEventsUrl(Model $model): string
+    {
+        $prefix = config('nadota.api.prefix', 'nadota-api');
+        $resourceKey = static::getKey();
+        $modelId = $model->getKey();
+
+        return "/{$prefix}/{$resourceKey}/resource/{$modelId}/action-events";
     }
 
     /**

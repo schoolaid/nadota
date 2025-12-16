@@ -9,6 +9,7 @@ use SchoolAid\Nadota\Http\Controllers\MenuController;
 use SchoolAid\Nadota\Http\Controllers\FieldOptionsController;
 use SchoolAid\Nadota\Http\Controllers\AttachmentController;
 use SchoolAid\Nadota\Http\Controllers\RelationController;
+use SchoolAid\Nadota\Http\Controllers\ActionEventController;
 
 Route::get('/menu', [MenuController::class, 'menu'])->name('menu');
 
@@ -41,9 +42,15 @@ Route::prefix('/{resourceKey}/resource')->group(function () {
     Route::get('/{id}/attachable/{field}', [AttachmentController::class, 'attachable'])->name('resource.attachable')->where('id', '[0-9]+');
     Route::post('/{id}/attach/{field}', [AttachmentController::class, 'attach'])->name('resource.attach')->where('id', '[0-9]+');
     Route::post('/{id}/detach/{field}', [AttachmentController::class, 'detach'])->name('resource.detach')->where('id', '[0-9]+');
+    Route::post('/{id}/sync/{field}', [AttachmentController::class, 'sync'])->name('resource.sync')->where('id', '[0-9]+');
 
     // Relation pagination endpoint
     Route::get('/{id}/relation/{field}', [RelationController::class, 'index'])->name('resource.relation.index')->where('id', '[0-9]+');
+
+    // Action events for a specific model
+    Route::get('/{id}/action-events', [ActionEventController::class, 'index'])->name('resource.action-events')->where('id', '[0-9]+');
+
+    Route::get('/{id}/permissions', [ResourceController::class, 'permissions'])->name('resource.permissions')->where('id', '[0-9]+');
 
     Route::get('/{id}', [ResourceController::class, 'show'])->name('resource.show');
     Route::get('/{id}/edit', [ResourceController::class, 'edit'])->name('resource.edit');

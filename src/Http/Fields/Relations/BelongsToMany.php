@@ -9,11 +9,13 @@ use Illuminate\Http\Request;
 use SchoolAid\Nadota\Contracts\ResourceInterface;
 use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
 use SchoolAid\Nadota\Http\Fields\Field;
+use SchoolAid\Nadota\Http\Fields\Traits\ManagesAttachments;
 use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 use SchoolAid\Nadota\Http\Resources\RelationResource;
 
 class BelongsToMany extends Field
 {
+    use ManagesAttachments;
     /**
      * Maximum number of related items to show (when not paginated).
      */
@@ -215,6 +217,11 @@ class BelongsToMany extends Field
      */
     public function resolve(Request $request, Model $model, ?ResourceInterface $resource): mixed
     {
+        // If paginated, return empty structure - data will be loaded via pagination endpoint
+        if ($this->paginated) {
+            return $this->getEmptyPaginatedResponse();
+        }
+
         $relationName = $this->getRelation();
 
         if (!method_exists($model, $relationName)) {
@@ -245,6 +252,24 @@ class BelongsToMany extends Field
 
         // Otherwise, return raw data with basic formatting
         return $this->formatBasic($relatedItems);
+    }
+
+    /**
+     * Get empty response structure for paginated fields.
+     *
+     * @return array
+     */
+    protected function getEmptyPaginatedResponse(): array
+    {
+        return [
+            'data' => [],
+            'meta' => [
+                'total' => 0,
+                'hasMore' => false,
+                'paginated' => true,
+                'pivotColumns' => $this->withPivot ? $this->pivotColumns : [],
+            ]
+        ];
     }
 
     /**
@@ -427,7 +452,7 @@ class BelongsToMany extends Field
             $apiPrefix = static::safeConfig('nadota.api.prefix', 'nadota-api');
 
             $props['urls'] = [
-                'options' => "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/field/{$fieldKey}/options",
+                'options' => "/{$apiPrefix}/{$resourceKey}/resource/field/{$fieldKey}/options?resourceId={$modelId}",
                 'attach' => "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/attach/{$fieldKey}",
                 'detach' => "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/detach/{$fieldKey}",
                 'sync' => "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/sync/{$fieldKey}",

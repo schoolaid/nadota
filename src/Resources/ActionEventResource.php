@@ -2,6 +2,8 @@
 
 namespace SchoolAid\Nadota\Resources;
 
+use SchoolAid\Nadota\Http\Fields\Code;
+use SchoolAid\Nadota\Http\Fields\Json;
 use SchoolAid\Nadota\Resource;
 use SchoolAid\Nadota\Http\Fields\Input;
 use SchoolAid\Nadota\Http\Fields\DateTime;
@@ -12,6 +14,10 @@ use SchoolAid\Nadota\Http\Fields\Relations\MorphTo;
 use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 use SchoolAid\Nadota\Models\ActionEvent;
 use SchoolAid\Nadota\Http\Filters\Filter;
+use SchoolAid\Nadota\Http\Filters\SelectFilter;
+use SchoolAid\Nadota\Http\Filters\NumberFilter;
+use SchoolAid\Nadota\Http\Filters\DefaultFilter;
+use SchoolAid\Nadota\Http\Filters\DateFilter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
@@ -52,6 +58,11 @@ class ActionEventResource extends Resource
     protected bool $softDelete = false;
 
     public array $with = ['user'];
+
+    public function displayInMenu(NadotaRequest $request): bool
+    {
+        return false;
+    }
 
     /**
      * Get the fields displayed by the resource.
@@ -117,19 +128,19 @@ class ActionEventResource extends Resource
                 ->readonly()
                 ,
 
-            Textarea::make('Fields', 'fields')
+            Json::make('Fields', 'fields')
                 ->readonly()
                 ->help('JSON data of fields involved in the action'),
 
-            Textarea::make('Original Data', 'original')
+            Json::make('Original Data', 'original')
                 ->readonly()
                 ->help('Original state before changes'),
 
-            Textarea::make('Changes', 'changes')
+            Json::make('Changes', 'changes')
                 ->readonly()
                 ->help('Changes made during the action'),
 
-            Textarea::make('Exception', 'exception')
+            Json::make('Exception', 'exception')
                 ->readonly()
                 ->help('Error message if action failed'),
 
@@ -141,9 +152,43 @@ class ActionEventResource extends Resource
             DateTime::make('Updated At', 'updated_at')
                 ->sortable()
                 ->readonly()
-                
+
                 ->dateOnly(),
         ];
     }
 
+    /**
+     * Get the filters available for the resource.
+     *
+     * @param NadotaRequest $request
+     * @return array
+     */
+    public function filters(NadotaRequest $request): array
+    {
+        return [
+            SelectFilter::make('Action', 'name')
+                ->options([
+                    'create' => 'Create',
+                    'update' => 'Update',
+                    'delete' => 'Delete',
+                    'restore' => 'Restore',
+                    'forceDelete' => 'Force Delete',
+                ]),
+
+            SelectFilter::make('Status', 'status')
+                ->options([
+                    'running' => 'Running',
+                    'finished' => 'Finished',
+                    'failed' => 'Failed',
+                ]),
+
+            DefaultFilter::make('Model Type', 'model_type'),
+
+            NumberFilter::make('Model ID', 'model_id'),
+
+            NumberFilter::make('User ID', 'user_id'),
+
+            DateFilter::make('Created At', 'created_at'),
+        ];
+    }
 }

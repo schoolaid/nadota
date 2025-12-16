@@ -58,6 +58,7 @@ class ResourceShowService implements ResourceShowInterface
                 'title' => $resource->title(),
                 'tools' => $resource->tools($request),
                 'deletedAt' => $model->deleted_at ?? null,
+                'actionEventsUrl' => $resource->buildActionEventsUrl($model),
             ],
         ]);
     }

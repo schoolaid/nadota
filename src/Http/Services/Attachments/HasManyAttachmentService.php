@@ -4,15 +4,21 @@ namespace SchoolAid\Nadota\Http\Services\Attachments;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
+use SchoolAid\Nadota\Http\Fields\Field;
 use SchoolAid\Nadota\Http\Fields\Relations\HasMany;
 use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 
-class HasManyAttachmentService
+class HasManyAttachmentService extends AbstractAttachmentService
 {
     /**
      * Get attachable items for a HasMany field.
+     *
+     * @param NadotaRequest $request
+     * @param Model $parentModel
+     * @param Field|HasMany $field
+     * @return JsonResponse
      */
-    public function getAttachableItems(NadotaRequest $request, Model $parentModel, HasMany $field): JsonResponse
+    public function getAttachableItems(NadotaRequest $request, Model $parentModel, Field $field): JsonResponse
     {
         $relationName = $field->getRelation();
 
@@ -30,70 +36,81 @@ class HasManyAttachmentService
                     ->orWhere($foreignKey, '!=', $parentModel->getKey());
             });
 
-        // Apply search if provided
-        if ($search = $request->get('search')) {
-            $searchFields = $field->getAttachableSearchFields();
+        // Apply resource's optionsQuery if available
+        if ($field->getResource()) {
+            $resourceClass = $field->getResource();
+            $resource = new $resourceClass;
 
-            // If we have a resource, use its searchable fields via getter method
-            if ($field->getResource()) {
-                $resourceClass = $field->getResource();
-                $resource = new $resourceClass;
-
-                if (method_exists($resource, 'getSearchableAttributes')) {
-                    $searchFields = $resource->getSearchableAttributes();
-                }
+            if (method_exists($resource, 'optionsQuery')) {
+                $query = $resource->optionsQuery($query, $request, []);
             }
+        }
 
-            $query->where(function ($q) use ($searchFields, $search) {
-                foreach ($searchFields as $searchField) {
-                    $q->orWhere($searchField, 'like', '%' . $search . '%');
-                }
-            });
+        // Get pagination params
+        $params = $this->getPaginationParams($request);
+
+        // Apply search if provided
+        if (!empty($params['search'])) {
+            $searchFields = $this->getSearchableFields($field);
+            $this->applySearch($query, $params['search'], $searchFields);
         }
 
         // Apply custom query callback if provided
-        if ($callback = $field->getAttachableQueryCallback()) {
-            $callback($query);
+        if (method_exists($field, 'getAttachableQueryCallback')) {
+            $callback = $field->getAttachableQueryCallback();
+            if ($callback) {
+                $callback($query);
+            }
         }
 
-        // Apply pagination
-        $perPage = $request->get('per_page', 25);
-        $paginated = $query->paginate($perPage);
+        // Apply ordering
+        if (method_exists($field, 'getOrderBy') && $field->getOrderBy()) {
+            $direction = method_exists($field, 'getOrderDirection') ? $field->getOrderDirection() : 'asc';
+            $query->orderBy($field->getOrderBy(), $direction);
+        }
+
+        // Paginate
+        $paginated = $query->paginate($params['per_page']);
 
         // Format response
-        $items = $paginated->map(function ($item) use ($field, $request) {
-            $label = $this->getItemLabel($item, $field);
-
+        $items = collect($paginated->items())->map(function ($item) use ($field, $request) {
             return [
                 'id' => $item->getKey(),
-                'label' => $label,
+                'label' => $this->getItemLabel($item, $field),
                 'meta' => $this->getItemMeta($item, $field, $request),
             ];
         });
 
         return response()->json([
+            'success' => true,
             'data' => $items,
             'meta' => [
                 'current_page' => $paginated->currentPage(),
                 'last_page' => $paginated->lastPage(),
                 'per_page' => $paginated->perPage(),
                 'total' => $paginated->total(),
-                'attachable_limit' => $field->getAttachableLimit(),
+                'attachable_limit' => method_exists($field, 'getAttachableLimit') ? $field->getAttachableLimit() : null,
             ]
         ]);
     }
 
     /**
      * Attach items to a HasMany relationship.
+     *
+     * @param NadotaRequest $request
+     * @param Model $parentModel
+     * @param Field|HasMany $field
+     * @return JsonResponse
      */
-    public function attach(NadotaRequest $request, Model $parentModel, HasMany $field): JsonResponse
+    public function attach(NadotaRequest $request, Model $parentModel, Field $field): JsonResponse
     {
-        $relationName = $field->getRelation();
-        $itemIds = $request->get('items', []);
+        $items = $this->getItemsFromRequest($request);
 
-        if (empty($itemIds)) {
-            return response()->json(['message' => 'No items to attach'], 422);
+        if (empty($items)) {
+            return $this->errorResponse('No items to attach');
         }
+
+        $relationName = $field->getRelation();
 
         // Get the related model class
         $relatedModel = $parentModel->{$relationName}()->getRelated();
@@ -103,27 +120,27 @@ class HasManyAttachmentService
         $foreignKey = $parentModel->{$relationName}()->getForeignKeyName();
 
         // Check attachment limit
-        if ($limit = $field->getAttachableLimit()) {
-            $currentCount = $parentModel->{$relationName}()->count();
-            $newCount = count($itemIds);
-
-            if ($currentCount + $newCount > $limit) {
-                return response()->json([
-                    'message' => "Attachment limit exceeded. Maximum allowed: {$limit}",
-                    'current' => $currentCount,
-                    'limit' => $limit
-                ], 422);
-            }
+        $currentCount = $parentModel->{$relationName}()->count();
+        $limitError = $this->checkAttachmentLimit($field, $currentCount, count($items));
+        if ($limitError) {
+            return $limitError;
         }
 
-        // Find items to attach
+        // Find items to attach (only those not already attached)
         $itemsToAttach = $relatedClass::query()
-            ->whereIn($relatedModel->getKeyName(), $itemIds)
+            ->whereIn($relatedModel->getKeyName(), $items)
             ->where(function ($q) use ($foreignKey, $parentModel) {
                 $q->whereNull($foreignKey)
                     ->orWhere($foreignKey, '!=', $parentModel->getKey());
             })
             ->get();
+
+        if ($itemsToAttach->isEmpty()) {
+            return $this->successResponse('All items are already attached or not found', [
+                'attached' => [],
+                'count' => 0,
+            ]);
+        }
 
         // Attach items by setting the foreign key
         $attached = [];
@@ -133,61 +150,52 @@ class HasManyAttachmentService
             $attached[] = $item->getKey();
         }
 
-        return response()->json([
-            'message' => 'Items attached successfully',
+        return $this->successResponse('Items attached successfully', [
             'attached' => $attached,
-            'count' => count($attached)
+            'count' => count($attached),
         ]);
     }
 
     /**
      * Detach items from a HasMany relationship.
+     *
+     * @param NadotaRequest $request
+     * @param Model $parentModel
+     * @param Field|HasMany $field
+     * @return JsonResponse
      */
-    public function detach(NadotaRequest $request, Model $parentModel, HasMany $field): JsonResponse
+    public function detach(NadotaRequest $request, Model $parentModel, Field $field): JsonResponse
     {
-        $relationName = $field->getRelation();
-        $itemIds = $request->get('items', []);
+        $items = $this->getItemsFromRequest($request);
 
-        if (empty($itemIds)) {
-            return response()->json(['message' => 'No items to detach'], 422);
+        if (empty($items)) {
+            return $this->errorResponse('No items to detach');
         }
+
+        $relationName = $field->getRelation();
 
         // Get the foreign key
         $foreignKey = $parentModel->{$relationName}()->getForeignKeyName();
-        
-        // Find and detach items
+
+        // Find and detach items by setting FK to null
         $detached = $parentModel->{$relationName}()
-            ->whereIn($parentModel->{$relationName}()->getRelated()->getKeyName(), $itemIds)
+            ->whereIn($parentModel->{$relationName}()->getRelated()->getKeyName(), $items)
             ->update([$foreignKey => null]);
 
-        return response()->json([
-            'message' => 'Items detached successfully',
-            'detached' => $detached
+        return $this->successResponse('Items detached successfully', [
+            'detached' => $detached,
         ]);
     }
 
     /**
-     * Get a label for an attachable item.
-     */
-    protected function getItemLabel(Model $item, HasMany $field): string
-    {
-        // Try common display attributes
-        $displayAttributes = ['name', 'title', 'label', 'display_name', 'email'];
-
-        foreach ($displayAttributes as $attr) {
-            if (isset($item->{$attr})) {
-                return $item->{$attr};
-            }
-        }
-
-        // Fallback to ID
-        return "Item #{$item->getKey()}";
-    }
-
-    /**
      * Get additional metadata for an attachable item.
+     *
+     * @param Model $item
+     * @param Field $field
+     * @param NadotaRequest $request
+     * @return array
      */
-    protected function getItemMeta(Model $item, HasMany $field, NadotaRequest $request): array
+    protected function getItemMeta(Model $item, Field $field, NadotaRequest $request): array
     {
         $meta = [];
 

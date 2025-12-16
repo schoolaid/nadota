@@ -2,142 +2,103 @@
 
 namespace SchoolAid\Nadota\Http\Services;
 
-use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
+use SchoolAid\Nadota\Contracts\ResourceInterface;
 use SchoolAid\Nadota\Contracts\ResourceStoreInterface;
-use SchoolAid\Nadota\Http\Fields\File;
-use SchoolAid\Nadota\Http\Fields\Relations\MorphTo;
 use SchoolAid\Nadota\Http\Requests\NadotaRequest;
-use SchoolAid\Nadota\Http\Traits\TracksActionEvents;
 
-class ResourceStoreService implements ResourceStoreInterface
+class ResourceStoreService extends AbstractResourcePersistService implements ResourceStoreInterface
 {
-    use TracksActionEvents;
-    public function handle(NadotaRequest $request): JsonResponse
+    /**
+     * {@inheritdoc}
+     */
+    protected function getModel(NadotaRequest $request, ResourceInterface $resource, $id): Model
     {
-        $request->authorized('create');
-        $resource = $request->getResource();
-        $model = new $resource->model;
-
-        $fields = collect($resource->fields($request))
-            ->filter(function ($field) {
-                return $field->isShowOnCreation()
-                    && !$field->isReadonly()
-                    && !$field->isComputed();
-            });
-
-        // Build validation rules including MorphTo fields
-        $rules = [];
-        foreach ($fields as $field) {
-            if ($field instanceof MorphTo) {
-                // MorphTo needs validation for both type and id attributes
-                $typeAttribute = $field->getMorphTypeAttribute();
-                $idAttribute = $field->getMorphIdAttribute();
-
-                // Add validation rules for morph fields if they exist
-                $fieldRules = $field->getRules();
-                if (!empty($fieldRules)) {
-                    // If rules are provided as array, split them
-                    if (isset($fieldRules[$typeAttribute])) {
-                        $rules[$typeAttribute] = $fieldRules[$typeAttribute];
-                    }
-                    if (isset($fieldRules[$idAttribute])) {
-                        $rules[$idAttribute] = $fieldRules[$idAttribute];
-                    }
-                    // If rules are provided as a single string, apply to id field
-                    if (!isset($fieldRules[$typeAttribute]) && !isset($fieldRules[$idAttribute])) {
-                        $rules[$idAttribute] = $fieldRules;
-                    }
-                }
-            } else {
-                $rules[$field->getAttribute()] = $field->getRules();
-            }
-        }
-
-        $validator = Validator::make($request->all(), $rules);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-        $validator->validated();
-
-        // Collect all attributes including morph attributes
-        $onlyAttributes = [];
-        foreach ($fields as $field) {
-            if ($field instanceof MorphTo) {
-                $onlyAttributes[] = $field->getMorphTypeAttribute();
-                $onlyAttributes[] = $field->getMorphIdAttribute();
-            } else {
-                $onlyAttributes[] = $field->getAttribute();
-            }
-        }
-
-        $validatedData = $validator->safe()->only($onlyAttributes);
-
-        try {
-            DB::beginTransaction();
-
-            // Process each field
-            $fields->each(function ($field) use (&$validatedData, $request, $model, $resource) {
-                // Fields that handle their own filling (Files, MorphTo, etc.)
-                if ($field instanceof File || $field instanceof MorphTo) {
-                    // Use the fill method for special fields
-                    $field->fill($request, $model);
-                }
-                // Default handling for simple fields
-                else {
-                    $attribute = $field->getAttribute();
-                    if (isset($validatedData[$attribute])) {
-                        $model->{$attribute} = $field->resolveForStore($request, $model, $resource, $validatedData[$attribute]);
-                    }
-                }
-            });
-            $model->save();
-
-            // Track the creation action
-            $this->trackCreate($model, $request, $validatedData);
-
-            DB::commit();
-        } catch (\Exception $e) {
-            DB::rollBack();
-
-            return response()->json([
-                'message' => 'Failed to create resource',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
-
-        return response()->json([
-            'message' => 'Resource created successfully',
-            'data' => $model,
-        ], 201);
+        return new $resource->model;
     }
 
     /**
-     * Replace :id placeholder in validation rules.
-     * This is useful for unique rules that need to exclude a specific record.
-     *
-     * @param mixed $rules
-     * @param mixed $id The ID to replace :id with
-     * @return mixed
+     * {@inheritdoc}
      */
-    private function replaceIdPlaceholder($rules, $id)
+    protected function getAuthorizationAction(): string
     {
-        if (is_array($rules)) {
-            foreach ($rules as &$rule) {
-                if (is_string($rule)) {
-                    $rule = str_replace(':id', $id, $rule);
-                }
-            }
-            return $rules;
-        } elseif (is_string($rules)) {
-            return str_replace(':id', $id, $rules);
-        }
+        return 'create';
+    }
 
-        return $rules;
+    /**
+     * {@inheritdoc}
+     */
+    protected function filterFields(ResourceInterface $resource, NadotaRequest $request): Collection
+    {
+        return $this->filterFieldsForStore($resource, $request);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function callBeforeHook(ResourceInterface $resource, Model $model, NadotaRequest $request): void
+    {
+        if (method_exists($resource, 'beforeStore')) {
+            $resource->beforeStore($model, $request);
+        }
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function callAfterHook(
+        ResourceInterface $resource,
+        Model $model,
+        NadotaRequest $request,
+        ?array $originalData
+    ): void {
+        if (method_exists($resource, 'afterStore')) {
+            $resource->afterStore($model, $request);
+        }
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function trackAction(
+        Model $model,
+        NadotaRequest $request,
+        array $validatedData,
+        ?array $originalData
+    ): void {
+        $this->trackCreate($model, $request, $validatedData);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function isUpdate(): bool
+    {
+        return false;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function getSuccessMessage(): string
+    {
+        return 'Resource created successfully';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function getSuccessStatusCode(): int
+    {
+        return 201;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function getErrorMessage(): string
+    {
+        return 'Failed to create resource';
     }
 }

@@ -63,19 +63,28 @@ class MenuService implements MenuServiceInterface
             }
         }
 
-        // Convert structure to final menu
-        $finalMenu = $this->buildFinalMenu($menuStructure);
-
-        // Add additional menu items if configured
+        // Add additional menu items if configured (before building final menu)
         if (NadotaService::$addMenuItems) {
             $additionalMenuItems = call_user_func(NadotaService::$addMenuItems, $request);
 
             foreach ($additionalMenuItems as $additionalMenuItem) {
-                if ($additionalMenuItem->isVisible($request)) {
-                    $finalMenu[] = $additionalMenuItem;
+                if (!$additionalMenuItem->isVisible($request)) {
+                    continue;
+                }
+
+                $parent = $additionalMenuItem->getParent();
+                if ($parent !== null) {
+                    // Add to configured section
+                    $this->addMenuItemToSection($menuStructure, $parent, $additionalMenuItem, $request);
+                } else {
+                    // Top-level menu item
+                    $menuStructure[$additionalMenuItem->getKey()] = $additionalMenuItem;
                 }
             }
         }
+
+        // Convert structure to final menu
+        $finalMenu = $this->buildFinalMenu($menuStructure);
 
         // Sort menu items
         $this->sortMenuRecursively($finalMenu);
@@ -84,9 +93,17 @@ class MenuService implements MenuServiceInterface
     }
 
     /**
-     * Add a menu item to the structure using section key
+     * Add a menu item to the structure using section key (for resources)
      */
     private function addToMenuPath(array &$menuStructure, string $sectionKey, MenuItem $menuItem, NadotaRequest $request): void
+    {
+        $this->addMenuItemToSection($menuStructure, $sectionKey, $menuItem, $request);
+    }
+
+    /**
+     * Add any menu item to a section
+     */
+    private function addMenuItemToSection(array &$menuStructure, string $sectionKey, MenuItemInterface $menuItem, NadotaRequest $request): void
     {
         $sectionKey = trim($sectionKey);
         if ($sectionKey === '') {

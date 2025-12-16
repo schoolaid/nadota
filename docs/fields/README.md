@@ -21,7 +21,7 @@ Sistema de campos para la definicion y renderizado de formularios y vistas.
 | [MorphedByMany](#morphedbymany) | [HasManyThrough](#hasmanythrough) | [HasOneThrough](#hasonethrough) |
 
 ### Otros
-| [Metodos Comunes](#metodos-comunes) | [Respuesta JSON Base](#respuesta-json-base) | [Arquitectura](#arquitectura) |
+| [Metodos Comunes](#metodos-comunes) | [Respuesta JSON Base](#respuesta-json-base) | [Arquitectura](#arquitectura) | [API de Opciones](#api-de-opciones-de-fields) |
 
 ---
 
@@ -1373,7 +1373,8 @@ BelongsToMany::make('Roles', 'roles', RoleResource::class)
     ])
     ->withTimestamps()
     ->limit(20)
-    ->orderBy('name', 'asc');
+    ->orderBy('name', 'asc')
+    ->paginated();  // Opcional: habilita paginacion
 ```
 
 #### Respuesta API
@@ -1409,8 +1410,10 @@ BelongsToMany::make('Roles', 'roles', RoleResource::class)
       "pivotColumns": ["expires_at", "is_admin"]
     }
   },
+  "pivotFields": [...],
   "props": {
     "limit": 20,
+    "paginated": false,
     "orderBy": "name",
     "orderDirection": "asc",
     "relationType": "belongsToMany",
@@ -1418,9 +1421,8 @@ BelongsToMany::make('Roles', 'roles', RoleResource::class)
     "pivotColumns": ["expires_at", "is_admin"],
     "withPivot": true,
     "withTimestamps": true,
-    "pivotFields": [...],
     "urls": {
-      "options": "/nadota-api/posts/resource/1/field/roles/options",
+      "options": "/nadota-api/posts/resource/field/roles/options?resourceId=1",
       "attach": "/nadota-api/posts/resource/1/attach/roles",
       "detach": "/nadota-api/posts/resource/1/detach/roles",
       "sync": "/nadota-api/posts/resource/1/sync/roles"
@@ -1428,6 +1430,33 @@ BelongsToMany::make('Roles', 'roles', RoleResource::class)
   }
 }
 ```
+
+#### URLs de Operaciones
+
+El campo incluye URLs para operaciones de relacion:
+
+| URL | Descripcion |
+|-----|-------------|
+| `urls.options` | Obtener opciones disponibles (incluye `?resourceId=X` para auto-excluir registros ya relacionados) |
+| `urls.attach` | Adjuntar registros a la relacion |
+| `urls.detach` | Separar registros de la relacion |
+| `urls.sync` | Sincronizar la relacion (reemplazar todos) |
+| `urls.paginationUrl` | URL de paginacion (solo si `paginated()` esta habilitado) |
+
+#### Auto-Exclusion de Registros Relacionados
+
+La URL de `options` incluye automaticamente el parametro `resourceId` que permite al backend excluir automaticamente los registros que ya estan relacionados. Por ejemplo, si un Post ya tiene asociados los roles con IDs 1 y 2, al solicitar opciones estos no apareceran en los resultados.
+
+**Parametros soportados en la URL de options:**
+
+| Parametro | Descripcion |
+|-----------|-------------|
+| `resourceId` | ID del modelo padre (auto-excluye registros relacionados) |
+| `search` | Termino de busqueda |
+| `limit` | Limite de resultados (default: 15) |
+| `exclude` | IDs adicionales a excluir (comma-separated) |
+| `orderBy` | Campo para ordenar |
+| `orderDirection` | Direccion del orden (asc/desc) |
 
 #### Metodos Especificos
 
@@ -1439,12 +1468,15 @@ BelongsToMany::make('Roles', 'roles', RoleResource::class)
 | `limit(int $limit)` | Limite de items |
 | `orderBy(string $field, string $direction)` | Ordenamiento |
 | `paginated(bool $paginated = true)` | Paginacion |
+| `withFields(bool $value = true)` | Incluir fields en respuesta |
+| `fields(array $fields)` | Fields personalizados |
+| `exceptFields(array $keys)` | Excluir fields especificos |
 
 ---
 
 ### MorphTo
 
-Relacion polimorfica inversa.
+Relacion polimorfica inversa. Permite que un modelo pertenezca a diferentes tipos de modelos.
 
 **Clase:** `SchoolAid\Nadota\Http\Fields\Relations\MorphTo`
 **Tipo:** `morphTo`
@@ -1453,36 +1485,99 @@ Relacion polimorfica inversa.
 #### Uso
 
 ```php
+// Usando array de resources (recomendado)
 MorphTo::make('Comentable', 'commentable', [
     'post' => PostResource::class,
     'video' => VideoResource::class,
 ])
     ->withFields()
     ->displayAttribute('title');
+
+// Usando metodos separados
+MorphTo::make('Taggable', 'taggable')
+    ->resources([
+        'post' => PostResource::class,
+        'product' => ProductResource::class,
+    ])
+    ->displayAttribute('name');
+
+// Agregando tipos individualmente
+MorphTo::make('Attachable', 'attachable')
+    ->addMorphType('document', Document::class, DocumentResource::class)
+    ->addMorphType('image', Image::class, ImageResource::class);
 ```
 
 #### Respuesta API
 
 ```json
 {
-  "key": "commentable",
+  "key": "commentable_id",
   "label": "Comentable",
+  "attribute": "commentable_id",
   "type": "morphTo",
   "value": {
-    "key": 5,
+    "id": 5,
     "label": "Mi Post",
     "resource": "posts",
-    "morphType": "App\\Models\\Post",
+    "type": "post",
+    "typeLabel": "Post",
+    "optionsUrl": "/nadota-api/comments/resource/field/commentable/morph-options/post",
     "fields": [...]
   },
   "props": {
-    "relationType": "morphTo",
-    "morphTypes": {
-      "post": "posts",
-      "video": "videos"
-    },
-    "displayAttribute": "title"
+    "morphTypes": [
+      {
+        "value": "post",
+        "label": "Post",
+        "resource": "posts",
+        "optionsUrl": "/nadota-api/comments/resource/field/commentable/morph-options/post"
+      },
+      {
+        "value": "video",
+        "label": "Video",
+        "resource": "videos",
+        "optionsUrl": "/nadota-api/comments/resource/field/commentable/morph-options/video"
+      }
+    ],
+    "morphTypeAttribute": "commentable_type",
+    "morphIdAttribute": "commentable_id",
+    "isPolymorphic": true,
+    "baseOptionsUrl": "/nadota-api/comments/resource/field/commentable/morph-options"
   }
+}
+```
+
+#### Estructura de morphTypes
+
+Cada tipo morph incluye:
+
+| Propiedad | Descripcion |
+|-----------|-------------|
+| `value` | Alias del tipo (usado internamente) |
+| `label` | Etiqueta legible para mostrar |
+| `resource` | Key del resource relacionado |
+| `optionsUrl` | URL especifica para obtener opciones de este tipo |
+
+#### URLs de Options por Tipo
+
+Cada tipo morph tiene su propia URL de options. El frontend debe:
+
+1. Mostrar un selector de tipo (usando `morphTypes`)
+2. Al seleccionar un tipo, cargar opciones desde su `optionsUrl`
+3. Guardar tanto el tipo (`morphTypeAttribute`) como el ID (`morphIdAttribute`)
+
+**Ejemplo de flujo:**
+```javascript
+// 1. Usuario selecciona tipo "post"
+const selectedType = morphTypes.find(t => t.value === 'post');
+
+// 2. Cargar opciones desde la URL del tipo
+const options = await fetch(selectedType.optionsUrl + '?search=termino');
+
+// 3. Al guardar, enviar ambos campos
+{
+  "commentable_type": "post",  // o "App\\Models\\Post" segun configuracion
+  "commentable_id": 123
 }
 ```
 
@@ -1490,7 +1585,10 @@ MorphTo::make('Comentable', 'commentable', [
 
 | Metodo | Descripcion |
 |--------|-------------|
-| `withFields(bool $value = true)` | Incluir fields |
+| `resources(array $resources)` | Definir tipos como ['alias' => ResourceClass] |
+| `models(array $models)` | Definir tipos como ['alias' => ModelClass] |
+| `addMorphType(string $alias, string $model, ?string $resource)` | Agregar tipo individual |
+| `withFields(bool $value = true)` | Incluir fields en respuesta |
 | `displayAttribute(string $attr)` | Atributo para label |
 | `fields(array $fields)` | Fields personalizados |
 
@@ -1588,10 +1686,10 @@ MorphMany::make('Comentarios', 'comments', CommentResource::class)
 
 ### MorphToMany
 
-Relacion polimorfica muchos a muchos.
+Relacion polimorfica muchos a muchos. Similar a BelongsToMany pero permite que multiples tipos de modelos compartan la misma tabla pivot.
 
 **Clase:** `SchoolAid\Nadota\Http\Fields\Relations\MorphToMany`
-**Tipo:** `morphToMany`
+**Tipo:** `belongsToMany` (usa el mismo tipo para compatibilidad de frontend)
 **Componente:** `FieldMorphToMany`
 **Visibilidad por defecto:** Detail, Create, Update
 
@@ -1604,7 +1702,9 @@ MorphToMany::make('Etiquetas', 'tags', TagResource::class)
         Number::make('Orden', 'order'),
     ])
     ->withTimestamps()
-    ->limit(20);
+    ->limit(20)
+    ->orderBy('name', 'asc')
+    ->paginated();  // Opcional: habilita paginacion
 ```
 
 #### Respuesta API
@@ -1614,6 +1714,10 @@ MorphToMany::make('Etiquetas', 'tags', TagResource::class)
   "key": "tags",
   "label": "Etiquetas",
   "type": "belongsToMany",
+  "showOnIndex": false,
+  "showOnDetail": true,
+  "showOnCreation": true,
+  "showOnUpdate": true,
   "value": {
     "data": [
       {
@@ -1627,21 +1731,61 @@ MorphToMany::make('Etiquetas', 'tags', TagResource::class)
     "meta": {
       "total": 5,
       "hasMore": false,
-      "resource": "tags",
       "pivotColumns": ["order"],
       "isPolymorphic": true
     }
   },
+  "pivotFields": [...],
   "props": {
+    "limit": 20,
+    "paginated": false,
+    "orderBy": "name",
+    "orderDirection": "asc",
     "relationType": "morphToMany",
     "resource": "tags",
     "pivotColumns": ["order"],
     "withPivot": true,
+    "withTimestamps": false,
     "isPolymorphic": true,
-    "urls": {...}
+    "urls": {
+      "options": "/nadota-api/posts/resource/field/tags/options?resourceId=1",
+      "attach": "/nadota-api/posts/resource/1/attach/tags",
+      "detach": "/nadota-api/posts/resource/1/detach/tags",
+      "sync": "/nadota-api/posts/resource/1/sync/tags"
+    }
   }
 }
 ```
+
+#### URLs de Operaciones
+
+Igual que BelongsToMany, el campo incluye URLs para operaciones:
+
+| URL | Descripcion |
+|-----|-------------|
+| `urls.options` | Obtener opciones disponibles (incluye `?resourceId=X` para auto-excluir) |
+| `urls.attach` | Adjuntar registros a la relacion |
+| `urls.detach` | Separar registros de la relacion |
+| `urls.sync` | Sincronizar la relacion |
+| `urls.paginationUrl` | URL de paginacion (si `paginated()` esta habilitado) |
+
+#### Auto-Exclusion de Registros Relacionados
+
+La URL de `options` incluye `resourceId` para excluir automaticamente los tags que ya estan asociados al modelo actual.
+
+#### Metodos Especificos
+
+| Metodo | Descripcion |
+|--------|-------------|
+| `withPivot(array $columns)` | Columnas pivot a incluir |
+| `pivotFields(array $fields)` | Fields para datos pivot |
+| `withTimestamps(bool $value = true)` | Incluir timestamps del pivot |
+| `limit(int $limit)` | Limite de items |
+| `orderBy(string $field, string $direction)` | Ordenamiento |
+| `paginated(bool $paginated = true)` | Paginacion |
+| `withFields(bool $value = true)` | Incluir fields en respuesta |
+| `fields(array $fields)` | Fields personalizados |
+| `exceptFields(array $keys)` | Excluir fields especificos |
 
 ---
 
@@ -1914,6 +2058,165 @@ src/Http/Fields/
 ├── DateTime.php, Code.php, Json.php, KeyValue.php, ArrayField.php
 ├── File.php, Image.php
 └── CustomComponent.php
+```
+
+---
+
+## API de Opciones de Fields
+
+El sistema de opciones permite cargar dinamicamente las opciones disponibles para campos de relacion.
+
+### Endpoints Disponibles
+
+| Endpoint | Descripcion |
+|----------|-------------|
+| `GET /{resource}/resource/field/{field}/options` | Opciones para un field (BelongsTo, BelongsToMany, etc.) |
+| `GET /{resource}/resource/field/{field}/options/paginated` | Opciones paginadas |
+| `GET /{resource}/resource/field/{field}/morph-options/{type}` | Opciones para un tipo especifico de MorphTo |
+| `GET /{resource}/resource/options` | Opciones del resource completo |
+
+### Parametros de Query
+
+Todos los endpoints de options soportan los siguientes parametros:
+
+| Parametro | Tipo | Default | Max | Descripcion |
+|-----------|------|---------|-----|-------------|
+| `search` | string | `''` | - | Termino de busqueda |
+| `limit` | int | `15` | `100` | Limite de resultados |
+| `per_page` | int | `15` | `100` | Resultados por pagina (solo paginado) |
+| `page` | int | `1` | - | Numero de pagina (solo paginado) |
+| `exclude` | string/array | `[]` | - | IDs a excluir (comma-separated o array) |
+| `resourceId` | mixed | `null` | - | ID del modelo padre (auto-excluye relacionados) |
+| `orderBy` | string | `null` | - | Campo para ordenar |
+| `orderDirection` | string | `'asc'` | - | Direccion del orden |
+
+**Nota:** Los valores de `limit` y `per_page` estan limitados a un maximo de 100 para prevenir queries costosas.
+
+### Respuesta de Options
+
+```json
+{
+  "success": true,
+  "options": [
+    {"value": 1, "label": "Opcion 1"},
+    {"value": 2, "label": "Opcion 2"}
+  ],
+  "meta": {
+    "total": 2,
+    "search": "",
+    "limit": 15,
+    "fieldType": "belongsTo"
+  }
+}
+```
+
+### Respuesta Paginada
+
+```json
+{
+  "success": true,
+  "data": [
+    {"value": 1, "label": "Opcion 1"},
+    {"value": 2, "label": "Opcion 2"}
+  ],
+  "meta": {
+    "current_page": 1,
+    "per_page": 15,
+    "total": 100,
+    "last_page": 7,
+    "from": 1,
+    "to": 15,
+    "search": "",
+    "fieldType": "belongsToMany"
+  }
+}
+```
+
+### Auto-Exclusion de Registros Relacionados
+
+Cuando se proporciona `resourceId`, el sistema automaticamente excluye los registros que ya estan relacionados con el modelo padre. Esto es util para evitar duplicados en relaciones como BelongsToMany o MorphToMany.
+
+**Ejemplo:**
+```
+GET /nadota-api/posts/resource/field/tags/options?resourceId=1&search=php
+```
+
+Si el Post con ID 1 ya tiene tags con IDs [3, 5, 7], estos seran automaticamente excluidos de los resultados.
+
+### Configuracion de Busqueda en Resource
+
+Los resources pueden configurar que atributos son buscables:
+
+```php
+class StudentResource extends Resource
+{
+    // Atributos directos del modelo a buscar
+    protected array $searchableAttributes = ['name', 'email', 'student_id'];
+
+    // Atributos de relaciones a buscar (formato: 'relacion.atributo')
+    protected array $searchableRelations = [
+        'family.name',           // BelongsTo
+        'grade.title',           // BelongsTo
+        'enrollments.year',      // HasMany
+        'author.profile.bio',    // Nested relation
+    ];
+}
+```
+
+Si no se configuran atributos buscables, el sistema usa un fallback:
+`['name', 'title', 'label', 'display_name', 'full_name', 'description']`
+
+### Personalizacion de Query
+
+Los resources pueden personalizar la consulta de options implementando `optionsQuery`:
+
+```php
+class StudentResource extends Resource
+{
+    public function optionsQuery(Builder $query, NadotaRequest $request, array $params = []): Builder
+    {
+        // Filtrar solo estudiantes activos
+        return $query->where('status', 'active');
+    }
+}
+
+class UserResource extends Resource
+{
+    public function optionsQuery(Builder $query, NadotaRequest $request, array $params = []): Builder
+    {
+        // Filtrar por tenant del usuario actual
+        return $query->where('tenant_id', $request->user()->tenant_id);
+    }
+}
+```
+
+### Busqueda Personalizada (Meilisearch/Algolia)
+
+Para integraciones con motores de busqueda externos, usar `optionsSearch`:
+
+```php
+class StudentResource extends Resource
+{
+    public function optionsSearch(NadotaRequest $request, array $params = []): Collection|array|null
+    {
+        $search = $params['search'] ?? '';
+        $limit = $params['limit'] ?? 15;
+        $exclude = $params['exclude'] ?? [];
+
+        if (empty($search)) {
+            return null; // Usar query normal de base de datos
+        }
+
+        // Usar Laravel Scout con Meilisearch
+        $query = Student::search($search)->take($limit);
+
+        if (!empty($exclude)) {
+            $query->whereNotIn('id', $exclude);
+        }
+
+        return $query->get();
+    }
+}
 ```
 
 ---

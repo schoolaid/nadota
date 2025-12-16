@@ -147,6 +147,11 @@ class HasManyThrough extends Field
      */
     public function resolve(Request $request, Model $model, ?ResourceInterface $resource): mixed
     {
+        // If paginated, return empty structure - data will be loaded via pagination endpoint
+        if ($this->paginated) {
+            return $this->getEmptyPaginatedResponse();
+        }
+
         $relationName = $this->getRelation();
 
         if (!method_exists($model, $relationName)) {
@@ -177,6 +182,23 @@ class HasManyThrough extends Field
 
         // Otherwise, return raw data with basic formatting
         return $this->formatBasic($relatedItems);
+    }
+
+    /**
+     * Get empty response structure for paginated fields.
+     *
+     * @return array
+     */
+    protected function getEmptyPaginatedResponse(): array
+    {
+        return [
+            'data' => [],
+            'meta' => [
+                'total' => 0,
+                'hasMore' => false,
+                'paginated' => true,
+            ]
+        ];
     }
 
     /**

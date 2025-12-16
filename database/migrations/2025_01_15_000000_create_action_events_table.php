@@ -17,9 +17,9 @@ return new class extends Migration
             $table->unsignedBigInteger('user_id')->nullable();
             $table->string('name');
             $table->string('actionable_type');
-            $table->unsignedBigInteger('actionable_id');
+            $table->unsignedBigInteger('actionable_id')->nullable();
             $table->string('target_type');
-            $table->unsignedBigInteger('target_id');
+            $table->unsignedBigInteger('target_id')->nullable();
             $table->string('model_type');
             $table->unsignedBigInteger('model_id')->nullable();
             $table->text('fields');

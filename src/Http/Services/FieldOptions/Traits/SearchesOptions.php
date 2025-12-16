@@ -177,9 +177,12 @@ trait SearchesOptions
      */
     protected function getCommonParams($request, array $params = []): array
     {
+        $limit = $params['limit'] ?? $request->get('limit', OptionsConfig::DEFAULT_LIMIT);
+        $limit = min((int) $limit, OptionsConfig::MAX_LIMIT);
+
         return [
             'search' => $params['search'] ?? $request->get('search', ''),
-            'limit' => $params['limit'] ?? $request->get('limit', OptionsConfig::DEFAULT_LIMIT),
+            'limit' => $limit,
             'exclude' => $params['exclude'] ?? $request->get('exclude', []),
             'orderBy' => $params['orderBy'] ?? $request->get('orderBy'),
             'orderDirection' => $params['orderDirection'] ?? $request->get('orderDirection', OptionsConfig::DEFAULT_ORDER_DIRECTION),

@@ -141,6 +141,10 @@ return [
         'enabled' => env('NADOTA_TRACK_ACTIONS', true),
         'table' => 'action_events',
 
+        // System user ID for actions without authenticated user (registrations, jobs, artisan commands)
+        // Set to null to allow null user_id, or set a specific user ID for system actions
+        'system_user_id' => env('NADOTA_SYSTEM_USER_ID', null),
+
         // Fields to exclude from logging (sensitive data)
         'exclude_fields' => [
             'password',

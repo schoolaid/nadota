@@ -2,6 +2,32 @@
 
 namespace SchoolAid\Nadota\Http\Traits;
 
+/**
+ * Trait ResourceSearchable
+ *
+ * Provides search configuration for resources. Used by:
+ * - Index queries (global search)
+ * - Options endpoints (relation field options search)
+ *
+ * @example
+ * ```php
+ * class StudentResource extends Resource
+ * {
+ *     // Direct attributes to search
+ *     protected array $searchableAttributes = ['name', 'email', 'student_id'];
+ *
+ *     // Related model attributes to search (format: 'relation.attribute')
+ *     protected array $searchableRelations = [
+ *         'family.name',           // Search in family name
+ *         'grade.title',           // Search in grade title
+ *         'enrollments.year',      // Search in enrollment years
+ *     ];
+ * }
+ * ```
+ *
+ * If no searchable attributes are configured, the system falls back to:
+ * ['name', 'title', 'label', 'display_name', 'full_name', 'description']
+ */
 trait ResourceSearchable
 {
     /**
@@ -15,16 +41,36 @@ trait ResourceSearchable
     /**
      * The attributes that should be searchable on the resource.
      *
+     * These are direct columns on the model's table that will be searched
+     * using LIKE queries when the user types in a search box.
+     *
      * @var array
+     *
+     * @example
+     * ```php
+     * protected array $searchableAttributes = ['name', 'email', 'phone'];
+     * ```
      */
     protected array $searchableAttributes = [];
 
     /**
      * The relations that should be searchable on the resource.
+     *
      * Format: ['relation.attribute', 'relation.nested.attribute']
-     * Example: ['user.name', 'category.title', 'tags.name']
+     * Uses whereHas() to search within related models.
      *
      * @var array
+     *
+     * @example
+     * ```php
+     * protected array $searchableRelations = [
+     *     'user.name',           // BelongsTo relation
+     *     'category.title',      // BelongsTo relation
+     *     'tags.name',           // BelongsToMany relation
+     *     'comments.body',       // HasMany relation
+     *     'author.profile.bio',  // Nested relation (HasOne through BelongsTo)
+     * ];
+     * ```
      */
     protected array $searchableRelations = [];
 

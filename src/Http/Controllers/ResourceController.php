@@ -2,6 +2,7 @@
 
 namespace SchoolAid\Nadota\Http\Controllers;
 
+use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 use SchoolAid\Nadota\Contracts\ResourceIndexInterface;
 use SchoolAid\Nadota\Contracts\ResourceCreateInterface;
@@ -72,5 +73,37 @@ class ResourceController extends Controller
     public function restore(NadotaRequest $request, $resource, $id)
     {
         return $this->restoreService->handle($request, $id);
+    }
+
+    /**
+     * Get permissions and URLs for a specific resource record.
+     */
+    public function permissions(NadotaRequest $request, string $resourceKey, int $id): JsonResponse
+    {
+        $resource = $request->getResource();
+        $model = $resource->getQuery($request)->findOrFail($id);
+
+        $request->authorized('view', $model);
+
+        $permissions = $resource->getPermissionsForResource($request, $model);
+        $prefix = config('nadota.api.prefix', 'nadota-api');
+
+        $urls = [
+            'show' => $permissions['view'] ? "/{$prefix}/{$resourceKey}/resource/{$id}" : null,
+            'edit' => $permissions['update'] ? "/{$prefix}/{$resourceKey}/resource/{$id}/edit" : null,
+            'update' => $permissions['update'] ? "/{$prefix}/{$resourceKey}/resource/{$id}" : null,
+            'delete' => $permissions['delete'] ? "/{$prefix}/{$resourceKey}/resource/{$id}" : null,
+            'forceDelete' => $permissions['forceDelete'] ? "/{$prefix}/{$resourceKey}/resource/{$id}/force" : null,
+            'restore' => $permissions['restore'] ? "/{$prefix}/{$resourceKey}/resource/{$id}/restore" : null,
+            'actionEvents' => $permissions['view'] ? $resource->buildActionEventsUrl($model) : null,
+        ];
+
+        return response()->json([
+            'data' => [
+                'id' => $model->getKey(),
+                'permissions' => $permissions,
+                'urls' => $urls,
+            ],
+        ]);
     }
 }

@@ -24,6 +24,7 @@ class ResourceOptionsService
     ): array {
         $search = $params['search'] ?? $request->get('search', '');
         $limit = $params['limit'] ?? $request->get('limit', OptionsConfig::DEFAULT_LIMIT);
+        $limit = min((int) $limit, OptionsConfig::MAX_LIMIT);
         $exclude = $params['exclude'] ?? $request->get('exclude', []);
         $orderBy = $params['orderBy'] ?? $request->get('orderBy');
         $orderDirection = $params['orderDirection'] ?? $request->get('orderDirection', OptionsConfig::DEFAULT_ORDER_DIRECTION);

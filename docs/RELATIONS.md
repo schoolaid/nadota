@@ -332,6 +332,5 @@ GET /nadota-api/{resourceKey}/resource/{id}/relation/{field}
 
 ## Pendiente (Futuro)
 
-- [x] ~~**Paginación de Relaciones** - Endpoint dedicado para cargar relaciones paginadas~~
 - [ ] **Inline Create** - Crear relacionados desde el mismo form
 - [ ] **Searchable Relations** - Búsqueda async para selects con muchos registros
