@@ -68,6 +68,12 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
      */
     protected ?string $showResponseResource = null;
 
+    /**
+     * Custom Laravel Resource class for edit response.
+     * When set, bypasses the default Nadota response format.
+     */
+    protected ?string $editResponseResource = null;
+
     public function __construct(
         ResourceAuthorizationInterface $resourceAuthorization = null
     )
@@ -286,6 +292,14 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
     }
 
     /**
+     * Get the custom Laravel Resource class for edit response.
+     */
+    public function getEditResponseResource(): ?string
+    {
+        return $this->editResponseResource;
+    }
+
+    /**
      * Get the component names for all views
      */
     public function getComponents(): array
@@ -446,6 +460,59 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
      * Override this method to perform custom logic after restoration
      */
     public function afterRestore(Model $model, NadotaRequest $request): void
+    {
+        // Override in child resource if needed
+    }
+
+    /**
+     * Hook called before storing a new resource.
+     * Override this method to perform custom logic before creation.
+     *
+     * @param Model $model The model being created (not yet saved)
+     * @param NadotaRequest $request The current request
+     * @return void
+     */
+    public function beforeStore(Model $model, NadotaRequest $request): void
+    {
+        // Override in child resource if needed
+    }
+
+    /**
+     * Hook called after successfully storing a new resource.
+     * Override this method to perform custom logic after creation.
+     *
+     * @param Model $model The created model (with ID)
+     * @param NadotaRequest $request The current request
+     * @return void
+     */
+    public function afterStore(Model $model, NadotaRequest $request): void
+    {
+        // Override in child resource if needed
+    }
+
+    /**
+     * Hook called before updating a resource.
+     * Override this method to perform custom logic before update.
+     *
+     * @param Model $model The model being updated
+     * @param NadotaRequest $request The current request
+     * @return void
+     */
+    public function beforeUpdate(Model $model, NadotaRequest $request): void
+    {
+        // Override in child resource if needed
+    }
+
+    /**
+     * Hook called after successfully updating a resource.
+     * Override this method to perform custom logic after update.
+     *
+     * @param Model $model The updated model
+     * @param NadotaRequest $request The current request
+     * @param array $originalData The original attributes before update
+     * @return void
+     */
+    public function afterUpdate(Model $model, NadotaRequest $request, array $originalData): void
     {
         // Override in child resource if needed
     }

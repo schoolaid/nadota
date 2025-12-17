@@ -447,23 +447,29 @@ class MorphToMany extends Field
             'isPolymorphic' => true,
         ]);
 
-        // Add URLs for attach/detach operations
-        if ($model && $resource) {
+        // Add URLs - options URL is always needed (for create and edit forms)
+        if ($resource) {
             $resourceKey = $resource::getKey();
-            $modelId = $model->getKey();
             $fieldKey = $this->key();
             $apiPrefix = static::safeConfig('nadota.api.prefix', 'nadota-api');
 
+            // Options URL is always available (no model ID needed)
             $props['urls'] = [
-                'options' => "/{$apiPrefix}/{$resourceKey}/resource/field/{$fieldKey}/options?resourceId={$modelId}",
-                'attach' => "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/attach/{$fieldKey}",
-                'detach' => "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/detach/{$fieldKey}",
-                'sync' => "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/sync/{$fieldKey}",
+                'options' => "/{$apiPrefix}/{$resourceKey}/resource/field/{$fieldKey}/options",
             ];
 
-            // Add pagination URL if paginated
-            if ($this->paginated) {
-                $props['paginationUrl'] = "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/relation/{$fieldKey}";
+            // Attach/detach/sync URLs require an existing model
+            if ($model) {
+                $modelId = $model->getKey();
+                $props['urls']['options'] = "/{$apiPrefix}/{$resourceKey}/resource/field/{$fieldKey}/options?resourceId={$modelId}";
+                $props['urls']['attach'] = "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/attach/{$fieldKey}";
+                $props['urls']['detach'] = "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/detach/{$fieldKey}";
+                $props['urls']['sync'] = "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/sync/{$fieldKey}";
+
+                // Add pagination URL if paginated
+                if ($this->paginated) {
+                    $props['paginationUrl'] = "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/relation/{$fieldKey}";
+                }
             }
         }
 
@@ -568,6 +574,8 @@ class MorphToMany extends Field
 
     /**
      * Fill method for MorphToMany.
+     * MorphToMany needs the model to be saved first,
+     * so actual syncing is done in afterSave().
      *
      * @param Request $request
      * @param Model $model
@@ -576,6 +584,17 @@ class MorphToMany extends Field
     public function fill(Request $request, Model $model): void
     {
         // MorphToMany needs the model to be saved first
+        // Actual syncing is handled in afterSave()
+    }
+
+    /**
+     * Determine if this field supports afterSave callback.
+     *
+     * @return bool
+     */
+    public function supportsAfterSave(): bool
+    {
+        return true;
     }
 
     /**

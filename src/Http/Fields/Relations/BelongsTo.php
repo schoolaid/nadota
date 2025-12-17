@@ -49,6 +49,7 @@ class BelongsTo extends Field
 
         parent::__construct($name, $attribute, FieldType::BELONGS_TO->value, static::safeConfig('nadota.fields.belongsTo.component', 'field'));
         $this->relation($relation);
+
         $this->isRelationship = true;
 
         if ($resource) {
@@ -307,6 +308,51 @@ class BelongsTo extends Field
     public function relationType(): string
     {
         return 'belongsTo';
+    }
+
+    /**
+     * Fill the model with the foreign key value.
+     *
+     * This method resolves the actual foreign key from the Eloquent relationship
+     * and sets it on the model, handling cases where the field attribute differs
+     * from the actual database column.
+     *
+     * @param Request $request
+     * @param Model $model
+     * @return void
+     */
+    public function fill(Request $request, Model $model): void
+    {
+        // Don't fill if readonly or disabled
+        if ($this->isReadonly() || $this->isDisabled()) {
+            return;
+        }
+
+        $requestAttribute = $this->getAttribute();
+
+        // Check if the value exists in the request
+        if (!$request->has($requestAttribute)) {
+            return;
+        }
+
+        $value = $request->input($requestAttribute);
+
+        // Resolve the actual foreign key from the Eloquent relationship
+        $foreignKey = $this->resolveForeignKeyFromModel(get_class($model));
+
+        // Set the foreign key on the model
+        $model->{$foreignKey} = $value;
+    }
+
+    /**
+     * Get the actual foreign key attribute for validation and storage.
+     *
+     * @param string $modelClass The parent model class
+     * @return string
+     */
+    public function getStorageAttribute(string $modelClass): string
+    {
+        return $this->resolveForeignKeyFromModel($modelClass);
     }
 
     /**

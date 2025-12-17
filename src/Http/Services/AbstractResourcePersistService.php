@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Validator;
 use SchoolAid\Nadota\Contracts\ResourceInterface;
 use SchoolAid\Nadota\Http\Fields\Contracts\FillableFieldInterface;
 use SchoolAid\Nadota\Http\Fields\File;
+use SchoolAid\Nadota\Http\Fields\Relations\BelongsTo;
 use SchoolAid\Nadota\Http\Fields\Relations\MorphTo;
 use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 use SchoolAid\Nadota\Http\Services\Traits\ProcessesFields;
@@ -30,10 +31,10 @@ abstract class AbstractResourcePersistService
      * Handle the persist operation.
      *
      * @param NadotaRequest $request
-     * @param mixed $id Optional ID for update operations
+     * @param mixed|null $id Optional ID for update operations
      * @return JsonResponse
      */
-    public function handle(NadotaRequest $request, $id = null): JsonResponse
+    public function handle(NadotaRequest $request, mixed $id = null): JsonResponse
     {
         $this->prepareRequest($request);
 
@@ -46,13 +47,18 @@ abstract class AbstractResourcePersistService
 
         $rules = $this->buildValidationRules($fields, $this->isUpdate() ? $model : null);
 
-        $validationResult = $this->validate($request, $rules);
-        if ($validationResult !== null) {
-            return $validationResult;
+        $validator = Validator::make($request->all(), $rules);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
         }
 
         $attributes = $this->collectFieldAttributes($fields);
-        $validatedData = $request->safe()->only($attributes);
+
+        $validatedData = $validator->safe()->only($attributes);
 
         // Store original data for update tracking
         $originalData = $this->isUpdate() ? $model->getAttributes() : null;
@@ -140,32 +146,6 @@ abstract class AbstractResourcePersistService
     abstract protected function filterFields(ResourceInterface $resource, NadotaRequest $request): Collection;
 
     /**
-     * Validate the request data.
-     *
-     * @param NadotaRequest $request
-     * @param array $rules
-     * @return JsonResponse|null Null if validation passes
-     */
-    protected function validate(NadotaRequest $request, array $rules): ?JsonResponse
-    {
-        $validator = Validator::make($request->all(), $rules);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validator->validated();
-
-        // Make the validator available on the request
-        $request->setValidator($validator);
-
-        return null;
-    }
-
-    /**
      * Process all fields for the operation.
      *
      * @param Collection $fields
@@ -212,8 +192,11 @@ abstract class AbstractResourcePersistService
         ResourceInterface $resource,
         array $validatedData
     ): void {
-        // Fields that handle their own filling (Files, MorphTo, etc.)
-        if ($field instanceof File || $field instanceof MorphTo) {
+        // Fields that handle their own filling with custom logic
+        // BelongsTo: resolves actual FK from Eloquent relationship
+        // File: handles file upload
+        // MorphTo: handles morph type and id
+        if ($field instanceof BelongsTo || $field instanceof File || $field instanceof MorphTo) {
             $field->fill($request, $model);
             return;
         }
@@ -226,6 +209,7 @@ abstract class AbstractResourcePersistService
 
         // Default handling for simple fields
         $attribute = $field->getAttribute();
+
         if (isset($validatedData[$attribute])) {
             $resolveMethod = $this->isUpdate() ? 'resolveForUpdate' : 'resolveForStore';
             $model->{$attribute} = $field->{$resolveMethod}($request, $model, $resource, $validatedData[$attribute]);

@@ -349,13 +349,24 @@ Request → Service.handle()
 
 - [x] Análisis del sistema actual
 - [x] Creación del roadmap
-- [ ] Fase 1: Contrato Base y Trait
-- [ ] Fase 2: Servicio Base Abstracto
-- [ ] Fase 3: Soporte afterSave en Store
-- [ ] Fase 4: Hooks en Resource
-- [ ] Fase 5: FieldProcessor
-- [ ] Fase 6: Validación Mejorada
-- [ ] Fase 7: Transacciones y Rollback
+- [x] Fase 1: Contrato Base y Trait
+  - [x] `FillableFieldInterface` creado
+  - [x] `ProcessesFields` trait creado
+- [x] Fase 2: Servicio Base Abstracto
+  - [x] `AbstractResourcePersistService` creado con Template Method pattern
+  - [x] `ResourceStoreService` refactorizado
+  - [x] `ResourceUpdateService` refactorizado
+- [x] Fase 3: Soporte afterSave en Store
+  - [x] Métodos `beforeSave()`, `afterSave()`, `supportsAfterSave()` en Field base
+  - [x] `BelongsToMany.supportsAfterSave()` → true
+  - [x] `MorphToMany.supportsAfterSave()` → true
+  - [x] `processAfterSave()` llamado en AbstractResourcePersistService
+- [x] Fase 4: Hooks en Resource
+  - [x] `beforeStore()`, `afterStore()` agregados
+  - [x] `beforeUpdate()`, `afterUpdate()` agregados
+- [ ] Fase 5: FieldProcessor (opcional, lógica ya en AbstractResourcePersistService)
+- [ ] Fase 6: Validación Mejorada (opcional)
+- [ ] Fase 7: Transacciones y Rollback (opcional)
 - [ ] Fase 8: Testing y Documentación
 
 ---

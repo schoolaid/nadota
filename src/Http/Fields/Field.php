@@ -497,4 +497,47 @@ abstract class Field implements FieldInterface
             $model->{$this->getAttribute()} = $request->get($requestAttribute);
         }
     }
+
+    /**
+     * Perform operations before the model is saved.
+     *
+     * Override this method to add custom pre-save logic.
+     *
+     * @param Request $request The current request
+     * @param Model $model The model being saved
+     * @param string $operation The operation type: 'store' or 'update'
+     * @return void
+     */
+    public function beforeSave(Request $request, Model $model, string $operation): void
+    {
+        // Override in child classes if needed
+    }
+
+    /**
+     * Perform operations after the model is saved.
+     *
+     * Override this method to handle relationships or other
+     * operations that require the model to have an ID.
+     *
+     * @param Request $request The current request
+     * @param Model $model The saved model (with ID)
+     * @return void
+     */
+    public function afterSave(Request $request, Model $model): void
+    {
+        // Override in child classes if needed
+    }
+
+    /**
+     * Determine if this field supports the afterSave callback.
+     *
+     * Fields that manage relationships or need the model ID
+     * should return true.
+     *
+     * @return bool
+     */
+    public function supportsAfterSave(): bool
+    {
+        return false;
+    }
 }

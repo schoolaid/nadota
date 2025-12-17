@@ -13,27 +13,38 @@ class ResourceShowService implements ResourceShowInterface
     {
         $request->prepareResource();
         $resource = $request->getResource();
+        $action = $request->get('action', 'show');
 
-        // Build the query with all necessary eager loading and column selection
-        $attributes = $resource->getSelectColumns($request);
-        $eagerLoadRelations = $resource->getEagerLoadRelations($request);
+        // Get fields based on action type
+        $fields = $resource->fieldsForShow($request, $action);
+
+        // Build optimized query with proper eager loading and column selection
+        // Pass the filtered fields to ensure we only load what's needed
+        $columns = $resource->getSelectColumns($request, $fields);
+        $eagerLoadRelations = $resource->getEagerLoadRelations($request, $fields);
+
+        // Include soft delete column if model uses soft deletes
+        $columns = $this->includeDeletedAtColumn($resource, $columns);
 
         $model = $resource->getQuery($request)
             ->with([...$resource->getWithOnShow(), ...$eagerLoadRelations])
-            ->select(...$attributes)
+            ->select(...$columns)
             ->findOrFail($id);
 
-        $request->authorized('view', $model);
-        $action = $request->get('action', 'show');
+        // Authorize based on action
+        $permission = $action === 'update' ? 'update' : 'view';
+        $request->authorized($permission, $model);
 
-        // Check if a custom show response resource is defined
-        $customResourceClass = $resource->getShowResponseResource();
+        // Check if a custom response resource is defined
+        $customResourceClass = $action === 'update'
+            ? $resource->getEditResponseResource()
+            : $resource->getShowResponseResource();
 
         if ($customResourceClass && is_subclass_of($customResourceClass, JsonResource::class)) {
             return (new $customResourceClass($model))->response();
         }
 
-        return $this->buildDefaultResponse($request, $resource, $model, $action);
+        return $this->buildDefaultResponse($request, $resource, $model, $action, $fields);
     }
 
     /**
@@ -43,23 +54,49 @@ class ResourceShowService implements ResourceShowInterface
         NadotaRequest $request,
         $resource,
         $model,
-        string $action
+        string $action,
+        $fields
     ): JsonResponse {
-        $fields = $resource->fieldsForShow($request, $action)
-            ->map(function ($field) use ($request, $model, $resource) {
-                return $field->toArray($request, $model, $resource);
-            });
+        // Transform fields with model values
+        $attributes = $fields->map(function ($field) use ($request, $model, $resource) {
+            return $field->toArray($request, $model, $resource);
+        });
+
+        $response = [
+            'id' => $model->getKey(),
+            'key' => $resource::getKey(),
+            'attributes' => $attributes,
+            'permissions' => $resource->getPermissionsForResource($request, $model),
+            'title' => $resource->title(),
+            'deletedAt' => $model->deleted_at ?? null,
+        ];
+
+        // Include additional data for show action
+        if ($action === 'show') {
+            $response['tools'] = $resource->tools($request);
+            $response['actionEventsUrl'] = $resource->buildActionEventsUrl($model);
+        }
 
         return response()->json([
-            'data' => [
-                'id' => $model->getKey(),
-                'attributes' => $fields,
-                'permissions' => $resource->getPermissionsForResource($request, $model),
-                'title' => $resource->title(),
-                'tools' => $resource->tools($request),
-                'deletedAt' => $model->deleted_at ?? null,
-                'actionEventsUrl' => $resource->buildActionEventsUrl($model),
-            ],
+            'data' => $response,
         ]);
+    }
+
+    /**
+     * Include deleted_at column if model uses soft deletes.
+     */
+    protected function includeDeletedAtColumn($resource, array $columns): array
+    {
+        $modelClass = $resource->model;
+        $model = new $modelClass;
+
+        if (method_exists($model, 'getDeletedAtColumn')) {
+            $deletedAt = $model->getDeletedAtColumn();
+            if (!in_array($deletedAt, $columns) && !in_array('*', $columns)) {
+                $columns[] = $deletedAt;
+            }
+        }
+
+        return $columns;
     }
 }
