@@ -26,10 +26,11 @@ class BelongsToManyAttachmentService extends AbstractAttachmentService
         // Get the related model class
         $relatedModel = $relation->getRelated();
         $relatedClass = get_class($relatedModel);
+        $relatedTable = $relatedModel->getTable();
         $relatedKeyName = $relatedModel->getKeyName();
 
-        // Get IDs of already attached items
-        $attachedIds = $parentModel->{$relationName}()->pluck($relatedKeyName)->toArray();
+        // Get IDs of already attached items (qualify column to avoid ambiguity)
+        $attachedIds = $parentModel->{$relationName}()->pluck("{$relatedTable}.{$relatedKeyName}")->toArray();
 
         // Build query for attachable items (items not already attached)
         $query = $relatedClass::query();
@@ -121,9 +122,11 @@ class BelongsToManyAttachmentService extends AbstractAttachmentService
         // Validate pivot data against pivot fields if defined
         $validatedPivot = $this->validatePivotData($field, $pivotData);
 
-        // Filter out already attached items
-        $relatedKeyName = $relation->getRelated()->getKeyName();
-        $alreadyAttached = $relation->pluck($relatedKeyName)->toArray();
+        // Filter out already attached items (qualify column to avoid ambiguity)
+        $relatedModel = $relation->getRelated();
+        $relatedTable = $relatedModel->getTable();
+        $relatedKeyName = $relatedModel->getKeyName();
+        $alreadyAttached = $relation->pluck("{$relatedTable}.{$relatedKeyName}")->toArray();
         $toAttach = array_diff($items, $alreadyAttached);
 
         if (empty($toAttach)) {

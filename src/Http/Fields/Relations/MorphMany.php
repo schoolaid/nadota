@@ -9,11 +9,13 @@ use Illuminate\Http\Request;
 use SchoolAid\Nadota\Contracts\ResourceInterface;
 use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
 use SchoolAid\Nadota\Http\Fields\Field;
+use SchoolAid\Nadota\Http\Fields\Traits\ManagesAttachments;
 use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 use SchoolAid\Nadota\Http\Resources\RelationResource;
 
 class MorphMany extends Field
 {
+    use ManagesAttachments;
     /**
      * Maximum number of related items to show (when not paginated).
      */
@@ -396,14 +398,33 @@ class MorphMany extends Field
             'isPolymorphic' => true,
         ]);
 
-        // Add pagination URL if paginated and we have model context
-        if ($this->paginated && $model && $resource) {
-            $apiPrefix = static::safeConfig('nadota.api.prefix', 'nadota-api');
-            $resourceKey = $resource::getKey();
-            $modelId = $model->getKey();
-            $fieldKey = $this->key();
+        // Add attachment configuration
+        if ($this->attachable) {
+            $props['attachment'] = $this->getAttachmentConfig();
+        }
 
-            $props['paginationUrl'] = "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/relation/{$fieldKey}";
+        // Add URLs when we have resource context
+        if ($resource) {
+            $resourceKey = $resource::getKey();
+            $fieldKey = $this->key();
+            $apiPrefix = static::safeConfig('nadota.api.prefix', 'nadota-api');
+
+            // Initialize URLs array
+            $props['urls'] = [];
+
+            // Attach/detach URLs require an existing model
+            if ($model) {
+                $modelId = $model->getKey();
+
+                $props['urls']['attachable'] = "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/attachable/{$fieldKey}";
+                $props['urls']['attach'] = "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/attach/{$fieldKey}";
+                $props['urls']['detach'] = "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/detach/{$fieldKey}";
+
+                // Add pagination URL if paginated
+                if ($this->paginated) {
+                    $props['paginationUrl'] = "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/relation/{$fieldKey}";
+                }
+            }
         }
 
         return $props;

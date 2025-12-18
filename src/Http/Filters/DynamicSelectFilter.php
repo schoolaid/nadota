@@ -163,24 +163,56 @@ class DynamicSelectFilter extends Filter
             return $query;
         }
 
-        // If a relation is specified, use whereHas
+        // If a relation is specified, use whereHas with the related model's primary key
         if ($this->relation) {
             return $query->whereHas($this->relation, function ($q) use ($value) {
+                // Get the related model's primary key (usually 'id')
+                $relatedKeyName = $q->getModel()->getKeyName();
+
                 if ($this->multiple && is_array($value)) {
-                    return $q->whereIn($this->field, $value);
+                    return $q->whereIn($relatedKeyName, $value);
                 }
-                return $q->where($this->field, $value);
+                return $q->where($relatedKeyName, $value);
             });
         }
 
-        // Direct query on the main table
+        // Direct query on the main table - resolve the actual FK from the relation
+        $filterColumn = $this->resolveFilterColumn($query);
+
         if ($this->multiple && is_array($value)) {
-            return $query->whereIn($this->field, $value);
+            return $query->whereIn($filterColumn, $value);
         }
 
-        return $query->when($value, function ($query, $value) {
-            return $query->where($this->field, $value);
+        return $query->when($value, function ($query, $value) use ($filterColumn) {
+            return $query->where($filterColumn, $value);
         });
+    }
+
+    /**
+     * Resolve the actual column to filter on.
+     * For BelongsTo relations, this resolves the actual FK from the Eloquent relationship.
+     */
+    protected function resolveFilterColumn($query): string
+    {
+        // If we have a relation name, try to resolve the FK from Eloquent
+        if ($this->relation) {
+            try {
+                $model = $query->getModel();
+                $relationName = $this->relation;
+
+                if (method_exists($model, $relationName)) {
+                    $relation = $model->{$relationName}();
+
+                    if ($relation instanceof \Illuminate\Database\Eloquent\Relations\BelongsTo) {
+                        return $relation->getForeignKeyName();
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Fall back to the field attribute
+            }
+        }
+
+        return $this->field;
     }
 
     /**
@@ -216,7 +248,7 @@ class DynamicSelectFilter extends Filter
         // Build endpoint from a resource key and field name
         if ($this->resourceKey && $this->field) {
             $apiPrefix = config('nadota.api.prefix', 'nadota-api');
-            return "/{$apiPrefix}/{$this->resourceKey}/resource/field/{$this->field}";
+            return "/{$apiPrefix}/{$this->resourceKey}/resource/field/{$this->field}/options";
         }
 
         // Try to get from the request resource

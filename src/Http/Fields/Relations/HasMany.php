@@ -402,26 +402,32 @@ class HasMany extends Field
             'canCreate' => $this->canCreate,
         ]);
 
-        // Add pagination URL if paginated and we have model context
-        if ($this->paginated && $model && $resource) {
-            $props['paginationUrl'] = $this->buildPaginationUrl($model, $resource);
-        }
-
         // Add attachment configuration
         if ($this->attachable) {
             $props['attachment'] = $this->getAttachmentConfig();
+        }
 
-            // Add URLs if we have a model
-            if ($model && $resource) {
-                $resourceKey = $resource::getKey();
+        // Add URLs when we have resource context
+        if ($resource) {
+            $resourceKey = $resource::getKey();
+            $fieldKey = $this->key();
+            $apiPrefix = static::safeConfig('nadota.api.prefix', 'nadota-api');
+
+            // Initialize URLs array
+            $props['urls'] = [];
+
+            // Attach/detach URLs require an existing model
+            if ($model) {
                 $modelId = $model->getKey();
-                $fieldKey = $this->key();
 
-                $props['attachment']['urls'] = [
-                    'attachable' => "/nadota-api/{$resourceKey}/resource/{$modelId}/attachable/{$fieldKey}",
-                    'attach' => "/nadota-api/{$resourceKey}/resource/{$modelId}/attach/{$fieldKey}",
-                    'detach' => "/nadota-api/{$resourceKey}/resource/{$modelId}/detach/{$fieldKey}",
-                ];
+                $props['urls']['attachable'] = "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/attachable/{$fieldKey}";
+                $props['urls']['attach'] = "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/attach/{$fieldKey}";
+                $props['urls']['detach'] = "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/detach/{$fieldKey}";
+
+                // Add pagination URL if paginated
+                if ($this->paginated) {
+                    $props['paginationUrl'] = "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/relation/{$fieldKey}";
+                }
             }
         }
 

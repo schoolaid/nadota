@@ -249,34 +249,35 @@ trait FilterableTrait
      */
     protected function createDynamicSelectFilter(string $name, string $attribute, string $type): DynamicSelectFilter
     {
-        $filter = new DynamicSelectFilter($name, $attribute, $type);
+        // Para BelongsTo, necesitamos resolver la FK real del modelo
+        // porque el atributo puede no coincidir con la FK real
+        // Ejemplo: BelongsTo::make('Family', 'family') puede usar 'user_id' como FK, no 'family_id'
+        $filterAttribute = $attribute;
+
+        // Intentar resolver la FK real si este es un BelongsTo
+        if (method_exists($this, 'resolveForeignKeyFromModel')) {
+            try {
+                // Necesitamos obtener el modelo del recurso padre
+                // Usamos el key del field como fallback para el filter attribute
+                $filterAttribute = $this->key();
+            } catch (\Throwable $e) {
+                // Usar attribute original
+            }
+        }
+
+        $filter = new DynamicSelectFilter($name, $filterAttribute, $type);
 
         // Intentar obtener información de la relación usando reflexión
         try {
             $reflection = new \ReflectionClass($this);
-            
-            // Obtener el nombre de la relación
+
+            // Obtener el nombre de la relación para whereHas
             if ($reflection->hasProperty('relation')) {
                 $property = $reflection->getProperty('relation');
                 $property->setAccessible(true);
                 $relation = $property->getValue($this);
                 if ($relation) {
                     $filter->relation($relation);
-                }
-            }
-            
-            // Obtener el resource relacionado para construir el endpoint
-            if ($reflection->hasProperty('relatedResource')) {
-                $property = $reflection->getProperty('relatedResource');
-                $property->setAccessible(true);
-                $relatedResource = $property->getValue($this);
-                if ($relatedResource && method_exists($relatedResource, 'getKey')) {
-                    $filter->resourceKey($relatedResource::getKey());
-                }
-            } elseif (method_exists($this, 'getResource')) {
-                $relatedResource = $this->getResource();
-                if ($relatedResource && method_exists($relatedResource, 'getKey')) {
-                    $filter->resourceKey($relatedResource::getKey());
                 }
             }
 
@@ -287,6 +288,11 @@ trait FilterableTrait
                     $filter->labelField($displayAttribute);
                 }
             }
+
+            // Nota: NO establecemos resourceKey aquí.
+            // El endpoint se construirá dinámicamente usando request->getResource()
+            // que obtiene el recurso ACTUAL (ej: student), no el relacionado (ej: family).
+            // La ruta correcta es: /nadota-api/{currentResource}/resource/field/{fieldKey}/options
         } catch (\ReflectionException $e) {
             // Si falla la reflexión, continuar con valores por defecto
         }

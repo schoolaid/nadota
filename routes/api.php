@@ -23,11 +23,6 @@ Route::prefix('/{resourceKey}/resource')->group(function () {
     Route::post('/actions/{actionKey}', [ActionController::class, 'execute'])->name('resource.actions.execute');
     Route::get('/lens', [ResourceIndexController::class, 'lens'])->name('resource.lens');
     Route::get('/data', [ResourceIndexController::class, 'compact'])->name('resource.compact');
-
-    // Field options endpoints
-    Route::get('/field/{fieldName}/options', [FieldOptionsController::class, 'index'])->name('resource.field.options');
-    Route::get('/field/{fieldName}/options/paginated', [FieldOptionsController::class, 'paginated'])->name('resource.field.options.paginated');
-
     // Morph field options endpoint
     Route::get('/field/{fieldName}/morph-options/{morphType}', [FieldOptionsController::class, 'morphOptions'])->name('resource.field.morph.options');
 
@@ -59,4 +54,9 @@ Route::prefix('/{resourceKey}/resource')->group(function () {
     Route::delete('/{id}', [ResourceController::class, 'destroy'])->name('resource.destroy');
     Route::delete('/{id}/force', [ResourceController::class, 'forceDelete'])->name('resource.forceDelete');
     Route::post('/{id}/restore', [ResourceController::class, 'restore'])->name('resource.restore');
+
+    // Field options endpoints
+    Route::get('/field/{fieldName}/options', [FieldOptionsController::class, 'index'])->name('resource.field.options');
+    Route::get('/field/{fieldName}/options/paginated', [FieldOptionsController::class, 'paginated'])->name('resource.field.options.paginated');
+
 });

@@ -9,6 +9,7 @@ use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 use SchoolAid\Nadota\Http\Services\Attachments\BelongsToManyAttachmentService;
 use SchoolAid\Nadota\Http\Services\Attachments\Contracts\AttachmentServiceInterface;
 use SchoolAid\Nadota\Http\Services\Attachments\HasManyAttachmentService;
+use SchoolAid\Nadota\Http\Services\Attachments\MorphManyAttachmentService;
 use SchoolAid\Nadota\Http\Services\Attachments\MorphToManyAttachmentService;
 
 class AttachmentController extends Controller
@@ -16,13 +17,14 @@ class AttachmentController extends Controller
     public function __construct(
         private HasManyAttachmentService $hasManyService,
         private BelongsToManyAttachmentService $belongsToManyService,
-        private MorphToManyAttachmentService $morphToManyService
+        private MorphToManyAttachmentService $morphToManyService,
+        private MorphManyAttachmentService $morphManyService
     ) {}
 
     /**
      * Get attachable items for a field.
      */
-    public function attachable(NadotaRequest $request, string $id, string $field): JsonResponse
+    public function attachable(NadotaRequest $request, string $resourceKey, string $id, string $field): JsonResponse
     {
         $request->prepareResource();
         $resource = $request->getResource();
@@ -212,6 +214,7 @@ class AttachmentController extends Controller
             FieldType::HAS_MANY->value => $this->hasManyService,
             FieldType::BELONGS_TO_MANY->value => $this->belongsToManyService,
             FieldType::MORPH_TO_MANY->value => $this->morphToManyService,
+            FieldType::MORPH_MANY->value => $this->morphManyService,
             // MorphedByMany uses the same service as MorphToMany
             'morphedByMany' => $this->morphToManyService,
             default => null,
