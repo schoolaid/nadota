@@ -295,8 +295,17 @@ class KeyValue extends Field
             $data = array_intersect_key($data, array_flip($allowedKeys));
         }
 
-        // Store as JSON in the model
-        $model->{$this->getAttribute()} = $data;
+        // Store in the model - encode to JSON if model doesn't have array cast
+        $attribute = $this->getAttribute();
+        $casts = $model->getCasts();
+
+        if (isset($casts[$attribute]) && in_array($casts[$attribute], ['array', 'json', 'object', 'collection'])) {
+            // Model has cast, assign array directly
+            $model->{$attribute} = $data;
+        } else {
+            // No cast, encode to JSON string
+            $model->{$attribute} = json_encode($data);
+        }
     }
 
     public function getRules(): array

@@ -113,6 +113,37 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
         return (string) $model->getKey();
     }
 
+    /**
+     * Format a model instance for options endpoint response.
+     * Override this method to add custom fields to options.
+     *
+     * @param Model $model
+     * @return array
+     *
+     * @example
+     * ```php
+     * public function optionsFormat(Model $model): array
+     * {
+     *     return [
+     *         'value' => $model->id,
+     *         'label' => $this->displayLabel($model),
+     *         'email' => $model->email,
+     *         'avatar' => $model->avatar_url,
+     *         'status' => $model->status,
+     *     ];
+     * }
+     * ```
+     */
+    public function optionsFormat(Model $model): array
+    {
+        $keyAttribute = static::$attributeKey ?? 'id';
+
+        return [
+            'value' => $model->{$keyAttribute},
+            'label' => $this->displayLabel($model),
+        ];
+    }
+
     public static function getKey(): string
     {
         return Helpers::toUri(get_called_class());

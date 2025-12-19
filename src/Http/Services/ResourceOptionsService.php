@@ -57,12 +57,9 @@ class ResourceOptionsService
             $results = $this->getDefaultResults($request, $resource, $searchParams, $keyAttribute);
         }
 
-        // Format as options
-        $options = $results->map(function ($item) use ($resource, $keyAttribute) {
-            return [
-                'value' => $item->{$keyAttribute},
-                'label' => $resource->displayLabel($item),
-            ];
+        // Format as options using resource's optionsFormat method
+        $options = $results->map(function ($item) use ($resource) {
+            return $resource->optionsFormat($item);
         })->toArray();
 
         return [
