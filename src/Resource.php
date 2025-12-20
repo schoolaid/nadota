@@ -34,6 +34,12 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
     protected ResourceAuthorizationInterface $resourceAuthorization;
 
     /**
+     * Default sorting for index queries.
+     * Format: ['field' => 'column_name', 'direction' => 'asc|desc']
+     */
+    protected array $defaultSort = [];
+
+    /**
      * Relations to an eager load on index queries
      */
     protected array $withOnIndex = [];
@@ -409,6 +415,14 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
             'showRowCheckbox' => $this->showRowCheckbox,
             'showSelectAll' => $this->showSelectAll,
         ];
+    }
+
+    /**
+     * Get the default sort configuration
+     */
+    public function getDefaultSort(): array
+    {
+        return $this->defaultSort;
     }
 
     /**

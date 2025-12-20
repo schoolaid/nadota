@@ -50,7 +50,7 @@ class ActionController extends Controller
     /**
      * Get the fields for a specific action.
      */
-    public function fields(NadotaRequest $request, string $actionKey): JsonResponse
+    public function fields(NadotaRequest $request, string $resourceKey, string $actionKey): JsonResponse
     {
         $request->authorized('viewAny');
 
@@ -75,7 +75,7 @@ class ActionController extends Controller
     /**
      * Execute an action on selected resources.
      */
-    public function execute(NadotaRequest $request, string $actionKey): JsonResponse
+    public function execute(NadotaRequest $request, string $resourceKey,  string $actionKey): JsonResponse
     {
         $request->authorized('viewAny');
 
@@ -90,7 +90,7 @@ class ActionController extends Controller
         // Get selected model IDs
         $modelIds = $request->input('resources', []);
 
-        // Validate that models are provided unless action is standalone
+        // Validate that models are provided unless the action is standalone
         if (empty($modelIds) && !$action->isStandalone()) {
             return response()->json([
                 'message' => 'No resources selected.',

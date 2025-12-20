@@ -19,6 +19,11 @@ class CustomComponent extends Field
      */
     protected array $componentProps = [];
 
+    /**
+     * Position of the component: 'inside' (within detail card) or 'below' (after detail card)
+     */
+    protected string $position = 'inside';
+
     public function __construct(string $name, string $componentPath)
     {
         // Use a dummy attribute since this field doesn't map to a database column
@@ -80,12 +85,49 @@ class CustomComponent extends Field
         return $this;
     }
 
+    /**
+     * Render the component inside the detail card (default)
+     *
+     * @return static
+     */
+    public function inside(): static
+    {
+        $this->position = 'inside';
+        return $this;
+    }
+
+    /**
+     * Render the component below the detail card
+     *
+     * @return static
+     */
+    public function below(): static
+    {
+        $this->position = 'below';
+        return $this;
+    }
+
+    /**
+     * Set custom position
+     *
+     * @param string $position 'inside' or 'below'
+     * @return static
+     */
+    public function position(string $position): static
+    {
+        $this->position = $position;
+        return $this;
+    }
+
     protected function getProps(\Illuminate\Http\Request $request, ?\Illuminate\Database\Eloquent\Model $model, ?\SchoolAid\Nadota\Contracts\ResourceInterface $resource): array
     {
         $props = parent::getProps($request, $model, $resource);
 
         // Add the component path
         $props['componentPath'] = $this->componentPath;
+
+        // Add position for rendering
+        $props['position'] = $this->position;
 
         // Add any additional component props
         $props['componentProps'] = $this->componentProps;
@@ -118,5 +160,13 @@ class CustomComponent extends Field
     {
         // Custom components don't fill any model attributes
         return;
+    }
+
+    /**
+     * Override to return empty array - custom components don't need database columns
+     */
+    public function getColumnsForSelect(string $modelClass): array
+    {
+        return [];
     }
 }

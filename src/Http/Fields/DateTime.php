@@ -55,34 +55,6 @@ class DateTime extends Field
     }
 
     /**
-     * Fill the model attribute with the field's value.
-     * Transforms ISO 8601 format from frontend to database format.
-     *
-     * @param \Illuminate\Http\Request $request
-     * @param \Illuminate\Database\Eloquent\Model $model
-     * @return void
-     */
-    public function fill(\Illuminate\Http\Request $request, \Illuminate\Database\Eloquent\Model $model): void
-    {
-        // Don't fill computed fields
-        if ($this->isComputed()) {
-            return;
-        }
-
-        // Don't fill readonly or disabled fields
-        if ($this->isReadonly() || $this->isDisabled()) {
-            return;
-        }
-
-        $requestAttribute = $this->getAttribute();
-
-        if ($request->has($requestAttribute)) {
-            $value = $request->get($requestAttribute);
-            $model->{$this->getAttribute()} = $this->transformForStorage($value);
-        }
-    }
-
-    /**
      * Transform a value for storage in the database.
      *
      * @param mixed $value
@@ -99,7 +71,7 @@ class DateTime extends Field
             return $value->format($this->getStoreFormat());
         }
 
-        // Try to parse the value
+        // Try to parse the value (handles ISO 8601 format from frontend)
         try {
             $dateTime = new \DateTime($value);
             return $dateTime->format($this->getStoreFormat());
@@ -107,6 +79,36 @@ class DateTime extends Field
             // If parsing fails, return the original value and let the database handle/reject it
             return $value;
         }
+    }
+
+    /**
+     * Resolve the field value for storing.
+     * Transforms ISO 8601 format from frontend to database format.
+     *
+     * @param \Illuminate\Http\Request $request
+     * @param \Illuminate\Database\Eloquent\Model $model
+     * @param \SchoolAid\Nadota\Contracts\ResourceInterface|null $resource
+     * @param mixed $value
+     * @return mixed
+     */
+    public function resolveForStore(\Illuminate\Http\Request $request, \Illuminate\Database\Eloquent\Model $model, ?\SchoolAid\Nadota\Contracts\ResourceInterface $resource, $value): mixed
+    {
+        return $this->transformForStorage($value);
+    }
+
+    /**
+     * Resolve the field value for updating.
+     * Transforms ISO 8601 format from frontend to database format.
+     *
+     * @param \Illuminate\Http\Request $request
+     * @param \Illuminate\Database\Eloquent\Model $model
+     * @param \SchoolAid\Nadota\Contracts\ResourceInterface|null $resource
+     * @param mixed $value
+     * @return mixed
+     */
+    public function resolveForUpdate(\Illuminate\Http\Request $request, \Illuminate\Database\Eloquent\Model $model, ?\SchoolAid\Nadota\Contracts\ResourceInterface $resource, $value): mixed
+    {
+        return $this->transformForStorage($value);
     }
     public function format(string $format): static
     {

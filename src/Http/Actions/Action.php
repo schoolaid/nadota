@@ -58,6 +58,11 @@ abstract class Action implements ActionInterface
     protected ?string $component = null;
 
     /**
+     * The icon for the action.
+     */
+    protected ?string $icon = null;
+
+    /**
      * The callback used to authorize running the action.
      */
     protected ?\Closure $authCallback = null;
@@ -275,6 +280,24 @@ abstract class Action implements ActionInterface
     }
 
     /**
+     * Get the icon for the action.
+     */
+    public function getIcon(): ?string
+    {
+        return $this->icon;
+    }
+
+    /**
+     * Set the icon for the action.
+     */
+    public function icon(string $icon): static
+    {
+        $this->icon = $icon;
+
+        return $this;
+    }
+
+    /**
      * Return a successful action response.
      */
     public static function message(string $message): ActionResponse
@@ -338,6 +361,11 @@ abstract class Action implements ActionInterface
         // Only include component if explicitly set
         if ($this->component !== null) {
             $data['component'] = $this->component;
+        }
+
+        // Only include icon if explicitly set
+        if ($this->icon !== null) {
+            $data['icon'] = $this->icon;
         }
 
         return $data;
