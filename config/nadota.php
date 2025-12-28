@@ -168,4 +168,23 @@ return [
         'queue' => env('NADOTA_ACTION_EVENTS_QUEUE', false),
         'queue_name' => env('NADOTA_ACTION_EVENTS_QUEUE_NAME', 'default'),
     ],
+
+    // Export Configuration
+    'export' => [
+        // Enable/disable export globally
+        'enabled' => env('NADOTA_EXPORT_ENABLED', true),
+
+        // Available export formats
+        'formats' => ['csv'],
+
+        // Default export format
+        'default_format' => 'csv',
+
+        // Maximum records for synchronous export
+        // Above this threshold, export should be processed async (future feature)
+        'sync_limit' => env('NADOTA_EXPORT_SYNC_LIMIT', 1000),
+
+        // Chunk size for processing large datasets
+        'chunk_size' => env('NADOTA_EXPORT_CHUNK_SIZE', 500),
+    ],
 ];

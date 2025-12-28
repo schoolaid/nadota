@@ -11,6 +11,7 @@ use SchoolAid\Nadota\Http\Fields\Traits\InteractsWithFields;
 use SchoolAid\Nadota\Http\Fields\Traits\ResourceFrontUtils;
 use SchoolAid\Nadota\Http\Helpers\Helpers;
 use SchoolAid\Nadota\Http\Requests\NadotaRequest;
+use SchoolAid\Nadota\Http\Traits\ResourceExportable;
 use SchoolAid\Nadota\Http\Traits\ResourceMenuOptions;
 use SchoolAid\Nadota\Http\Traits\ResourcePagination;
 use SchoolAid\Nadota\Http\Traits\ResourceRelatable;
@@ -25,7 +26,8 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
         InteractsWithFields,
         ResourceFrontUtils,
         ResourceRelatable,
-        ResourceSearchable;
+        ResourceSearchable,
+        ResourceExportable;
 
     public string $model;
     protected bool $usesSoftDeletes = false;

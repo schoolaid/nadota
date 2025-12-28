@@ -5,6 +5,7 @@ namespace SchoolAid\Nadota\Http\Fields;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use SchoolAid\Nadota\Contracts\ResourceInterface;
 use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
 
@@ -33,8 +34,8 @@ class Exists extends Field
      */
     public function __construct(string $name, string $relation)
     {
-        // The attribute will be {relation}_exists as Laravel names it
-        $attribute = $relation . '_exists';
+        // The attribute will be {relation}_exists as Laravel names it (snake_case)
+        $attribute = Str::snake($relation) . '_exists';
 
         parent::__construct($name, $attribute, FieldType::BOOLEAN->value, static::safeConfig('nadota.fields.exists.component', 'FieldExists'));
 
@@ -107,8 +108,8 @@ class Exists extends Field
      */
     public function resolve(Request $request, Model $model, ?ResourceInterface $resource): mixed
     {
-        // Laravel stores exists as {relation}_exists attribute
-        $existsAttribute = $this->existsRelation . '_exists';
+        // Laravel stores exists as {relation}_exists attribute (snake_case)
+        $existsAttribute = Str::snake($this->existsRelation) . '_exists';
 
         return (bool) ($model->{$existsAttribute} ?? false);
     }

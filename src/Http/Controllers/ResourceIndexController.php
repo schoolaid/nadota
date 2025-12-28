@@ -28,7 +28,9 @@ class ResourceIndexController extends Controller
         $resource            = $request->getResource();
         $resource->canCreate = $resource->authorizedTo($request, 'create');
 
-        return new InfoResource($resource);
+        return (new InfoResource($resource))->withAdditionalData([
+            'export' => $resource->getExportConfig($request),
+        ]);
     }
 
     /**
@@ -146,6 +148,7 @@ class ResourceIndexController extends Controller
                 'create' => $resource->getSectionsLayout($request, 'create'),
                 'update' => $resource->getSectionsLayout($request, 'update'),
             ],
+            'export' => $resource->getExportConfig($request),
         ];
     }
 

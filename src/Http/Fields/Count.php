@@ -4,6 +4,7 @@ namespace SchoolAid\Nadota\Http\Fields;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use SchoolAid\Nadota\Contracts\ResourceInterface;
 use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
 
@@ -32,8 +33,8 @@ class Count extends Field
      */
     public function __construct(string $name, string $relation)
     {
-        // The attribute will be {relation}_count as Laravel names it
-        $attribute = $relation . '_count';
+        // The attribute will be {relation}_count as Laravel names it (snake_case)
+        $attribute = Str::snake($relation) . '_count';
 
         parent::__construct($name, $attribute, FieldType::NUMBER->value, static::safeConfig('nadota.fields.count.component', 'FieldCount'));
 
@@ -106,8 +107,8 @@ class Count extends Field
      */
     public function resolve(Request $request, Model $model, ?ResourceInterface $resource): mixed
     {
-        // Laravel stores count as {relation}_count attribute
-        $countAttribute = $this->countRelation . '_count';
+        // Laravel stores count as {relation}_count attribute (snake_case)
+        $countAttribute = Str::snake($this->countRelation) . '_count';
 
         return $model->{$countAttribute} ?? 0;
     }

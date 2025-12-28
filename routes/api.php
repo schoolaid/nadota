@@ -10,6 +10,7 @@ use SchoolAid\Nadota\Http\Controllers\FieldOptionsController;
 use SchoolAid\Nadota\Http\Controllers\AttachmentController;
 use SchoolAid\Nadota\Http\Controllers\RelationController;
 use SchoolAid\Nadota\Http\Controllers\ActionEventController;
+use SchoolAid\Nadota\Http\Controllers\ExportController;
 
 Route::get('/menu', [MenuController::class, 'menu'])->name('menu');
 
@@ -18,6 +19,10 @@ Route::prefix('/{resourceKey}/resource')->group(function () {
     Route::get('/info', [ResourceIndexController::class, 'info'])->name('resource.info');
     Route::get('/fields', [ResourceIndexController::class, 'fields'])->name('resource.fields');
     Route::get('/filters', [ResourceIndexController::class, 'filters'])->name('resource.filters');
+
+    // Export endpoints
+    Route::get('/export', [ExportController::class, 'export'])->name('resource.export');
+    Route::get('/export/config', [ExportController::class, 'config'])->name('resource.export.config');
     Route::get('/actions', [ActionController::class, 'index'])->name('resource.actions');
     Route::get('/actions/{actionKey}/fields', [ActionController::class, 'fields'])->name('resource.actions.fields');
     Route::post('/actions/{actionKey}', [ActionController::class, 'execute'])->name('resource.actions.execute');

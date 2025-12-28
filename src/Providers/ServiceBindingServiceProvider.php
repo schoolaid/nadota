@@ -14,6 +14,7 @@ use SchoolAid\Nadota\Contracts\ResourceUpdateInterface;
 use SchoolAid\Nadota\Contracts\ResourceDestroyInterface;
 use SchoolAid\Nadota\Contracts\ResourceForceDeleteInterface;
 use SchoolAid\Nadota\Contracts\ResourceRestoreInterface;
+use SchoolAid\Nadota\Contracts\ResourceExportInterface;
 use SchoolAid\Nadota\Http\Services\MenuService;
 use SchoolAid\Nadota\Http\Services\ResourceAuthorizationService;
 use SchoolAid\Nadota\Http\Services\ResourceIndexService;
@@ -25,6 +26,7 @@ use SchoolAid\Nadota\Http\Services\ResourceUpdateService;
 use SchoolAid\Nadota\Http\Services\ResourceDestroyService;
 use SchoolAid\Nadota\Http\Services\ResourceForceDeleteService;
 use SchoolAid\Nadota\Http\Services\ResourceRestoreService;
+use SchoolAid\Nadota\Http\Services\ResourceExportService;
 use SchoolAid\Nadota\Http\Services\ActionEventService;
 use SchoolAid\Nadota\Http\Services\RelationIndexService;
 
@@ -43,6 +45,7 @@ class ServiceBindingServiceProvider extends ServiceProvider
         $this->app->singleton(ResourceDestroyInterface::class, ResourceDestroyService::class);
         $this->app->singleton(ResourceForceDeleteInterface::class, ResourceForceDeleteService::class);
         $this->app->singleton(ResourceRestoreInterface::class, ResourceRestoreService::class);
+        $this->app->singleton(ResourceExportInterface::class, ResourceExportService::class);
 
         // Register ActionEventService as singleton for consistent batch IDs across requests
         $this->app->singleton(ActionEventService::class);
