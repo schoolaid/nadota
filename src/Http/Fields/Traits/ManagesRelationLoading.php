@@ -17,7 +17,7 @@ trait ManagesRelationLoading
      */
     public function getEagerLoadRelations($request, ?Collection $fields = null): array
     {
-        $fields = $fields ?? collect($this->fields($request))
+        $fields = $fields ?? $this->flattenFields($request)
             ->filter(fn($field) => $field->isAppliedInShowQuery());
 
         // Always filter out paginated fields - they should be loaded via pagination endpoint
@@ -122,7 +122,7 @@ trait ManagesRelationLoading
      */
     public function getWithCountRelations($request, ?Collection $fields = null): array
     {
-        $fields = $fields ?? collect($this->fields($request))
+        $fields = $fields ?? $this->flattenFields($request)
             ->filter(fn($field) => $field->isAppliedInShowQuery());
 
         return $fields
@@ -150,7 +150,7 @@ trait ManagesRelationLoading
      */
     public function getWithExistsRelations($request, ?Collection $fields = null): array
     {
-        $fields = $fields ?? collect($this->fields($request))
+        $fields = $fields ?? $this->flattenFields($request)
             ->filter(fn($field) => $field->isAppliedInShowQuery());
 
         return $fields

@@ -40,8 +40,8 @@ class ResourceIndexController extends Controller
         $request->authorized('viewAny');
         $resource = $request->getResource();
 
-        $fields = collect($resource->fields($request))
-            ->filter(fn($field) => $field->showOnIndex())
+        $fields = $resource->flattenFields($request)
+            ->filter(fn($field) => $field->isShowOnIndex())
             ->map(fn($field) => $field->toArray($request, null, $resource));
 
         return FieldResource::collection($fields);
@@ -57,7 +57,7 @@ class ResourceIndexController extends Controller
         $resource = $request->getResource();
 
         $filters = array_merge(
-            $this->getFieldFilters($resource->fields($request), $request),
+            $this->getFieldFilters($resource->flattenFields($request), $request),
             $this->getResourceFilters($resource, $request)
         );
 
@@ -65,13 +65,13 @@ class ResourceIndexController extends Controller
     }
 
     /**
-     * @param array $fields
+     * @param \Illuminate\Support\Collection $fields
      * @param NadotaRequest $request
      * @return array
      */
-    private function getFieldFilters(array $fields, NadotaRequest $request): array
+    private function getFieldFilters($fields, NadotaRequest $request): array
     {
-        return collect($fields)
+        return $fields
             ->filter(fn($field) => $field->isFilterable())
             ->flatMap(fn($field) => $field->filters())
             ->map(fn($filter) => $filter->toArray($request))
@@ -100,8 +100,11 @@ class ResourceIndexController extends Controller
         $resource = $request->getResource();
         $resource->canCreate = $resource->authorizedTo($request, 'create');
 
+        // Get flattened fields (sections are not used in index)
+        $flatFields = $resource->flattenFields($request);
+
         // Get fields for index
-        $fields = collect($resource->fields($request))
+        $fields = $flatFields
             ->filter(fn($field) => $field->isShowOnIndex())
             ->map(fn($field) => $field->toArray($request, null, $resource))
             ->values()
@@ -109,7 +112,7 @@ class ResourceIndexController extends Controller
 
         // Get filters
         $filters = array_merge(
-            $this->getFieldFilters($resource->fields($request), $request),
+            $this->getFieldFilters($flatFields, $request),
             $this->getResourceFilters($resource, $request)
         );
 
@@ -138,6 +141,11 @@ class ResourceIndexController extends Controller
             'fields' => $fields,
             'filters' => $filters,
             'actions' => $actions,
+            'sections' => [
+                'detail' => $resource->getSectionsLayout($request, 'detail'),
+                'create' => $resource->getSectionsLayout($request, 'create'),
+                'update' => $resource->getSectionsLayout($request, 'update'),
+            ],
         ];
     }
 
@@ -153,7 +161,7 @@ class ResourceIndexController extends Controller
         $resource    = $request->getResource();
         $model       = $resource->model::query();
         $validFields = ['id'];
-        $validFields = array_merge($validFields, collect($resource->fields($request))
+        $validFields = array_merge($validFields, $resource->flattenFields($request)
                 ->filter(fn($field) => ! $field->isAppliedInIndexQuery())
                 ->map(fn($field) => $field->getAttribute())
                 ->toArray());

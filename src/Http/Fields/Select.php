@@ -11,6 +11,7 @@ class Select extends Field
     protected bool $multiple = false;
     protected bool $clearable = false;
     protected ?string $placeholder = null;
+    protected bool $translateLabels = true;
 
     public function __construct(string $name, string $attribute)
     {
@@ -42,6 +43,24 @@ class Select extends Field
         return $this;
     }
 
+    /**
+     * Set whether the frontend should translate option labels.
+     * Default is true.
+     */
+    public function translateLabels(bool $translate = true): static
+    {
+        $this->translateLabels = $translate;
+        return $this;
+    }
+
+    /**
+     * Disable label translation on the frontend.
+     */
+    public function withoutTranslation(): static
+    {
+        return $this->translateLabels(false);
+    }
+
     protected function getProps(\Illuminate\Http\Request $request, ?\Illuminate\Database\Eloquent\Model $model, ?\SchoolAid\Nadota\Contracts\ResourceInterface $resource): array
     {
         return array_merge(parent::getProps($request, $model, $resource), [
@@ -49,6 +68,7 @@ class Select extends Field
             'multiple' => $this->multiple,
             'clearable' => $this->clearable,
             'placeholder' => $this->placeholder,
+            'translateLabels' => $this->translateLabels,
         ]);
     }
 

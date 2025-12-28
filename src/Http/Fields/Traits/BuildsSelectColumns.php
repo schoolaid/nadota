@@ -16,7 +16,7 @@ trait BuildsSelectColumns
      */
     public function getSelectColumns($request, ?Collection $fields = null): array
     {
-        $fields = $fields ?? collect($this->fields($request))
+        $fields = $fields ?? $this->flattenFields($request)
             ->filter(fn($field) => $field->isAppliedInShowQuery());
 
         $columns = $fields

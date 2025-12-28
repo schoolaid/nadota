@@ -188,7 +188,7 @@ class AttachmentController extends Controller
      */
     protected function findField(NadotaRequest $request, $resource, string $fieldName)
     {
-        $fields = collect($resource->fields($request));
+        $fields = $resource->flattenFields($request);
 
         // Try by key first
         $field = $fields->firstWhere(fn($f) => $f->key() === $fieldName);

@@ -79,7 +79,7 @@ class RelationIndexService
      */
     protected function findRelationField(ResourceInterface $resource, NadotaRequest $request, string $fieldKey): ?Field
     {
-        $fields = collect($resource->fields($request));
+        $fields = $resource->flattenFields($request);
 
         // Try to find by key
         $field = $fields->first(fn($f) => $f->key() === $fieldKey);

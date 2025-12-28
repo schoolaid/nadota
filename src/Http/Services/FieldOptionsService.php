@@ -434,7 +434,7 @@ class FieldOptionsService
      */
     protected function findField(NadotaRequest $request, ResourceInterface $resource, string $fieldName): ?Field
     {
-        $fields = collect($resource->fields($request));
+        $fields = $resource->flattenFields($request);
 
         // Try to find by key first (the most common case)
         $field = $fields->first(function ($field) use ($fieldName) {

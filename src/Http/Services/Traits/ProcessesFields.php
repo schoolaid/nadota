@@ -18,6 +18,7 @@ trait ProcessesFields
 {
     /**
      * Filter fields for store operation.
+     * Uses flattenFields to extract fields from sections.
      *
      * @param ResourceInterface $resource
      * @param NadotaRequest $request
@@ -25,7 +26,7 @@ trait ProcessesFields
      */
     protected function filterFieldsForStore(ResourceInterface $resource, NadotaRequest $request): Collection
     {
-        return collect($resource->fields($request))
+        return $resource->flattenFields($request)
             ->filter(function ($field) {
                 return $field->isShowOnCreation()
                     && !$field->isReadonly()
@@ -35,6 +36,7 @@ trait ProcessesFields
 
     /**
      * Filter fields for update operation.
+     * Uses flattenFields to extract fields from sections.
      *
      * @param ResourceInterface $resource
      * @param NadotaRequest $request
@@ -42,7 +44,7 @@ trait ProcessesFields
      */
     protected function filterFieldsForUpdate(ResourceInterface $resource, NadotaRequest $request): Collection
     {
-        return collect($resource->fields($request))
+        return $resource->flattenFields($request)
             ->filter(function ($field) {
                 return $field->isShowOnUpdate()
                     && !$field->isReadonly()

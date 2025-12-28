@@ -449,10 +449,14 @@ abstract class Field implements FieldInterface
 
     /**
      * Get resource fields filtered by exceptFieldKeys.
+     * Uses flattenFields to extract fields from sections.
      */
     protected function getFilteredResourceFields($resource, Request $request): array
     {
-        $fields = $resource->fields($request);
+        // Use flattenFields if available (for Resources with sections support)
+        $fields = method_exists($resource, 'flattenFields')
+            ? $resource->flattenFields($request)->toArray()
+            : $resource->fields($request);
 
         if ($this->exceptFieldKeys === null) {
             return $fields;
