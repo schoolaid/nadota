@@ -10,6 +10,7 @@ use SchoolAid\Nadota\Http\Filters\DynamicSelectFilter;
 use SchoolAid\Nadota\Http\Filters\MorphToFilter;
 use SchoolAid\Nadota\Http\Filters\NumberFilter;
 use SchoolAid\Nadota\Http\Filters\RangeFilter;
+use SchoolAid\Nadota\Http\Filters\RelationFilter;
 use SchoolAid\Nadota\Http\Filters\SelectFilter;
 
 trait FilterableTrait
@@ -19,14 +20,12 @@ trait FilterableTrait
     protected bool $filterAsRange = false;
 
     /**
-     * Tipos de fields que son relaciones y no deben tener filtros automáticos
-     * (excepto belongsTo que sí puede tener filtro automático)
+     * Tipos de fields que son relaciones que usan whereHas para filtrar
      */
-    protected array $relationTypes = [
+    protected array $whereHasRelationTypes = [
         FieldType::HAS_MANY->value,
         FieldType::HAS_ONE->value,
         FieldType::BELONGS_TO_MANY->value,
-        FieldType::MORPH_TO->value,
         FieldType::MORPH_MANY->value,
         FieldType::MORPH_ONE->value,
     ];
@@ -79,15 +78,14 @@ trait FilterableTrait
     public function filters(): array
     {
         $filters = [];
-        
+
         if (!$this->filterable) {
             return $filters;
         }
 
-        // No crear filtros para relaciones (excepto belongsTo y morphTo)
-        if (in_array($this->fieldData->type, $this->relationTypes) && 
-            $this->fieldData->type !== FieldType::MORPH_TO->value) {
-            return $filters;
+        // Relaciones que usan whereHas
+        if (in_array($this->fieldData->type, $this->whereHasRelationTypes)) {
+            return $this->createWhereHasFilter();
         }
 
         // MorphTo genera múltiples filtros
@@ -96,7 +94,7 @@ trait FilterableTrait
         }
 
         $filter = $this->createFilterForFieldType();
-        
+
         if ($filter) {
             $filters[] = $filter;
         }
@@ -301,6 +299,64 @@ trait FilterableTrait
         $filter->searchable(true);
 
         return $filter;
+    }
+
+    /**
+     * Crea un filtro para relaciones que usan whereHas (HasMany, BelongsToMany, HasOne, MorphMany, MorphOne)
+     */
+    protected function createWhereHasFilter(): array
+    {
+        $type = $this->fieldData->type;
+        $label = $this->fieldData->label;
+        $key = $this->key();
+
+        // Obtener el nombre de la relación
+        $relation = null;
+        if (method_exists($this, 'getRelation')) {
+            $relation = $this->getRelation();
+        }
+
+        if (!$relation) {
+            return [];
+        }
+
+        // Mapear tipo de field a tipo de relación
+        $relationType = match ($type) {
+            FieldType::HAS_MANY->value => 'hasMany',
+            FieldType::HAS_ONE->value => 'hasOne',
+            FieldType::BELONGS_TO_MANY->value => 'belongsToMany',
+            FieldType::MORPH_MANY->value => 'morphMany',
+            FieldType::MORPH_ONE->value => 'morphOne',
+            default => 'hasMany',
+        };
+
+        // Determinar si es múltiple (HasMany, BelongsToMany, MorphMany)
+        $isMultiple = in_array($type, [
+            FieldType::HAS_MANY->value,
+            FieldType::BELONGS_TO_MANY->value,
+            FieldType::MORPH_MANY->value,
+        ]);
+
+        $filter = new RelationFilter($label, $key, $type);
+        $filter->relation($relation)
+            ->relationType($relationType)
+            ->searchable(true)
+            ->multiple($isMultiple);
+
+        // Obtener atributo de display si está disponible
+        if (method_exists($this, 'getAttributeForDisplay')) {
+            $displayAttribute = $this->getAttributeForDisplay();
+            if ($displayAttribute) {
+                $filter->labelField($displayAttribute);
+            }
+        }
+
+        // Configurar el resource relacionado si está disponible
+        if (method_exists($this, 'getResource') && $this->getResource()) {
+            $filter->relatedResource($this->getResource());
+        }
+
+        return [$filter];
     }
 
     /**

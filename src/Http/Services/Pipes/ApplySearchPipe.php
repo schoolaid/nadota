@@ -18,13 +18,14 @@ class ApplySearchPipe
         }
         $searchableAttributes = $resource->getSearchableAttributes();
         $searchableRelations = $resource->getSearchableRelations();
+        $hasCustomSearch = method_exists($resource, 'applySearch');
 
         // Si no hay nada configurado para buscar, continuar
-        if (empty($searchableAttributes) && empty($searchableRelations)) {
+        if (empty($searchableAttributes) && empty($searchableRelations) && !$hasCustomSearch) {
             return $next($data);
         }
 
-        $data->query->where(function ($query) use ($search, $searchableAttributes, $searchableRelations) {
+        $data->query->where(function ($query) use ($search, $searchableAttributes, $searchableRelations, $resource, $hasCustomSearch) {
             // Buscar en atributos directos
             foreach ($searchableAttributes as $attribute) {
                 $query->orWhere($attribute, 'LIKE', "%{$search}%");
@@ -33,6 +34,11 @@ class ApplySearchPipe
             // Buscar en relaciones
             foreach ($searchableRelations as $relationPath) {
                 $this->applyRelationSearch($query, $relationPath, $search);
+            }
+
+            // Allow resource to add custom search logic
+            if ($hasCustomSearch) {
+                $resource->applySearch($query, $search);
             }
         });
 

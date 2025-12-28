@@ -140,13 +140,30 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
      * }
      * ```
      */
-    public function optionsFormat(Model $model): array
+    public function optionsFormat(mixed $item): array
     {
         $keyAttribute = static::$attributeKey ?? 'id';
 
+        // Handle array or stdClass (e.g., from raw queries or external APIs)
+        if (is_array($item)) {
+            return [
+                'value' => $item['id'] ?? null,
+                'label' => $item['label'] ?? null ,
+            ];
+        }
+
+        if (!$item instanceof Model) {
+            // stdClass or other object
+            return [
+                'value' => $item->{$keyAttribute} ?? $item->id ?? null,
+                'label' => $item->label ?? $item->name ?? $item->title ?? $item->{$keyAttribute} ?? '',
+            ];
+        }
+
+        // Eloquent Model
         return [
-            'value' => $model->{$keyAttribute},
-            'label' => $this->displayLabel($model),
+            'value' => $item->{$keyAttribute},
+            'label' => $this->displayLabel($item),
         ];
     }
 
@@ -476,6 +493,19 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
      * Override this method to perform custom logic after deletion
      */
     public function afterDelete(Model $model, NadotaRequest $request): void
+    {
+        // Override in child resource if needed
+    }
+
+    /**
+     * Hook called when delete fails and transaction is rolled back.
+     * Use this to clean up any external resources or log the failure.
+     *
+     * @param Model $model The model that failed to delete
+     * @param NadotaRequest $request The current request
+     * @param \Exception $exception The exception that caused the failure
+     */
+    public function onDeleteFailed(Model $model, NadotaRequest $request, \Exception $exception): void
     {
         // Override in child resource if needed
     }

@@ -100,6 +100,11 @@ class ResourceOptionsService
             if (empty($searchableAttributes) && empty($searchableRelations)) {
                 $this->applyFallbackSearch($q, $search);
             }
+
+            // Allow resource to add custom search logic
+            if (method_exists($resource, 'applySearch')) {
+                $resource->applySearch($q, $search);
+            }
         });
     }
 

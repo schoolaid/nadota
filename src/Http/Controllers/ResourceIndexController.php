@@ -42,9 +42,7 @@ class ResourceIndexController extends Controller
 
         $fields = collect($resource->fields($request))
             ->filter(fn($field) => $field->showOnIndex())
-            ->map(fn($field) => array_merge($field->toArray($request), [
-                // 'filters' => collect($field->filters())->map(fn($filter) => $filter->toArray($request))->toArray(),
-            ]));
+            ->map(fn($field) => $field->toArray($request, null, $resource));
 
         return FieldResource::collection($fields);
     }
@@ -105,7 +103,7 @@ class ResourceIndexController extends Controller
         // Get fields for index
         $fields = collect($resource->fields($request))
             ->filter(fn($field) => $field->isShowOnIndex())
-            ->map(fn($field) => $field->toArray($request))
+            ->map(fn($field) => $field->toArray($request, null, $resource))
             ->values()
             ->toArray();
 

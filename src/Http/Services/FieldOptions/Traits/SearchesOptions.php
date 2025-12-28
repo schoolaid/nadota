@@ -52,6 +52,11 @@ trait SearchesOptions
         foreach ($searchableRelations as $relationPath) {
             $this->applyRelationSearch($query, $search, $relationPath);
         }
+
+        // Allow resource to add custom search logic
+        if (method_exists($resourceInstance, 'applySearch')) {
+            $resourceInstance->applySearch($query, $search);
+        }
     }
 
     /**

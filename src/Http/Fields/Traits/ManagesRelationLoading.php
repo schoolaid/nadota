@@ -3,6 +3,8 @@
 namespace SchoolAid\Nadota\Http\Fields\Traits;
 
 use Illuminate\Support\Collection;
+use SchoolAid\Nadota\Http\Fields\Count;
+use SchoolAid\Nadota\Http\Fields\Exists;
 
 trait ManagesRelationLoading
 {
@@ -109,5 +111,61 @@ trait ManagesRelationLoading
         }
 
         return [];
+    }
+
+    /**
+     * Get relations to count via withCount.
+     *
+     * @param mixed $request
+     * @param Collection|null $fields Optional pre-filtered fields collection
+     * @return array Array of relation names or relation => constraint pairs
+     */
+    public function getWithCountRelations($request, ?Collection $fields = null): array
+    {
+        $fields = $fields ?? collect($this->fields($request))
+            ->filter(fn($field) => $field->isAppliedInShowQuery());
+
+        return $fields
+            ->filter(fn($field) => $field instanceof Count && $field->requiresWithCount())
+            ->map(function (Count $field) {
+                $relation = $field->getCountRelation();
+                $constraint = $field->getCountConstraint();
+
+                if ($constraint !== null) {
+                    return [$relation => $constraint];
+                }
+
+                return $relation;
+            })
+            ->values()
+            ->toArray();
+    }
+
+    /**
+     * Get relations to check existence via withExists.
+     *
+     * @param mixed $request
+     * @param Collection|null $fields Optional pre-filtered fields collection
+     * @return array Array of relation names or relation => constraint pairs
+     */
+    public function getWithExistsRelations($request, ?Collection $fields = null): array
+    {
+        $fields = $fields ?? collect($this->fields($request))
+            ->filter(fn($field) => $field->isAppliedInShowQuery());
+
+        return $fields
+            ->filter(fn($field) => $field instanceof Exists && $field->requiresWithExists())
+            ->map(function (Exists $field) {
+                $relation = $field->getExistsRelation();
+                $constraint = $field->getExistsConstraint();
+
+                if ($constraint !== null) {
+                    return [$relation => $constraint];
+                }
+
+                return $relation;
+            })
+            ->values()
+            ->toArray();
     }
 }

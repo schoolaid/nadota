@@ -353,6 +353,11 @@ class FieldOptionsService
                     $q->orWhere($attribute, 'like', '%' . $search . '%');
                 }
             }
+
+            // Allow resource to add custom search logic
+            if (method_exists($resourceInstance, 'applySearch')) {
+                $resourceInstance->applySearch($q, $search);
+            }
         });
     }
 

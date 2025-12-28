@@ -43,6 +43,11 @@ class ResourceDestroyService implements ResourceDestroyInterface
         } catch (\Exception $e) {
             DB::rollBack();
 
+            // Call rollback hook if available
+            if (method_exists($resource, 'onDeleteFailed')) {
+                $resource->onDeleteFailed($model, $request, $e);
+            }
+
             return response()->json([
                 'message' => 'Failed to delete resource',
                 'error' => $e->getMessage(),

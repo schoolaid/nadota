@@ -22,14 +22,27 @@ class ResourceShowService implements ResourceShowInterface
         // Pass the filtered fields to ensure we only load what's needed
         $columns = $resource->getSelectColumns($request, $fields);
         $eagerLoadRelations = $resource->getEagerLoadRelations($request, $fields);
+        $withCountRelations = $resource->getWithCountRelations($request, $fields);
+        $withExistsRelations = $resource->getWithExistsRelations($request, $fields);
 
         // Include soft delete column if model uses soft deletes
         $columns = $this->includeDeletedAtColumn($resource, $columns);
 
-        $model = $resource->getQuery($request)
+        $query = $resource->getQuery($request)
             ->with([...$resource->getWithOnShow(), ...$eagerLoadRelations])
-            ->select(...$columns)
-            ->findOrFail($id);
+            ->select(...$columns);
+
+        // Apply withCount for Count fields
+        if (!empty($withCountRelations)) {
+            $query->withCount($withCountRelations);
+        }
+
+        // Apply withExists for Exists fields
+        if (!empty($withExistsRelations)) {
+            $query->withExists($withExistsRelations);
+        }
+
+        $model = $query->findOrFail($id);
 
         // Authorize based on action
         $permission = $action === 'update' ? 'update' : 'view';

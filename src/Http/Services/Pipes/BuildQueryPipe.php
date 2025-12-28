@@ -29,6 +29,12 @@ class BuildQueryPipe
         // Apply optimized eager loading
         $this->applyEagerLoading($data, $fields);
 
+        // Apply withCount for Count fields
+        $this->applyWithCount($data, $fields);
+
+        // Apply withExists for Exists fields
+        $this->applyWithExists($data, $fields);
+
         return $next($data);
     }
 
@@ -62,8 +68,40 @@ class BuildQueryPipe
     }
 
     /**
+     * Apply withCount for Count fields
+     */
+    protected function applyWithCount(IndexRequestDTO $data, Collection $fields): void
+    {
+        if (!method_exists($data->resource, 'getWithCountRelations')) {
+            return;
+        }
+
+        $withCountRelations = $data->resource->getWithCountRelations($data->request, $fields);
+
+        if (!empty($withCountRelations)) {
+            $data->query->withCount($withCountRelations);
+        }
+    }
+
+    /**
+     * Apply withExists for Exists fields
+     */
+    protected function applyWithExists(IndexRequestDTO $data, Collection $fields): void
+    {
+        if (!method_exists($data->resource, 'getWithExistsRelations')) {
+            return;
+        }
+
+        $withExistsRelations = $data->resource->getWithExistsRelations($data->request, $fields);
+
+        if (!empty($withExistsRelations)) {
+            $data->query->withExists($withExistsRelations);
+        }
+    }
+
+    /**
      * Handle soft delete conditions for the query
-     * 
+     *
      * @param Builder $query
      * @param mixed $trashedParam Can be: 'with' (all), 'only' (only trashed), null/false (not trashed)
      * @param bool $usesSoftDeletes
