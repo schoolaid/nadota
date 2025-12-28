@@ -175,10 +175,10 @@ return [
         'enabled' => env('NADOTA_EXPORT_ENABLED', true),
 
         // Available export formats
-        'formats' => ['csv'],
+        'formats' => ['excel', 'csv'],
 
         // Default export format
-        'default_format' => 'csv',
+        'default_format' => 'excel',
 
         // Maximum records for synchronous export
         // Above this threshold, export should be processed async (future feature)

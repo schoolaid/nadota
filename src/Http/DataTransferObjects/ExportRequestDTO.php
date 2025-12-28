@@ -14,13 +14,13 @@ class ExportRequestDTO extends IndexRequestDTO
     public function __construct(
         NadotaRequest $request,
         ?Resource $resource,
-        string $format = 'csv',
+        ?string $format = null,
         ?array $columns = null,
         ?string $filename = null
     ) {
         parent::__construct($request, $resource);
 
-        $this->format = $format;
+        $this->format = $format ?? config('nadota.export.default_format', 'excel');
         $this->columns = $columns;
         $this->filename = $filename ?? $this->generateFilename();
     }

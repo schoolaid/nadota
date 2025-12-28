@@ -35,7 +35,18 @@ it('has export enabled by default', function () {
 it('returns default allowed export formats', function () {
     $resource = new TestExportableResource();
 
-    expect($resource->getAllowedExportFormats())->toBe(['csv']);
+    expect($resource->getAllowedExportFormats())->toBe(['excel', 'csv']);
+});
+
+it('returns formats with extensions', function () {
+    $resource = new TestExportableResource();
+
+    $formats = $resource->getAllowedExportFormatsWithExtensions();
+
+    expect($formats)->toBe([
+        ['format' => 'excel', 'extension' => 'xlsx'],
+        ['format' => 'csv', 'extension' => 'csv'],
+    ]);
 });
 
 it('returns default sync export limit', function () {
@@ -77,10 +88,25 @@ it('returns export config for frontend', function () {
 
     expect($config)
         ->toHaveKey('enabled', true)
-        ->toHaveKey('formats', ['csv'])
+        ->toHaveKey('formats', [
+            ['format' => 'excel', 'extension' => 'xlsx'],
+            ['format' => 'csv', 'extension' => 'csv'],
+        ])
         ->toHaveKey('syncLimit', 1000)
+        ->toHaveKey('defaultColumns', null)
         ->toHaveKey('columns');
 
     expect($config['columns'])->toBeArray()
         ->and(count($config['columns']))->toBe(2);
+
+    // All columns should be selected by default when defaultColumns is null
+    foreach ($config['columns'] as $column) {
+        expect($column)->toHaveKey('selected', true);
+    }
+});
+
+it('returns default export columns as null by default', function () {
+    $resource = new TestExportableResource();
+
+    expect($resource->getDefaultExportColumns())->toBeNull();
 });

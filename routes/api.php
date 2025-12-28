@@ -23,6 +23,7 @@ Route::prefix('/{resourceKey}/resource')->group(function () {
     // Export endpoints
     Route::get('/export', [ExportController::class, 'export'])->name('resource.export');
     Route::get('/export/config', [ExportController::class, 'config'])->name('resource.export.config');
+
     Route::get('/actions', [ActionController::class, 'index'])->name('resource.actions');
     Route::get('/actions/{actionKey}/fields', [ActionController::class, 'fields'])->name('resource.actions.fields');
     Route::post('/actions/{actionKey}', [ActionController::class, 'execute'])->name('resource.actions.execute');

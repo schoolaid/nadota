@@ -15,8 +15,16 @@ trait ResourceExportable
 
     /**
      * Allowed export formats for this resource.
+     * Defaults to config value if not set.
      */
-    protected array $allowedExportFormats = ['csv'];
+    protected ?array $allowedExportFormats = null;
+
+    /**
+     * Default columns to export.
+     * If null, all exportable columns are selected by default.
+     * Set to array of field keys to limit default selection.
+     */
+    protected ?array $defaultExportColumns = null;
 
     /**
      * Maximum records for synchronous export.
@@ -37,7 +45,7 @@ trait ResourceExportable
      */
     public function getAllowedExportFormats(): array
     {
-        return $this->allowedExportFormats;
+        return $this->allowedExportFormats ?? config('nadota.export.formats', ['excel', 'csv']);
     }
 
     /**
@@ -46,6 +54,15 @@ trait ResourceExportable
     public function getSyncExportLimit(): int
     {
         return $this->syncExportLimit;
+    }
+
+    /**
+     * Get default export columns.
+     * Returns null if all columns should be selected by default.
+     */
+    public function getDefaultExportColumns(): ?array
+    {
+        return $this->defaultExportColumns;
     }
 
     /**
@@ -134,19 +151,53 @@ trait ResourceExportable
     }
 
     /**
+     * Get export format extensions mapping.
+     */
+    protected function getExportFormatExtensions(): array
+    {
+        return [
+            'excel' => 'xlsx',
+            'csv' => 'csv',
+        ];
+    }
+
+    /**
+     * Get allowed formats with their extensions.
+     */
+    public function getAllowedExportFormatsWithExtensions(): array
+    {
+        $extensions = $this->getExportFormatExtensions();
+        $formats = $this->getAllowedExportFormats();
+
+        return collect($formats)->map(function ($format) use ($extensions) {
+            return [
+                'format' => $format,
+                'extension' => $extensions[$format] ?? $format,
+            ];
+        })->all();
+    }
+
+    /**
      * Get export configuration for frontend.
      */
     public function getExportConfig(NadotaRequest $request): array
     {
+        $defaultColumns = $this->getDefaultExportColumns();
+
         return [
             'enabled' => $this->isExportEnabled() && $this->authorizedTo($request, 'export'),
-            'formats' => $this->getAllowedExportFormats(),
+            'formats' => $this->getAllowedExportFormatsWithExtensions(),
             'syncLimit' => $this->getSyncExportLimit(),
+            'defaultColumns' => $defaultColumns,
             'columns' => $this->getExportableFields($request)
-                ->map(fn($field) => [
-                    'key' => $field->key(),
-                    'label' => $field->getName(),
-                ])
+                ->map(function ($field) use ($defaultColumns) {
+                    $key = $field->key();
+                    return [
+                        'key' => $key,
+                        'label' => $field->getName(),
+                        'selected' => $defaultColumns === null || in_array($key, $defaultColumns),
+                    ];
+                })
                 ->values()
                 ->all(),
         ];

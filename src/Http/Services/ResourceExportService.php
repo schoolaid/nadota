@@ -9,6 +9,7 @@ use SchoolAid\Nadota\Contracts\ResourceExportInterface;
 use SchoolAid\Nadota\Http\DataTransferObjects\ExportRequestDTO;
 use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 use SchoolAid\Nadota\Http\Services\Exporters\CsvExporter;
+use SchoolAid\Nadota\Http\Services\Exporters\ExcelExporter;
 use Symfony\Component\HttpFoundation\Response;
 
 class ResourceExportService implements ResourceExportInterface
@@ -17,6 +18,7 @@ class ResourceExportService implements ResourceExportInterface
      * Available exporters by format.
      */
     protected array $exporters = [
+        'excel' => ExcelExporter::class,
         'csv' => CsvExporter::class,
     ];
 
@@ -35,7 +37,7 @@ class ResourceExportService implements ResourceExportInterface
         }
 
         // Validate format
-        $format = $request->input('format', 'csv');
+        $format = $request->input('format', config('nadota.export.default_format', 'excel'));
         $allowedFormats = $resource->getAllowedExportFormats();
 
         if (!in_array($format, $allowedFormats)) {
@@ -97,15 +99,9 @@ class ResourceExportService implements ResourceExportInterface
      */
     protected function createLazyData(ExportRequestDTO $dto, array $fields): LazyCollection
     {
-        $chunkSize = config('nadota.export.chunk_size', 500);
-
-        return LazyCollection::make(function () use ($dto, $fields, $chunkSize) {
-            $dto->query->chunk($chunkSize, function ($models) use ($dto, $fields, &$rows) {
-                foreach ($models as $model) {
-                    yield $dto->resource->transformForExport($model, $dto->request, $fields);
-                }
-            });
-        })->chunk($chunkSize)->flatMap(fn($chunk) => $chunk);
+        return $dto->query->cursor()->map(function ($model) use ($dto, $fields) {
+            return $dto->resource->transformForExport($model, $dto->request, $fields);
+        });
     }
 
     /**
