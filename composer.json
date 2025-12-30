@@ -23,7 +23,7 @@
         "php": "^8.2|^8.3",
         "laravel/framework": "^11.0|^12.0",
         "inertiajs/inertia-laravel": "^2.0",
-        "phpoffice/phpspreadsheet": "^2.0|^3.0"
+        "phpoffice/phpspreadsheet": "^1.30|^2.0|^3.0"
     },
     "require-dev": {
         "pestphp/pest": "^3.0",
