@@ -71,6 +71,16 @@ trait ProcessesFields
                 $rules[$field->getAttribute()] = $model
                     ? $this->replaceIdPlaceholder($fieldRules, $model)
                     : $fieldRules;
+
+                // Support for nested validation rules (e.g., array fields with items)
+                if (method_exists($field, 'getNestedRules')) {
+                    $nestedRules = $field->getNestedRules();
+                    foreach ($nestedRules as $key => $nestedRule) {
+                        $rules[$key] = $model
+                            ? $this->replaceIdPlaceholder($nestedRule, $model)
+                            : $nestedRule;
+                    }
+                }
             }
         }
 

@@ -5,6 +5,7 @@
       <tool tool_name="Pest">
         <settings>
           <configurations>
+            <local_configuration configuration_file_path="$PROJECT_DIR$/../schoolaid-admin/phpunit.xml" executable_path="$PROJECT_DIR$/../schoolaid-admin/vendor/pestphp/pest/bin/pest" use_configuration_file="true" />
             <local_configuration configuration_file_path="$PROJECT_DIR$/phpunit.xml" executable_path="$PROJECT_DIR$/vendor/pestphp/pest/bin/pest" use_configuration_file="true" />
           </configurations>
         </settings>

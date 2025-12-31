@@ -8,7 +8,9 @@ use SchoolAid\Nadota\Contracts\ResourceInterface;
 use SchoolAid\Nadota\Http\Fields\Contracts\FieldInterface;
 use SchoolAid\Nadota\Http\Fields\DataTransferObjects\FieldDTO;
 use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
-use SchoolAid\Nadota\Http\Fields\Traits\{DefaultValueTrait,
+use SchoolAid\Nadota\Http\Fields\Traits\{
+    DefaultValueTrait,
+    DependsOnTrait,
     FieldDataAccessorsTrait,
     FieldResolveTrait,
     FilterableTrait,
@@ -23,12 +25,13 @@ use SchoolAid\Nadota\Http\Traits\Makeable;
 
 abstract class Field implements FieldInterface
 {
-    use RelationshipTrait;
     use DefaultValueTrait;
+    use DependsOnTrait;
     use FieldDataAccessorsTrait;
     use FieldResolveTrait;
     use FilterableTrait;
     use Makeable;
+    use RelationshipTrait;
     use SearchableTrait;
     use SortableTrait;
     use ValidationTrait;
@@ -118,7 +121,8 @@ abstract class Field implements FieldInterface
             'showOnUpdate' => $this->isShowOnUpdate($request, $model),
             'props' => $this->getProps($request, $model, $resource),
             'rules' => $this->getRules(),
-            'optionsUrl' => $this->getOptionsUrl($resource)
+            'optionsUrl' => $this->getOptionsUrl($resource),
+            'dependencies' => $this->getDependencyConfig(),
         ]);
 
         if ($model) {

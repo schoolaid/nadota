@@ -15,6 +15,7 @@ Fields are the building blocks of resources in Nadota. They define how data is d
 - [Relationship Fields](#relationship-fields)
 - [Custom Components](#custom-components)
 - [Computed Fields](#computed-fields)
+- [Field Dependencies](#field-dependencies) *(see [full docs](fields/DEPENDS_ON.md))*
 
 ---
 
@@ -494,17 +495,40 @@ Email::make('Email', 'email')
 ```
 
 ### Field Dependencies
-```php
-Select::make('Country', 'country_id')
-    ->options(Country::pluck('name', 'id'))
 
-Select::make('State', 'state_id')
-    ->dependsOn(['country_id'])
-    ->options(function($values) {
-        return State::where('country_id', $values['country_id'])
-            ->pluck('name', 'id');
-    })
+Fields can depend on other fields for visibility, disabled state, required state, dynamic options, and computed values. All conditions are evaluated on the frontend for instant reactivity.
+
+```php
+// Show field when another equals a value
+Input::make('Company', 'company_name')
+    ->showWhenEquals('customer_type', 'business')
+    ->requiredWhenEquals('customer_type', 'business');
+
+// Cascade selects (Country → State → City)
+BelongsTo::make('State', 'state', StateResource::class)
+    ->showWhenHasValue('country_id')
+    ->cascadeFrom('country_id')
+    ->clearOnDependencyChange();
+
+// Computed values
+Number::make('Total', 'total')
+    ->computeUsing('quantity * price')
+    ->readonly();
+
+// Disable based on condition
+Input::make('Field', 'field')
+    ->disableWhenTruthy('is_locked');
 ```
+
+**Available methods:**
+- Visibility: `showWhenEquals()`, `showWhenNotEquals()`, `showWhenHasValue()`, `showWhenEmpty()`, `showWhenIn()`, `showWhenTruthy()`, `showWhenFalsy()`, `showWhenGreaterThan()`, `showWhenLessThan()`, `showWhenContains()`
+- Disabled: `disableWhenEquals()`, `disableWhenEmpty()`, `disableWhenHasValue()`, `disableWhenTruthy()`, `disableWhenFalsy()`
+- Required: `requiredWhenEquals()`, `requiredWhenHasValue()`, `requiredWhenTruthy()`, `requiredWhenIn()`
+- Options: `optionsFromEndpoint()`, `cascadeFrom()`
+- Computed: `computeUsing()`
+- Behavior: `clearOnDependencyChange()`, `debounce()`
+
+> **See full documentation:** [Field Dependencies (dependsOn)](fields/DEPENDS_ON.md)
 
 ### Custom Fill Logic
 ```php
