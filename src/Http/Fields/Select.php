@@ -104,14 +104,54 @@ class Select extends Field
     public function resolve(\Illuminate\Http\Request $request, \Illuminate\Database\Eloquent\Model $model, ?\SchoolAid\Nadota\Contracts\ResourceInterface $resource): mixed
     {
         $value = $model->{$this->getAttribute()};
-        
+
         // Handle multiple values
         if ($this->multiple && is_string($value)) {
             // Try to decode JSON if it's a string
             $decoded = json_decode($value, true);
             return $decoded !== null ? $decoded : $value;
         }
-        
+
         return $value;
+    }
+
+    /**
+     * Resolve the field value for export, converting value to label.
+     */
+    public function resolveForExport(\Illuminate\Http\Request $request, \Illuminate\Database\Eloquent\Model $model, ?\SchoolAid\Nadota\Contracts\ResourceInterface $resource): mixed
+    {
+        $value = $this->resolve($request, $model, $resource);
+
+        if ($value === null) {
+            return null;
+        }
+
+        $options = $this->formatOptions();
+
+        // Handle multiple values
+        if ($this->multiple && is_array($value)) {
+            return collect($value)
+                ->map(fn($v) => $this->findLabelForValue($v, $options))
+                ->filter()
+                ->implode(', ');
+        }
+
+        return $this->findLabelForValue($value, $options);
+    }
+
+    /**
+     * Find the label for a given value in the options array.
+     */
+    protected function findLabelForValue(mixed $value, array $options): ?string
+    {
+        foreach ($options as $option) {
+            // Handle both string and numeric comparison
+            if ((string) $option['value'] === (string) $value) {
+                return $option['label'];
+            }
+        }
+
+        // If no label found, return the original value as string
+        return (string) $value;
     }
 }

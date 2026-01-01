@@ -119,7 +119,8 @@ trait ResourceExportable
         $row = [];
 
         foreach ($fields as $field) {
-            $value = $field->resolve($request, $model, $this);
+            // Use resolveForExport for export-specific transformations (e.g., Select value -> label)
+            $value = $field->resolveForExport($request, $model, $this);
             $row[$field->key()] = $this->formatExportValue($value, $field);
         }
 

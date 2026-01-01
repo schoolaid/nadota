@@ -601,6 +601,23 @@ abstract class Field implements FieldInterface
     }
 
     /**
+     * Resolve the field value for export.
+     *
+     * Override this method in fields that need to transform values
+     * for export (e.g., Select fields converting value to label).
+     *
+     * @param Request $request
+     * @param Model $model
+     * @param ResourceInterface|null $resource
+     * @return mixed
+     */
+    public function resolveForExport(Request $request, Model $model, ?ResourceInterface $resource): mixed
+    {
+        // Default: use standard resolve
+        return $this->resolve($request, $model, $resource);
+    }
+
+    /**
      * Determine if this field supports the afterSave callback.
      *
      * Fields that manage relationships or need the model ID
