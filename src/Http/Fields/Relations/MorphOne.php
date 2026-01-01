@@ -233,7 +233,25 @@ class MorphOne extends Field
             }
 
             $parentResource = $request->getResource();
-            $parentModelClass = $parentResource->model;
+            $morphKeys = $this->resolveMorphKeysFromModel($parentResource->model);
+
+            return array_filter([$morphKeys['id'], $morphKeys['type']]);
+        } catch (\Throwable $e) {
+            // Silently fail
+        }
+
+        return [];
+    }
+
+    /**
+     * Resolve the morph type and id column names from the parent model class.
+     *
+     * @param string $parentModelClass
+     * @return array{type: string|null, id: string|null}
+     */
+    protected function resolveMorphKeysFromModel(string $parentModelClass): array
+    {
+        try {
             $parentModel = new $parentModelClass;
             $relationName = $this->getRelation();
 
@@ -242,8 +260,8 @@ class MorphOne extends Field
 
                 if ($relation instanceof \Illuminate\Database\Eloquent\Relations\MorphOne) {
                     return [
-                        $relation->getForeignKeyName(),
-                        $relation->getMorphType(),
+                        'type' => $relation->getMorphType(),
+                        'id' => $relation->getForeignKeyName(),
                     ];
                 }
             }
@@ -251,7 +269,7 @@ class MorphOne extends Field
             // Silently fail
         }
 
-        return [];
+        return ['type' => null, 'id' => null];
     }
 
     /**
@@ -271,6 +289,52 @@ class MorphOne extends Field
             'resource' => $this->getResource() ? $this->getResource()::getKey() : null,
             'isPolymorphic' => true,
         ]);
+
+        // Add URLs and createContext if we have a model and resource
+        if ($model && $resource) {
+            $resourceKey = $resource::getKey();
+            $modelId = $model->getKey();
+            $apiPrefix = static::safeConfig('nadota.api.prefix', 'nadota-api');
+            $frontendPrefix = static::safeConfig('nadota.frontend.prefix', 'resources');
+
+            $relatedResourceClass = $this->getResource();
+            if ($relatedResourceClass) {
+                $relatedResourceKey = $relatedResourceClass::getKey();
+                $morphKeys = $this->resolveMorphKeysFromModel($resource->model);
+                $morphType = $morphKeys['type'] ?? null;
+                $morphId = $morphKeys['id'] ?? null;
+                $morphClass = get_class($model);
+
+                $props['urls'] = [
+                    'create' => "/{$apiPrefix}/{$relatedResourceKey}/resource/create",
+                    'show' => "/{$apiPrefix}/{$relatedResourceKey}/resource",
+                ];
+
+                $prefill = [];
+                $lock = [];
+
+                if ($morphType && $morphId) {
+                    $prefill[$morphType] = $morphClass;
+                    $prefill[$morphId] = $modelId;
+                    $lock = [$morphType, $morphId];
+                }
+
+                $props['createContext'] = [
+                    'parentResource' => $resourceKey,
+                    'parentId' => $modelId,
+                    'relatedResource' => $relatedResourceKey,
+                    'morphType' => $morphType,
+                    'morphId' => $morphId,
+                    'morphClass' => $morphClass,
+                    'prefill' => $prefill,
+                    'lock' => $lock,
+                    'returnUrl' => "/{$frontendPrefix}/{$resourceKey}/{$modelId}",
+                    'createUrl' => "/{$apiPrefix}/{$relatedResourceKey}/resource/create",
+                    'storeUrl' => "/{$apiPrefix}/{$relatedResourceKey}/resource",
+                    'isPolymorphic' => true,
+                ];
+            }
+        }
 
         return $props;
     }

@@ -134,6 +134,7 @@ class ResourceIndexController extends Controller
                 'perPage' => $resource->getPerPage(),
                 'allowedPerPage' => $resource->getAllowedPerPage(),
                 'components' => $resource->getComponents(),
+                'detailCardWidth' => $resource->getDetailCardWidth(),
                 'search' => [
                     'key' => $resource->getSearchKey(),
                     'enabled' => $resource->isSearchable(),

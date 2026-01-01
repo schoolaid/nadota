@@ -174,7 +174,7 @@ class HasMany extends Field
 
         $relationName = $this->getRelation();
 
-        if (!method_exists($model, $relationName)) {
+            if (!method_exists($model, $relationName)) {
             return [];
         }
 
@@ -362,7 +362,23 @@ class HasMany extends Field
             }
 
             $parentResource = $request->getResource();
-            $parentModelClass = $parentResource->model;
+            return $this->resolveForeignKeyFromModel($parentResource->model);
+        } catch (\Throwable $e) {
+            // Silently fail
+        }
+
+        return null;
+    }
+
+    /**
+     * Resolve the foreign key name from the parent model class.
+     *
+     * @param string $parentModelClass
+     * @return string|null
+     */
+    protected function resolveForeignKeyFromModel(string $parentModelClass): ?string
+    {
+        try {
             $parentModel = new $parentModelClass;
             $relationName = $this->getRelation();
 
@@ -412,6 +428,7 @@ class HasMany extends Field
             $resourceKey = $resource::getKey();
             $fieldKey = $this->key();
             $apiPrefix = static::safeConfig('nadota.api.prefix', 'nadota-api');
+            $frontendPrefix = static::safeConfig('nadota.frontend.prefix', 'resources');
 
             // Initialize URLs array
             $props['urls'] = [];
@@ -427,6 +444,25 @@ class HasMany extends Field
                 // Add pagination URL if paginated
                 if ($this->paginated) {
                     $props['paginationUrl'] = "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/relation/{$fieldKey}";
+                }
+
+                // Add createContext for frontend to handle relation creation
+                $relatedResourceClass = $this->getResource();
+                if ($relatedResourceClass) {
+                    $relatedResourceKey = $relatedResourceClass::getKey();
+                    $foreignKey = $this->resolveForeignKeyFromModel($resource->model);
+
+                    $props['createContext'] = [
+                        'parentResource' => $resourceKey,
+                        'parentId' => $modelId,
+                        'relatedResource' => $relatedResourceKey,
+                        'foreignKey' => $foreignKey,
+                        'prefill' => $foreignKey ? [$foreignKey => $modelId] : [],
+                        'lock' => $foreignKey ? [$foreignKey] : [],
+                        'returnUrl' => "/{$frontendPrefix}/{$resourceKey}/{$modelId}",
+                        'createUrl' => "/{$apiPrefix}/{$relatedResourceKey}/resource/create",
+                        'storeUrl' => "/{$apiPrefix}/{$relatedResourceKey}/resource",
+                    ];
                 }
             }
         }

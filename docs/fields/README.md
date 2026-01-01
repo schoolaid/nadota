@@ -21,7 +21,7 @@ Sistema de campos para la definicion y renderizado de formularios y vistas.
 | [MorphedByMany](#morphedbymany) | [HasManyThrough](#hasmanythrough) | [HasOneThrough](#hasonethrough) |
 
 ### Otros
-| [Metodos Comunes](#metodos-comunes) | [Respuesta JSON Base](#respuesta-json-base) | [Arquitectura](#arquitectura) | [API de Opciones](#api-de-opciones-de-fields) | [Custom Fields](./CUSTOM_FIELDS.md) |
+| [Metodos Comunes](#metodos-comunes) | [Respuesta JSON Base](#respuesta-json-base) | [Arquitectura](#arquitectura) | [API de Opciones](#api-de-opciones-de-fields) | [Custom Fields](./CUSTOM_FIELDS.md) | [Relations API](./RELATIONS_API.md) |
 
 ---
 

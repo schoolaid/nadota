@@ -43,8 +43,12 @@ class MyCustomField extends Field
             $name,           // Label del campo
             $attribute,      // Atributo en el request
             'custom',        // Tipo interno
-            'my-component'   // Componente Vue/React
+            'my-component'   // Componente Vue/React (nombre)
         );
+
+        // Marcar como campo custom y definir path del componente
+        $this->isCustomField = true;
+        $this->componentPath = '@/components/fields/MyCustomField.vue';
 
         // Configurar visibilidad
         $this->showOnIndex = false;
@@ -59,6 +63,14 @@ class MyCustomField extends Field
     public function getRules(): array
     {
         return ['required', 'array'];
+    }
+
+    /**
+     * No es una columna de la base de datos.
+     */
+    public function getColumnsForSelect(string $modelClass): array
+    {
+        return [];
     }
 
     /**
@@ -613,6 +625,8 @@ Cuando solicitas `/nadota-api/{resource}/resource/create` o `/nadota-api/{resour
         "showOnUpdate": true,
         "rules": ["required", "array", "min:1"],
         "props": {
+          "isCustomField": true,
+          "componentPath": "@/components/fields/InternalsForm.vue",
           "relationName": "internals",
           "minItems": 1,
           "maxItems": 10,
@@ -660,6 +674,8 @@ Cuando solicitas `/nadota-api/{resource}/resource/create` o `/nadota-api/{resour
 | `attribute` | string | Nombre del campo en el request |
 | `component` | string | Nombre del componente Vue/React a renderizar |
 | `value` | array | Valor actual (vacio en create, con datos en edit) |
+| `props.isCustomField` | boolean | Indica que es un campo personalizado |
+| `props.componentPath` | string | Path completo al componente (para imports dinamicos) |
 | `props.fields` | array | Definicion de campos para cada item |
 | `props.minItems` | number | Minimo de items requeridos |
 | `props.maxItems` | number | Maximo de items permitidos |
@@ -867,6 +883,147 @@ const errors = parseNestedErrors(response.errors, 'internals_data');
 //   { index: 0, field: 'document', messages: ['El documento ya existe.'] },
 //   { index: 1, field: 'email', messages: ['El formato del email no es valido.'] }
 // ]
+```
+
+---
+
+### Carga Dinamica de Componentes
+
+Usa `props.isCustomField` y `props.componentPath` para cargar componentes personalizados:
+
+#### Vue 3
+
+```typescript
+// fieldLoader.ts
+import { defineAsyncComponent } from 'vue';
+
+const customComponents: Record<string, any> = {};
+
+export function getFieldComponent(field: any) {
+  // Si es un campo custom con componentPath
+  if (field.props?.isCustomField && field.props?.componentPath) {
+    const path = field.props.componentPath;
+
+    // Cache del componente
+    if (!customComponents[path]) {
+      // Import dinamico basado en el path
+      customComponents[path] = defineAsyncComponent(() =>
+        import(/* @vite-ignore */ path)
+      );
+    }
+
+    return customComponents[path];
+  }
+
+  // Componente por defecto basado en el nombre
+  return getBuiltInComponent(field.component);
+}
+
+function getBuiltInComponent(componentName: string) {
+  const components: Record<string, any> = {
+    'field-input': () => import('@/components/fields/FieldInput.vue'),
+    'field-select': () => import('@/components/fields/FieldSelect.vue'),
+    'field-has-many': () => import('@/components/fields/FieldHasMany.vue'),
+    // ... otros componentes built-in
+  };
+
+  return defineAsyncComponent(components[componentName] || components['field-input']);
+}
+```
+
+```vue
+<!-- FormFields.vue -->
+<template>
+  <component
+    v-for="field in fields"
+    :key="field.key"
+    :is="getFieldComponent(field)"
+    v-model="formData[field.attribute]"
+    :field="field"
+    :errors="errors"
+  />
+</template>
+
+<script setup>
+import { getFieldComponent } from '@/utils/fieldLoader';
+
+defineProps(['fields', 'formData', 'errors']);
+</script>
+```
+
+#### React
+
+```tsx
+// fieldLoader.tsx
+import { lazy, Suspense } from 'react';
+
+const customComponents: Record<string, React.LazyExoticComponent<any>> = {};
+
+export function getFieldComponent(field: any): React.ComponentType<any> {
+  // Si es un campo custom con componentPath
+  if (field.props?.isCustomField && field.props?.componentPath) {
+    const path = field.props.componentPath;
+
+    // Cache del componente
+    if (!customComponents[path]) {
+      customComponents[path] = lazy(() =>
+        import(/* @vite-ignore */ path)
+      );
+    }
+
+    return customComponents[path];
+  }
+
+  // Componente por defecto
+  return getBuiltInComponent(field.component);
+}
+
+// Wrapper con Suspense
+export function DynamicField({ field, ...props }: { field: any }) {
+  const Component = getFieldComponent(field);
+
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <Component field={field} {...props} />
+    </Suspense>
+  );
+}
+```
+
+```tsx
+// FormFields.tsx
+import { DynamicField } from '@/utils/fieldLoader';
+
+export function FormFields({ fields, formData, errors, onChange }) {
+  return (
+    <>
+      {fields.map(field => (
+        <DynamicField
+          key={field.key}
+          field={field}
+          value={formData[field.attribute]}
+          errors={errors}
+          onChange={(value) => onChange(field.attribute, value)}
+        />
+      ))}
+    </>
+  );
+}
+```
+
+#### Configuracion Vite
+
+Para que los imports dinamicos funcionen con paths como `@/components/...`:
+
+```typescript
+// vite.config.ts
+export default defineConfig({
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
+});
 ```
 
 ---

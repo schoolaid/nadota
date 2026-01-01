@@ -82,6 +82,12 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
      */
     protected ?string $editResponseResource = null;
 
+    /**
+     * Width of the detail card in show view.
+     * Values: 'sm', 'md', 'lg', 'xl', '2xl', 'full', or custom CSS value (e.g., '800px', '75%')
+     */
+    protected ?string $detailCardWidth = null;
+
     public function __construct(
         ResourceAuthorizationInterface $resourceAuthorization = null
     )
@@ -353,6 +359,14 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
     public function getEditResponseResource(): ?string
     {
         return $this->editResponseResource;
+    }
+
+    /**
+     * Get the detail card width for show view.
+     */
+    public function getDetailCardWidth(): ?string
+    {
+        return $this->detailCardWidth;
     }
 
     /**

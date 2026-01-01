@@ -85,6 +85,16 @@ abstract class Field implements FieldInterface
      */
     protected bool $computed = false;
 
+    /**
+     * Whether this is a custom field (user-defined, not a Nadota built-in)
+     */
+    protected bool $isCustomField = false;
+
+    /**
+     * Path to the custom component (e.g., '@/components/fields/MyField.vue')
+     */
+    protected ?string $componentPath = null;
+
     public function __construct(string $label, string $attribute, string $type = FieldType::TEXT->value, ?string $component = null)
     {
         $this->fieldData = new FieldDTO(
@@ -173,6 +183,14 @@ abstract class Field implements FieldInterface
             $props['data'] = call_user_func($this->dataCallback, $model, $resource);
         }
 
+        // Custom field properties
+        if ($this->isCustomField) {
+            $props['isCustomField'] = true;
+        }
+
+        if ($this->componentPath !== null) {
+            $props['componentPath'] = $this->componentPath;
+        }
 
         return $props;
     }
@@ -228,6 +246,52 @@ abstract class Field implements FieldInterface
     {
         $this->minHeight = $minHeight;
         return $this;
+    }
+
+    /**
+     * Mark this field as a custom field.
+     *
+     * @param bool $isCustom
+     * @return static
+     */
+    public function customField(bool $isCustom = true): static
+    {
+        $this->isCustomField = $isCustom;
+        return $this;
+    }
+
+    /**
+     * Set the path to the custom component.
+     * This is useful for frontend frameworks that need to dynamically import components.
+     *
+     * @param string $path Path to the component (e.g., '@/components/fields/MyField.vue')
+     * @return static
+     */
+    public function componentPath(string $path): static
+    {
+        $this->componentPath = $path;
+        $this->isCustomField = true;
+        return $this;
+    }
+
+    /**
+     * Check if this is a custom field.
+     *
+     * @return bool
+     */
+    public function isCustomField(): bool
+    {
+        return $this->isCustomField;
+    }
+
+    /**
+     * Get the component path.
+     *
+     * @return string|null
+     */
+    public function getComponentPath(): ?string
+    {
+        return $this->componentPath;
     }
 
     /**

@@ -408,6 +408,7 @@ class MorphMany extends Field
             $resourceKey = $resource::getKey();
             $fieldKey = $this->key();
             $apiPrefix = static::safeConfig('nadota.api.prefix', 'nadota-api');
+            $frontendPrefix = static::safeConfig('nadota.frontend.prefix', 'resources');
 
             // Initialize URLs array
             $props['urls'] = [];
@@ -424,10 +425,73 @@ class MorphMany extends Field
                 if ($this->paginated) {
                     $props['paginationUrl'] = "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/relation/{$fieldKey}";
                 }
+
+                // Add createContext for frontend to handle polymorphic relation creation
+                $relatedResourceClass = $this->getResource();
+                if ($relatedResourceClass) {
+                    $relatedResourceKey = $relatedResourceClass::getKey();
+                    $morphKeys = $this->resolveMorphKeysFromModel($resource->model);
+                    $morphType = $morphKeys['type'] ?? null;
+                    $morphId = $morphKeys['id'] ?? null;
+                    $morphClass = get_class($model);
+
+                    $prefill = [];
+                    $lock = [];
+
+                    if ($morphType && $morphId) {
+                        $prefill[$morphType] = $morphClass;
+                        $prefill[$morphId] = $modelId;
+                        $lock = [$morphType, $morphId];
+                    }
+
+                    $props['createContext'] = [
+                        'parentResource' => $resourceKey,
+                        'parentId' => $modelId,
+                        'relatedResource' => $relatedResourceKey,
+                        'morphType' => $morphType,
+                        'morphId' => $morphId,
+                        'morphClass' => $morphClass,
+                        'prefill' => $prefill,
+                        'lock' => $lock,
+                        'returnUrl' => "/{$frontendPrefix}/{$resourceKey}/{$modelId}",
+                        'createUrl' => "/{$apiPrefix}/{$relatedResourceKey}/resource/create",
+                        'storeUrl' => "/{$apiPrefix}/{$relatedResourceKey}/resource",
+                        'isPolymorphic' => true,
+                    ];
+                }
             }
         }
 
         return $props;
+    }
+
+    /**
+     * Resolve the morph type and id column names from the parent model class.
+     *
+     * @param string $parentModelClass
+     * @return array{type: string|null, id: string|null}
+     */
+    protected function resolveMorphKeysFromModel(string $parentModelClass): array
+    {
+        try {
+            $parentModel = new $parentModelClass;
+            $relationName = $this->getRelation();
+
+            if (method_exists($parentModel, $relationName)) {
+                $relation = $parentModel->{$relationName}();
+
+                if ($relation instanceof \Illuminate\Database\Eloquent\Relations\MorphMany) {
+                    return [
+                        'type' => $relation->getMorphType(),
+                        'id' => $relation->getForeignKeyName(),
+                    ];
+                }
+            }
+        } catch (\Throwable $e) {
+            // Silently fail
+        }
+
+        return ['type' => null, 'id' => null];
     }
 
     /**

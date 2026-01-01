@@ -26,6 +26,7 @@ class ResourceOptionsService
         $limit = $params['limit'] ?? $request->get('limit', OptionsConfig::DEFAULT_LIMIT);
         $limit = min((int) $limit, OptionsConfig::MAX_LIMIT);
         $exclude = $params['exclude'] ?? $request->get('exclude', []);
+        $keys = $params['keys'] ?? $request->get('keys', []);
         $orderBy = $params['orderBy'] ?? $request->get('orderBy');
         $orderDirection = $params['orderDirection'] ?? $request->get('orderDirection', OptionsConfig::DEFAULT_ORDER_DIRECTION);
 
@@ -34,11 +35,17 @@ class ResourceOptionsService
             $exclude = array_filter(explode(',', $exclude));
         }
 
+        // Normalize keys
+        if (is_string($keys)) {
+            $keys = array_filter(explode(',', $keys));
+        }
+
         // Build params array for custom methods
         $searchParams = [
             'search' => $search,
             'limit' => $limit,
             'exclude' => $exclude,
+            'keys' => $keys,
             'orderBy' => $orderBy,
             'orderDirection' => $orderDirection,
         ];
@@ -68,6 +75,7 @@ class ResourceOptionsService
             'meta' => [
                 'total' => count($options),
                 'search' => $search,
+                'keys' => $keys,
                 'limit' => $limit,
             ],
         ];
@@ -169,6 +177,7 @@ class ResourceOptionsService
         $search = $params['search'];
         $limit = $params['limit'];
         $exclude = $params['exclude'];
+        $keys = $params['keys'];
         $orderBy = $params['orderBy'];
         $orderDirection = $params['orderDirection'];
 
@@ -181,6 +190,11 @@ class ResourceOptionsService
         // Apply search using resource's searchable configuration
         if (!empty($search)) {
             $this->applySearch($query, $search, $resource);
+        }
+
+        // Apply keys filter
+        if (!empty($keys)) {
+            $query->whereIn($keyAttribute, $keys);
         }
 
         // Apply exclude

@@ -28,6 +28,7 @@ class InfoResource extends JsonResource
             'allowedSoftDeletes' => $this->resource->getUseSoftDeletes(),
             'canCreate' => $this->resource->canCreate,
             'components' => $this->resource->getComponents(),
+            'detailCardWidth' => $this->resource->getDetailCardWidth(),
             'search' => [
                 'key' => $this->resource->getSearchKey(),
                 'enabled' => $this->resource->isSearchable(),

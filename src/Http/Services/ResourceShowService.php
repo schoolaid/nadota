@@ -82,6 +82,7 @@ class ResourceShowService implements ResourceShowInterface
             'permissions' => $resource->getPermissionsForResource($request, $model),
             'title' => $resource->title(),
             'deletedAt' => $model->deleted_at ?? null,
+            'detailCardWidth' => $resource->getDetailCardWidth(),
         ];
 
         // Include additional data for show action

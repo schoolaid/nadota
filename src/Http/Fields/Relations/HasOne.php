@@ -36,6 +36,8 @@ class HasOne extends Field
         $this->relation($relation);
         $this->isRelationship = true;
 
+        $this->fieldData->key = $relation;
+
         // HasOne should not show on index by default
         $this->showOnIndex = false;
         $this->showOnDetail = true;
@@ -229,7 +231,23 @@ class HasOne extends Field
             }
 
             $parentResource = $request->getResource();
-            $parentModelClass = $parentResource->model;
+            return $this->resolveForeignKeyFromModel($parentResource->model);
+        } catch (\Throwable $e) {
+            // Silently fail
+        }
+
+        return null;
+    }
+
+    /**
+     * Resolve the foreign key name from the parent model class.
+     *
+     * @param string $parentModelClass
+     * @return string|null
+     */
+    protected function resolveForeignKeyFromModel(string $parentModelClass): ?string
+    {
+        try {
             $parentModel = new $parentModelClass;
             $relationName = $this->getRelation();
 
@@ -270,13 +288,30 @@ class HasOne extends Field
             $modelId = $model->getKey();
             $fieldKey = $this->key();
             $apiPrefix = static::safeConfig('nadota.api.prefix', 'nadota-api');
+            $frontendPrefix = static::safeConfig('nadota.frontend.prefix', 'resources');
 
-            $relatedResourceKey = $this->getResource() ? $this->getResource()::getKey() : null;
+            $relatedResourceClass = $this->getResource();
+            $relatedResourceKey = $relatedResourceClass ? $relatedResourceClass::getKey() : null;
 
             if ($relatedResourceKey) {
                 $props['urls'] = [
                     'create' => "/{$apiPrefix}/{$relatedResourceKey}/resource/create",
                     'show' => "/{$apiPrefix}/{$relatedResourceKey}/resource",
+                ];
+
+                // Add createContext for frontend to handle relation creation
+                $foreignKey = $this->resolveForeignKeyFromModel($resource->model);
+
+                $props['createContext'] = [
+                    'parentResource' => $resourceKey,
+                    'parentId' => $modelId,
+                    'relatedResource' => $relatedResourceKey,
+                    'foreignKey' => $foreignKey,
+                    'prefill' => $foreignKey ? [$foreignKey => $modelId] : [],
+                    'lock' => $foreignKey ? [$foreignKey] : [],
+                    'returnUrl' => "/{$frontendPrefix}/{$resourceKey}/{$modelId}",
+                    'createUrl' => "/{$apiPrefix}/{$relatedResourceKey}/resource/create",
+                    'storeUrl' => "/{$apiPrefix}/{$relatedResourceKey}/resource",
                 ];
             }
         }

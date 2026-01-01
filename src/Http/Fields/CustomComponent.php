@@ -11,8 +11,9 @@ class CustomComponent extends Field
     protected bool $applyInShowQuery = false;
     /**
      * The path to the custom component
+     * Note: Overrides Field::$componentPath with same nullable type for compatibility
      */
-    protected string $componentPath;
+    protected ?string $componentPath = null;
 
     /**
      * Additional props to pass to the component
