@@ -192,6 +192,11 @@ abstract class AbstractResourcePersistService
         ResourceInterface $resource,
         array $validatedData
     ): void {
+        // Skip fields that explicitly opt out of filling (custom fields using afterSave)
+        if (method_exists($field, 'shouldSkipFill') && $field->shouldSkipFill()) {
+            return;
+        }
+
         // Fields that handle their own filling with custom logic
         // BelongsTo: resolves actual FK from Eloquent relationship
         // File: handles file upload

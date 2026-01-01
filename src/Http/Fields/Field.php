@@ -86,6 +86,12 @@ abstract class Field implements FieldInterface
     protected bool $computed = false;
 
     /**
+     * Whether to skip filling this field during store/update operations.
+     * Useful for custom fields that handle their own data via afterSave.
+     */
+    protected bool $skipFill = false;
+
+    /**
      * Whether this is a custom field (user-defined, not a Nadota built-in)
      */
     protected bool $isCustomField = false;
@@ -292,6 +298,31 @@ abstract class Field implements FieldInterface
     public function getComponentPath(): ?string
     {
         return $this->componentPath;
+    }
+
+    /**
+     * Skip filling this field during store/update operations.
+     * The field will still be validated and shown on forms,
+     * but its value won't be assigned to the model.
+     * Use afterSave() to handle the data manually.
+     *
+     * @param bool $skip
+     * @return static
+     */
+    public function skipFill(bool $skip = true): static
+    {
+        $this->skipFill = $skip;
+        return $this;
+    }
+
+    /**
+     * Check if this field should skip filling.
+     *
+     * @return bool
+     */
+    public function shouldSkipFill(): bool
+    {
+        return $this->skipFill;
     }
 
     /**
