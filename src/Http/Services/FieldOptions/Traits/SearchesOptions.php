@@ -137,6 +137,50 @@ trait SearchesOptions
     }
 
     /**
+     * Apply custom filters to the query.
+     *
+     * @param Builder $query
+     * @param array $filters
+     * @param ResourceInterface|null $resourceInstance
+     * @return Builder
+     */
+    protected function applyFilters(Builder $query, array $filters, ?ResourceInterface $resourceInstance = null): Builder
+    {
+        if (empty($filters)) {
+            return $query;
+        }
+
+        // Get allowed filters from resource (if defined)
+        $allowedFilters = ($resourceInstance && method_exists($resourceInstance, 'getAllowedOptionsFilters'))
+            ? $resourceInstance->getAllowedOptionsFilters()
+            : null;
+
+        foreach ($filters as $field => $value) {
+            // Skip if allowedFilters is defined and field is not in it
+            if ($allowedFilters !== null && !in_array($field, $allowedFilters)) {
+                continue;
+            }
+
+            // Handle null values
+            if ($value === null || $value === 'null') {
+                $query->whereNull($field);
+                continue;
+            }
+
+            // Handle array values (whereIn)
+            if (is_array($value)) {
+                $query->whereIn($field, $value);
+                continue;
+            }
+
+            // Handle standard equality
+            $query->where($field, $value);
+        }
+
+        return $query;
+    }
+
+    /**
      * Format results as options array.
      *
      * @param \Illuminate\Support\Collection $results
@@ -182,8 +226,13 @@ trait SearchesOptions
      */
     protected function getCommonParams($request, array $params = []): array
     {
+        // Get limit - null means no limit
         $limit = $params['limit'] ?? $request->get('limit', OptionsConfig::DEFAULT_LIMIT);
-        $limit = min((int) $limit, OptionsConfig::MAX_LIMIT);
+
+        // Only apply MAX_LIMIT constraint if limit is not null
+        if ($limit !== null) {
+            $limit = min((int) $limit, OptionsConfig::MAX_LIMIT);
+        }
 
         return [
             'search' => $params['search'] ?? $request->get('search', ''),
@@ -191,6 +240,7 @@ trait SearchesOptions
             'exclude' => $params['exclude'] ?? $request->get('exclude', []),
             'orderBy' => $params['orderBy'] ?? $request->get('orderBy'),
             'orderDirection' => $params['orderDirection'] ?? $request->get('orderDirection', OptionsConfig::DEFAULT_ORDER_DIRECTION),
+            'filters' => $params['filters'] ?? $request->get('filters', []),
         ];
     }
 

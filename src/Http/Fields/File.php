@@ -189,7 +189,29 @@ class File extends Field
         if (!$value) {
             return null;
         }
-            // Return file information
+
+        // Handle array values (from JSON cast)
+        if (is_array($value)) {
+            // If it already has the expected structure with 'path', return as-is
+            if (isset($value['path'])) {
+                return $value;
+            }
+
+            // If it has a 'value' key, extract it
+            if (isset($value['value'])) {
+                $value = $value['value'];
+            } else {
+                // Can't determine the structure, return null
+                return null;
+            }
+        }
+
+        // Ensure value is a string at this point
+        if (!is_string($value)) {
+            return null;
+        }
+
+        // Return file information
         $data = [
             'path' => $value,
             'name' => basename($value),

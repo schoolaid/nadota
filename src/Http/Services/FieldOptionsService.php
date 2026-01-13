@@ -108,7 +108,7 @@ class FieldOptionsService
             ];
         }
 
-        // Build exclude list (manual + auto from related records)
+        // Build exclude a list (manual + auto from related records)
         $exclude = $request->get('exclude', []);
         $resourceId = $request->get('resourceId');
 
@@ -118,13 +118,20 @@ class FieldOptionsService
             $exclude = $this->mergeExcludeIds($exclude, $attachedIds);
         }
 
+        // Determine limit: field's optionsLimit takes priority over request/default
+        $limit = $request->get('limit', OptionsConfig::DEFAULT_LIMIT);
+        if (method_exists($field, 'hasOptionsLimit') && $field->hasOptionsLimit()) {
+            $limit = $field->getOptionsLimit();
+        }
+
         // Use strategy to fetch options
         $params = array_merge([
             'search' => $request->get('search', ''),
-            'limit' => $request->get('limit', OptionsConfig::DEFAULT_LIMIT),
+            'limit' => $limit,
             'exclude' => $exclude,
             'orderBy' => $request->get('orderBy'),
             'orderDirection' => $request->get('orderDirection', OptionsConfig::DEFAULT_ORDER_DIRECTION),
+            'filters' => $request->get('filters', []),
         ], $additionalParams);
 
         $options = $strategy->fetchOptions($request, $resource, $field, $params);
@@ -220,6 +227,7 @@ class FieldOptionsService
         $resourceId = $request->get('resourceId');
         $orderBy = $request->get('orderBy');
         $orderDirection = $request->get('orderDirection', OptionsConfig::DEFAULT_ORDER_DIRECTION);
+        $filters = $request->get('filters', []);
 
         // Auto-exclude already attached records if resourceId is provided
         if ($resourceId) {
@@ -245,7 +253,13 @@ class FieldOptionsService
                 'exclude' => $exclude,
                 'orderBy' => $orderBy,
                 'orderDirection' => $orderDirection,
+                'filters' => $filters,
             ]);
+        }
+
+        // Apply custom filters
+        if (!empty($filters)) {
+            $this->applyFilters($query, $filters, $fieldResourceInstance);
         }
 
         // Apply search
@@ -359,6 +373,44 @@ class FieldOptionsService
                 $resourceInstance->applySearch($q, $search);
             }
         });
+    }
+
+    /**
+     * Apply custom filters to the query.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param array $filters
+     * @param ResourceInterface $resourceInstance
+     * @return void
+     */
+    protected function applyFilters($query, array $filters, ResourceInterface $resourceInstance): void
+    {
+        // Get allowed filters from resource (if defined)
+        $allowedFilters = method_exists($resourceInstance, 'getAllowedOptionsFilters')
+            ? $resourceInstance->getAllowedOptionsFilters()
+            : null;
+
+        foreach ($filters as $field => $value) {
+            // Skip if allowedFilters is defined and field is not in it
+            if ($allowedFilters !== null && !in_array($field, $allowedFilters)) {
+                continue;
+            }
+
+            // Handle null values
+            if ($value === null || $value === 'null') {
+                $query->whereNull($field);
+                continue;
+            }
+
+            // Handle array values (whereIn)
+            if (is_array($value)) {
+                $query->whereIn($field, $value);
+                continue;
+            }
+
+            // Handle standard equality
+            $query->where($field, $value);
+        }
     }
 
     /**

@@ -125,6 +125,61 @@ trait FieldDataAccessorsTrait
     }
 
     /**
+     * Alert message for the field (warning/info message)
+     */
+    protected ?string $alertText = null;
+
+    /**
+     * Alert type (info, warning, error, success)
+     */
+    protected string $alertType = 'info';
+
+    /**
+     * Set an alert message for the field
+     *
+     * @param string $text The alert message
+     * @param string $type The alert type (info, warning, error, success)
+     * @return static
+     */
+    public function alert(string $text, string $type = 'info'): static
+    {
+        $this->alertText = $text;
+        $this->alertType = $type;
+        return $this;
+    }
+
+    /**
+     * Get the alert text
+     */
+    public function getAlertText(): ?string
+    {
+        return $this->alertText;
+    }
+
+    /**
+     * Get the alert type
+     */
+    public function getAlertType(): string
+    {
+        return $this->alertType;
+    }
+
+    /**
+     * Get the alert configuration
+     */
+    public function getAlert(): ?array
+    {
+        if ($this->alertText === null) {
+            return null;
+        }
+
+        return [
+            'text' => $this->alertText,
+            'type' => $this->alertType,
+        ];
+    }
+
+    /**
      * Magic getter for accessing protected properties in tests.
      */
     public function __get($name)

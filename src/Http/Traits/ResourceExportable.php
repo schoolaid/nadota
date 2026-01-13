@@ -83,10 +83,24 @@ trait ResourceExportable
      */
     protected function isFieldExportable($field): bool
     {
+        // Check if field is explicitly marked as exportable
+        if (method_exists($field, 'isExportable') && $field->isExportable()) {
+            return true;
+        }
+
         // Exclude relationship fields by default (can be overridden)
         if ($field->isRelationship()) {
             // Allow BelongsTo as it's a single value
-            return method_exists($field, 'isBelongsTo') && $field->isBelongsTo();
+            if (method_exists($field, 'isBelongsTo') && $field->isBelongsTo()) {
+                return true;
+            }
+
+            // Allow MorphTo as it's a single value
+            if (method_exists($field, 'isMorphTo') && $field->isMorphTo()) {
+                return true;
+            }
+
+            return false;
         }
 
         return true;

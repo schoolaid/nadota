@@ -29,6 +29,7 @@ class ResourceOptionsService
         $keys = $params['keys'] ?? $request->get('keys', []);
         $orderBy = $params['orderBy'] ?? $request->get('orderBy');
         $orderDirection = $params['orderDirection'] ?? $request->get('orderDirection', OptionsConfig::DEFAULT_ORDER_DIRECTION);
+        $filters = $params['filters'] ?? $request->get('filters', []);
 
         // Normalize exclude
         if (is_string($exclude)) {
@@ -48,6 +49,7 @@ class ResourceOptionsService
             'keys' => $keys,
             'orderBy' => $orderBy,
             'orderDirection' => $orderDirection,
+            'filters' => $filters,
         ];
 
         // Get key attribute
@@ -160,6 +162,44 @@ class ResourceOptionsService
     }
 
     /**
+     * Apply custom filters to the query.
+     *
+     * @param Builder $query
+     * @param array $filters
+     * @param ResourceInterface $resource
+     * @return void
+     */
+    protected function applyFilters(Builder $query, array $filters, ResourceInterface $resource): void
+    {
+        // Get allowed filters from resource (if defined)
+        $allowedFilters = method_exists($resource, 'getAllowedOptionsFilters')
+            ? $resource->getAllowedOptionsFilters()
+            : null;
+
+        foreach ($filters as $field => $value) {
+            // Skip if allowedFilters is defined and field is not in it
+            if ($allowedFilters !== null && !in_array($field, $allowedFilters)) {
+                continue;
+            }
+
+            // Handle null values
+            if ($value === null || $value === 'null') {
+                $query->whereNull($field);
+                continue;
+            }
+
+            // Handle array values (whereIn)
+            if (is_array($value)) {
+                $query->whereIn($field, $value);
+                continue;
+            }
+
+            // Handle standard equality
+            $query->where($field, $value);
+        }
+    }
+
+    /**
      * Get results using default database query.
      *
      * @param NadotaRequest $request
@@ -180,12 +220,18 @@ class ResourceOptionsService
         $keys = $params['keys'];
         $orderBy = $params['orderBy'];
         $orderDirection = $params['orderDirection'];
+        $filters = $params['filters'] ?? [];
 
         // Build base query
         $query = $resource->getQuery($request);
 
         // Apply resource's optionsQuery customization
         $query = $resource->optionsQuery($query, $request, $params);
+
+        // Apply custom filters
+        if (!empty($filters)) {
+            $this->applyFilters($query, $filters, $resource);
+        }
 
         // Apply search using resource's searchable configuration
         if (!empty($search)) {

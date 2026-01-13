@@ -64,5 +64,4 @@ Route::prefix('/{resourceKey}/resource')->group(function () {
     // Field options endpoints
     Route::get('/field/{fieldName}/options', [FieldOptionsController::class, 'index'])->name('resource.field.options');
     Route::get('/field/{fieldName}/options/paginated', [FieldOptionsController::class, 'paginated'])->name('resource.field.options.paginated');
-
 });

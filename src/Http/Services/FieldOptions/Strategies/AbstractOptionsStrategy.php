@@ -65,8 +65,8 @@ abstract class AbstractOptionsStrategy implements FieldOptionsStrategy
             $params
         );
 
-        // Format as options
-        return $this->formatResults($results, $field, $keyAttribute);
+        // Format as options (pass resource instance for displayLabel resolution)
+        return $this->formatResults($results, $field, $keyAttribute, $fieldResourceInstance);
     }
 
     /**
@@ -127,12 +127,18 @@ abstract class AbstractOptionsStrategy implements FieldOptionsStrategy
         $exclude = $commonParams['exclude'];
         $orderBy = $commonParams['orderBy'];
         $orderDirection = $commonParams['orderDirection'];
+        $filters = $commonParams['filters'] ?? [];
 
         // Build base query
         $query = $fieldModel::query();
 
         // Apply resource's optionsQuery customization
         $query = $this->applyResourceOptionsQuery($query, $fieldResourceInstance, $request, $originalParams);
+
+        // Apply custom filters
+        if (!empty($filters)) {
+            $this->applyFilters($query, $filters, $fieldResourceInstance);
+        }
 
         // Apply search
         if (!empty($search)) {
@@ -148,8 +154,10 @@ abstract class AbstractOptionsStrategy implements FieldOptionsStrategy
         // Apply ordering (with field-level fallback if available)
         $this->applyFieldOrdering($query, $field, $orderBy, $orderDirection);
 
-        // Apply limit
-        $query->limit($limit);
+        // Apply limit (null means no limit)
+        if ($limit !== null) {
+            $query->limit($limit);
+        }
 
         // Get select columns
         $selectColumns = $this->buildSelectColumns($fieldResourceInstance, $request, $keyAttribute);
@@ -243,25 +251,36 @@ abstract class AbstractOptionsStrategy implements FieldOptionsStrategy
      * @param Collection $results
      * @param Field $field
      * @param string $keyAttribute
+     * @param ResourceInterface|null $resourceInstance
      * @return array
      */
-    protected function formatResults(Collection $results, Field $field, string $keyAttribute): array
-    {
-        return $this->formatAsOptions($results, $keyAttribute, function ($item) use ($field) {
-            return $this->resolveLabel($field, $item);
+    protected function formatResults(
+        Collection $results,
+        Field $field,
+        string $keyAttribute,
+        ?ResourceInterface $resourceInstance = null
+    ): array {
+        return $this->formatAsOptions($results, $keyAttribute, function ($item) use ($field, $resourceInstance) {
+            return $this->resolveLabel($field, $item, $resourceInstance);
         });
     }
 
     /**
      * Resolve the display label for an item.
      *
+     * Priority:
+     * 1. Field's resolveDisplay (callback or displayAttribute)
+     * 2. Resource's displayLabel method
+     * 3. Fallback to common attributes (name, title, etc.)
+     *
      * @param Field $field
      * @param mixed $item
+     * @param ResourceInterface|null $resourceInstance
      * @return mixed
      */
-    protected function resolveLabel(Field $field, mixed $item): mixed
+    protected function resolveLabel(Field $field, mixed $item, ?ResourceInterface $resourceInstance = null): mixed
     {
-        // Try field's resolveDisplay first
+        // Priority 1: Field's resolveDisplay (callback or displayAttribute)
         if (method_exists($field, 'resolveDisplay')) {
             $label = $field->resolveDisplay($item);
             if ($label !== null && $label !== '') {
@@ -269,7 +288,15 @@ abstract class AbstractOptionsStrategy implements FieldOptionsStrategy
             }
         }
 
-        // Fallback to default label resolution
+        // Priority 2: Resource's displayLabel method
+        if ($resourceInstance && method_exists($resourceInstance, 'displayLabel')) {
+            $label = $resourceInstance->displayLabel($item);
+            if ($label !== null && $label !== '') {
+                return $label;
+            }
+        }
+
+        // Priority 3: Fallback to common attributes
         return $this->resolveDefaultLabel($item);
     }
 }

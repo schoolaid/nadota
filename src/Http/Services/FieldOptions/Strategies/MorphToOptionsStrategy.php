@@ -59,6 +59,7 @@ class MorphToOptionsStrategy implements FieldOptionsStrategy
         $exclude = $commonParams['exclude'];
         $orderBy = $commonParams['orderBy'];
         $orderDirection = $commonParams['orderDirection'];
+        $filters = $commonParams['filters'] ?? [];
 
         // Get the morph models from the field
         $morphModels = $field->getMorphModels();
@@ -87,6 +88,11 @@ class MorphToOptionsStrategy implements FieldOptionsStrategy
         // Apply resource's optionsQuery customization
         $query = $this->applyResourceOptionsQuery($query, $resourceInstance, $request, $params);
 
+        // Apply custom filters
+        if (!empty($filters)) {
+            $this->applyFilters($query, $filters, $resourceInstance);
+        }
+
         // Apply search
         if (!empty($search)) {
             $this->applySearch($query, $search, $resourceInstance);
@@ -101,8 +107,10 @@ class MorphToOptionsStrategy implements FieldOptionsStrategy
         // Apply ordering
         $this->applyOrdering($query, $orderBy, $orderDirection);
 
-        // Apply limit
-        $query->limit($limit);
+        // Apply limit (null means no limit)
+        if ($limit !== null) {
+            $query->limit($limit);
+        }
 
         // Get select columns
         $selectColumns = $this->buildSelectColumns($resourceInstance, $request, $keyAttribute);
@@ -111,8 +119,8 @@ class MorphToOptionsStrategy implements FieldOptionsStrategy
         $results = $query->select($selectColumns)->get();
 
         // Format as options
-        return $this->formatAsOptions($results, $keyAttribute, function ($item) use ($field) {
-            return $this->resolveLabel($field, $item);
+        return $this->formatAsOptions($results, $keyAttribute, function ($item) use ($field, $resourceInstance) {
+            return $this->resolveLabel($field, $item, $resourceInstance);
         });
     }
 
@@ -166,13 +174,19 @@ class MorphToOptionsStrategy implements FieldOptionsStrategy
     /**
      * Resolve the display label for an item.
      *
+     * Priority:
+     * 1. Field's resolveDisplay (callback or displayAttribute)
+     * 2. Resource's displayLabel method
+     * 3. Fallback to common attributes (name, title, etc.)
+     *
      * @param Field $field
      * @param mixed $item
+     * @param ResourceInterface|null $resourceInstance
      * @return mixed
      */
-    protected function resolveLabel(Field $field, mixed $item): mixed
+    protected function resolveLabel(Field $field, mixed $item, ?ResourceInterface $resourceInstance = null): mixed
     {
-        // Try field's resolveDisplay first
+        // Priority 1: Field's resolveDisplay (callback or displayAttribute)
         if (method_exists($field, 'resolveDisplay')) {
             $label = $field->resolveDisplay($item);
             if ($label !== null && $label !== '') {
@@ -180,7 +194,15 @@ class MorphToOptionsStrategy implements FieldOptionsStrategy
             }
         }
 
-        // Fallback to default label resolution
+        // Priority 2: Resource's displayLabel method
+        if ($resourceInstance && method_exists($resourceInstance, 'displayLabel')) {
+            $label = $resourceInstance->displayLabel($item);
+            if ($label !== null && $label !== '') {
+                return $label;
+            }
+        }
+
+        // Priority 3: Fallback to common attributes
         return $this->resolveDefaultLabel($item);
     }
 

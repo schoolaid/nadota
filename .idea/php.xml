@@ -10,6 +10,11 @@
     <option name="highlightLevel" value="WARNING" />
     <option name="transferred" value="true" />
   </component>
+  <component name="PhpCodeSniffer">
+    <phpcs_settings>
+      <PhpCSConfiguration asDefaultInterpreter="true" />
+    </phpcs_settings>
+  </component>
   <component name="PhpIncludePathManager">
     <include_path>
       <path value="$PROJECT_DIR$/vendor/symfony/event-dispatcher" />
@@ -311,9 +316,21 @@
       <path value="$PROJECT_DIR$/../schoolaid-admin/vendor/sebastian/global-state" />
       <path value="$PROJECT_DIR$/../schoolaid-admin/vendor/mongodb/laravel-mongodb" />
       <path value="$PROJECT_DIR$/../schoolaid-admin/vendor/mongodb/mongodb" />
+      <path value="$PROJECT_DIR$/../schoolaid-admin/vendor/dompdf/php-svg-lib" />
+      <path value="$PROJECT_DIR$/../schoolaid-admin/vendor/dompdf/dompdf" />
+      <path value="$PROJECT_DIR$/../schoolaid-admin/vendor/dompdf/php-font-lib" />
+      <path value="$PROJECT_DIR$/../schoolaid-admin/vendor/masterminds/html5" />
+      <path value="$PROJECT_DIR$/../schoolaid-admin/vendor/sabberworm/php-css-parser" />
+      <path value="$PROJECT_DIR$/../schoolaid-admin/vendor/barryvdh/laravel-dompdf" />
+      <path value="$PROJECT_DIR$/../schoolaid-admin/vendor/thecodingmachine/safe" />
     </include_path>
   </component>
   <component name="PhpProjectSharedConfiguration" php_language_level="8.2" />
+  <component name="PhpStan">
+    <PhpStan_settings>
+      <PhpStanConfiguration asDefaultInterpreter="true" />
+    </PhpStan_settings>
+  </component>
   <component name="PhpStanOptionsConfiguration">
     <option name="transferred" value="true" />
   </component>
@@ -322,6 +339,11 @@
       <PhpUnitSettings configuration_file_path="$PROJECT_DIR$/../schoolaid-admin/phpunit.xml" custom_loader_path="$PROJECT_DIR$/../schoolaid-admin/vendor/autoload.php" paratest_path="$PROJECT_DIR$/../schoolaid-admin/vendor/bin/paratest_for_phpstorm" use_configuration_file="true" />
       <PhpUnitSettings configuration_file_path="$PROJECT_DIR$/phpunit.xml" custom_loader_path="$PROJECT_DIR$/vendor/autoload.php" paratest_path="$PROJECT_DIR$/vendor/bin/paratest_for_phpstorm" use_configuration_file="true" />
     </phpunit_settings>
+  </component>
+  <component name="Psalm">
+    <Psalm_settings>
+      <PsalmConfiguration asDefaultInterpreter="true" />
+    </Psalm_settings>
   </component>
   <component name="PsalmOptionsConfiguration">
     <option name="transferred" value="true" />

@@ -311,6 +311,44 @@ class BelongsTo extends Field
     }
 
     /**
+     * Check if this field is a BelongsTo relationship.
+     * Used by ResourceExportable to determine if field should be included in exports.
+     *
+     * @return bool
+     */
+    public function isBelongsTo(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Resolve the field value for export.
+     * Returns the display label instead of the full relation object.
+     *
+     * @param Request $request
+     * @param Model $model
+     * @param ResourceInterface|null $resource
+     * @return mixed
+     */
+    public function resolveForExport(Request $request, Model $model, ?ResourceInterface $resource): mixed
+    {
+        $relationName = $this->getRelation();
+
+        if (!method_exists($model, $relationName)) {
+            return null;
+        }
+
+        $relatedModel = $model->{$relationName};
+
+        if (!$relatedModel instanceof Model) {
+            return null;
+        }
+
+        // Return just the label for export
+        return $this->resolveLabel($relatedModel, $resource);
+    }
+
+    /**
      * Fill the model with the foreign key value.
      *
      * This method resolves the actual foreign key from the Eloquent relationship

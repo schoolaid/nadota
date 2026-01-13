@@ -68,6 +68,19 @@ class BelongsToMany extends Field
     protected bool $withTimestamps = false;
 
     /**
+     * Default values for pivot fields based on related item ID.
+     * Can be:
+     * - Array mapping IDs to pivot values: [1 => ['permission_text' => 'Value A'], 2 => [...]]
+     * - Callback with '*' key for dynamic resolution: ['*' => fn($item) => ['permission_text' => $item->default_text]]
+     */
+    protected array $pivotDefaults = [];
+
+    /**
+     * Callback for dynamic pivot defaults resolution.
+     */
+    protected $pivotDefaultsCallback = null;
+
+    /**
      * Create a new BelongsToMany field.
      *
      * @param string $name Display name for the field
@@ -208,6 +221,100 @@ class BelongsToMany extends Field
     }
 
     /**
+     * Set default values for pivot fields based on related item selection.
+     *
+     * Supports two formats:
+     * 1. Static mapping by ID:
+     *    ->pivotDefaults([
+     *        1 => ['permission_text' => 'Permission for type 1'],
+     *        2 => ['permission_text' => 'Permission for type 2'],
+     *    ])
+     *
+     * 2. Dynamic callback (uses '*' key):
+     *    ->pivotDefaults([
+     *        '*' => fn($item) => ['permission_text' => $item->default_permission_text],
+     *    ])
+     *
+     * 3. Mixed (specific IDs + fallback callback):
+     *    ->pivotDefaults([
+     *        1 => ['permission_text' => 'Specific value'],
+     *        '*' => fn($item) => ['permission_text' => $item->default_text],
+     *    ])
+     *
+     * @param array $defaults Mapping of IDs to pivot default values
+     * @return static
+     */
+    public function pivotDefaults(array $defaults): static
+    {
+        // Extract callback if present
+        if (isset($defaults['*'])) {
+            $this->pivotDefaultsCallback = $defaults['*'];
+            unset($defaults['*']);
+        }
+
+        $this->pivotDefaults = $defaults;
+        return $this;
+    }
+
+    /**
+     * Get the static pivot defaults mapping.
+     *
+     * @return array
+     */
+    public function getPivotDefaults(): array
+    {
+        return $this->pivotDefaults;
+    }
+
+    /**
+     * Check if pivot defaults are configured.
+     *
+     * @return bool
+     */
+    public function hasPivotDefaults(): bool
+    {
+        return !empty($this->pivotDefaults) || $this->pivotDefaultsCallback !== null;
+    }
+
+    /**
+     * Resolve pivot defaults for a specific related item.
+     *
+     * @param Model|int|string $item The related model or its ID
+     * @return array|null The pivot defaults for this item, or null if none
+     */
+    public function resolvePivotDefaults($item): ?array
+    {
+        $id = $item instanceof Model ? $item->getKey() : $item;
+
+        // First check static mapping
+        if (isset($this->pivotDefaults[$id])) {
+            return $this->pivotDefaults[$id];
+        }
+
+        // Then try callback if available and we have a model
+        if ($this->pivotDefaultsCallback !== null && $item instanceof Model) {
+            return call_user_func($this->pivotDefaultsCallback, $item);
+        }
+
+        return null;
+    }
+
+    /**
+     * Resolve all pivot defaults for the frontend.
+     * For static mappings, returns them directly.
+     * For callbacks, we need to resolve them when options are loaded.
+     *
+     * @return array
+     */
+    public function getResolvedPivotDefaults(): array
+    {
+        return [
+            'static' => $this->pivotDefaults,
+            'hasDynamicResolver' => $this->pivotDefaultsCallback !== null,
+        ];
+    }
+
+    /**
      * Resolve the field value for display.
      *
      * @param Request $request
@@ -252,6 +359,66 @@ class BelongsToMany extends Field
 
         // Otherwise, return raw data with basic formatting
         return $this->formatBasic($relatedItems);
+    }
+
+    /**
+     * Resolve the field value for export.
+     * Flattens the relation to a comma-separated string.
+     *
+     * @param Request $request
+     * @param Model $model
+     * @param ResourceInterface|null $resource
+     * @return mixed
+     */
+    public function resolveForExport(Request $request, Model $model, ?ResourceInterface $resource): mixed
+    {
+        $relationName = $this->getRelation();
+
+        if (!method_exists($model, $relationName)) {
+            return '';
+        }
+
+        // Get related items (query fresh to avoid pagination issues)
+        $query = $model->{$relationName}();
+
+        // Apply limit if set
+        if ($this->exportLimit !== null) {
+            $query->limit($this->exportLimit);
+        }
+
+        $items = $query->get();
+
+        if ($items->isEmpty()) {
+            return '';
+        }
+
+        // Determine which attribute to use
+        $attribute = $this->exportAttribute ?? $this->displayAttribute ?? $this->guessDisplayAttribute($items->first());
+
+        // Extract values and join
+        return $items
+            ->map(fn($item) => $item->{$attribute} ?? $item->getKey())
+            ->filter()
+            ->implode($this->exportSeparator);
+    }
+
+    /**
+     * Guess the best display attribute for export.
+     *
+     * @param Model $item
+     * @return string
+     */
+    protected function guessDisplayAttribute(Model $item): string
+    {
+        $commonAttributes = ['name', 'title', 'label', 'display_name', 'full_name', 'email'];
+
+        foreach ($commonAttributes as $attr) {
+            if (isset($item->{$attr})) {
+                return $attr;
+            }
+        }
+
+        return $item->getKeyName();
     }
 
     /**
@@ -442,6 +609,7 @@ class BelongsToMany extends Field
             'pivotColumns' => $this->pivotColumns,
             'withPivot' => $this->withPivot,
             'withTimestamps' => $this->withTimestamps,
+            'pivotDefaults' => $this->hasPivotDefaults() ? $this->getResolvedPivotDefaults() : null,
         ]);
 
         // Add URLs - options URL is always needed (for create and edit forms)

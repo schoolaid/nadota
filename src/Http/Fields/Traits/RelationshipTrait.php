@@ -16,6 +16,16 @@ trait RelationshipTrait
     protected ?string $relatedModel = null;
     protected ?string $relatedResource = null;
 
+    /**
+     * Limit for options endpoint. Null means no limit.
+     */
+    protected ?int $optionsLimit = null;
+
+    /**
+     * Whether optionsLimit has been explicitly set.
+     */
+    protected bool $optionsLimitSet = false;
+
     public function getAttributeForDisplay(): ?string
     {
         return $this->displayAttribute;
@@ -140,5 +150,39 @@ trait RelationshipTrait
         $apiPrefix = config('nadota.api.prefix', 'nadota-api');
 
         return "/{$apiPrefix}/{$resourceKey}/resource/field/{$fieldName}/options";
+    }
+
+    /**
+     * Set the limit for the options endpoint.
+     * Use null to return all options without limit.
+     *
+     * @param int|null $limit
+     * @return static
+     */
+    public function optionsLimit(?int $limit): static
+    {
+        $this->optionsLimit = $limit;
+        $this->optionsLimitSet = true;
+        return $this;
+    }
+
+    /**
+     * Get the options limit.
+     *
+     * @return int|null
+     */
+    public function getOptionsLimit(): ?int
+    {
+        return $this->optionsLimit;
+    }
+
+    /**
+     * Check if options limit has been explicitly set.
+     *
+     * @return bool
+     */
+    public function hasOptionsLimit(): bool
+    {
+        return $this->optionsLimitSet;
     }
 }

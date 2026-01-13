@@ -556,6 +556,56 @@ class MorphTo extends Field
     }
 
     /**
+     * Check if this field is a MorphTo relationship.
+     * Used by ResourceExportable to determine if field should be included in exports.
+     *
+     * @return bool
+     */
+    public function isMorphTo(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Resolve the field value for export.
+     * Returns the display label with type info instead of the full relation object.
+     *
+     * @param Request $request
+     * @param Model $model
+     * @param ResourceInterface|null $resource
+     * @return mixed
+     */
+    public function resolveForExport(Request $request, Model $model, ?ResourceInterface $resource): mixed
+    {
+        $relationName = $this->getRelation();
+
+        if (!method_exists($model, $relationName)) {
+            return null;
+        }
+
+        // Get the morph type
+        $morphType = $model->{$this->morphTypeAttribute};
+
+        if (!$morphType) {
+            return null;
+        }
+
+        $relatedModel = $model->{$relationName};
+
+        if (!$relatedModel instanceof Model) {
+            return null;
+        }
+
+        // Get the alias and label
+        $alias = $this->getMorphAlias($morphType);
+        $label = $this->resolveLabel($relatedModel, $resource);
+        $typeLabel = $this->getMorphTypeLabel($alias);
+
+        // Return formatted string: "Type: Label" or just "Label" if no type
+        return $alias ? "[{$typeLabel}] {$label}" : $label;
+    }
+
+    /**
      * Get props for frontend component.
      *
      * @param Request $request

@@ -92,6 +92,26 @@ abstract class Field implements FieldInterface
     protected bool $skipFill = false;
 
     /**
+     * Whether this field is exportable (for relations that are normally excluded).
+     */
+    protected bool $exportable = false;
+
+    /**
+     * Attribute to use when exporting relation items.
+     */
+    protected ?string $exportAttribute = null;
+
+    /**
+     * Separator for joining multiple values in export.
+     */
+    protected string $exportSeparator = ', ';
+
+    /**
+     * Maximum items to include in export (null = no limit).
+     */
+    protected ?int $exportLimit = null;
+
+    /**
      * Whether this is a custom field (user-defined, not a Nadota built-in)
      */
     protected bool $isCustomField = false;
@@ -126,6 +146,8 @@ abstract class Field implements FieldInterface
             'disabled' => $this->isDisabled(),
             'required' => $this->isRequired(),
             'helpText' => $this->getHelpText(),
+            'alert' => $this->getAlert(),
+            'default' => $this->hasDefault() ? $this->resolveDefault($request, $model, $resource) : null,
             'sortable' => $this->isSortable(),
             'searchable' => $this->isSearchable(),
             'filterable' => $this->isFilterable(),
@@ -323,6 +345,96 @@ abstract class Field implements FieldInterface
     public function shouldSkipFill(): bool
     {
         return $this->skipFill;
+    }
+
+    /**
+     * Mark this field as exportable.
+     * Useful for relation fields that are normally excluded from export.
+     *
+     * @param bool $exportable
+     * @return static
+     */
+    public function exportable(bool $exportable = true): static
+    {
+        $this->exportable = $exportable;
+        return $this;
+    }
+
+    /**
+     * Check if this field is marked as exportable.
+     *
+     * @return bool
+     */
+    public function isExportable(): bool
+    {
+        return $this->exportable;
+    }
+
+    /**
+     * Set the attribute to use when exporting relation items.
+     *
+     * @param string $attribute
+     * @return static
+     */
+    public function exportUsing(string $attribute): static
+    {
+        $this->exportAttribute = $attribute;
+        $this->exportable = true;
+        return $this;
+    }
+
+    /**
+     * Get the export attribute.
+     *
+     * @return string|null
+     */
+    public function getExportAttribute(): ?string
+    {
+        return $this->exportAttribute;
+    }
+
+    /**
+     * Set the separator for joining multiple values in export.
+     *
+     * @param string $separator
+     * @return static
+     */
+    public function exportSeparator(string $separator): static
+    {
+        $this->exportSeparator = $separator;
+        return $this;
+    }
+
+    /**
+     * Get the export separator.
+     *
+     * @return string
+     */
+    public function getExportSeparator(): string
+    {
+        return $this->exportSeparator;
+    }
+
+    /**
+     * Set maximum items to include in export.
+     *
+     * @param int|null $limit
+     * @return static
+     */
+    public function exportLimit(?int $limit): static
+    {
+        $this->exportLimit = $limit;
+        return $this;
+    }
+
+    /**
+     * Get the export limit.
+     *
+     * @return int|null
+     */
+    public function getExportLimit(): ?int
+    {
+        return $this->exportLimit;
     }
 
     /**

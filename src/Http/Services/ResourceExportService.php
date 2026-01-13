@@ -70,9 +70,9 @@ class ResourceExportService implements ResourceExportInterface
         // Get exporter
         $exporter = $this->getExporter($format);
 
-        // Get headers and fields
-        $headers = $resource->getExportHeaders($request);
+        // Get fields and headers (filtered by selected columns)
         $fields = $dto->getExportableFields();
+        $headers = $dto->getHeaders();
 
         // Create lazy collection for memory efficiency
         $data = $this->createLazyData($processedDto, $fields);

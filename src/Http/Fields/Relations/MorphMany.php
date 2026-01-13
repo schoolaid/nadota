@@ -188,6 +188,66 @@ class MorphMany extends Field
     }
 
     /**
+     * Resolve the field value for export.
+     * Flattens the relation to a comma-separated string.
+     *
+     * @param Request $request
+     * @param Model $model
+     * @param ResourceInterface|null $resource
+     * @return mixed
+     */
+    public function resolveForExport(Request $request, Model $model, ?ResourceInterface $resource): mixed
+    {
+        $relationName = $this->getRelation();
+
+        if (!method_exists($model, $relationName)) {
+            return '';
+        }
+
+        // Get related items (query fresh to avoid pagination issues)
+        $query = $model->{$relationName}();
+
+        // Apply limit if set
+        if ($this->exportLimit !== null) {
+            $query->limit($this->exportLimit);
+        }
+
+        $items = $query->get();
+
+        if ($items->isEmpty()) {
+            return '';
+        }
+
+        // Determine which attribute to use
+        $attribute = $this->exportAttribute ?? $this->displayAttribute ?? $this->guessDisplayAttribute($items->first());
+
+        // Extract values and join
+        return $items
+            ->map(fn($item) => $item->{$attribute} ?? $item->getKey())
+            ->filter()
+            ->implode($this->exportSeparator);
+    }
+
+    /**
+     * Guess the best display attribute for export.
+     *
+     * @param Model $item
+     * @return string
+     */
+    protected function guessDisplayAttribute(Model $item): string
+    {
+        $commonAttributes = ['name', 'title', 'label', 'display_name', 'full_name', 'email'];
+
+        foreach ($commonAttributes as $attr) {
+            if (isset($item->{$attr})) {
+                return $attr;
+            }
+        }
+
+        return $item->getKeyName();
+    }
+
+    /**
      * Get empty response structure for paginated fields.
      *
      * @return array

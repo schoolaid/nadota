@@ -35,4 +35,7 @@ enum FieldType: string
     case HTML = 'html';
     case TIME = 'time';
     case COLOR = 'color';
+    case DYNAMIC = 'dynamic';
+    case SIGNATURE = 'signature';
+    case VARIABLE_TEXT = 'variableText';
 }

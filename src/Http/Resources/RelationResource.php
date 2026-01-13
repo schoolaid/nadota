@@ -60,6 +60,7 @@ class RelationResource
         // Use the same structure as index/show response
         $data = [
             'id' => $item->getKey(),
+            'key' => $item->getKey(),
             'label' => $this->resolveLabel($item),
             'resource' => $this->resource ? $this->resource::getKey() : null,
         ];
