@@ -229,6 +229,91 @@ Enable caching for stable, frequently accessed options:
 3. **Response Times**: Track index endpoint response times
 4. **Cache Hit Rate**: Monitor Redis/Memcached stats if using options caching
 
+### QueryDebugger Helper
+
+Nadota includes a built-in query debugger for identifying performance issues during development:
+
+```php
+use SchoolAid\Nadota\Http\Helpers\QueryDebugger;
+
+// Start profiling
+QueryDebugger::start();
+
+// ... execute your code (e.g., load an index page)
+
+// Stop and get stats
+$stats = QueryDebugger::stop(logResults: true);
+
+// Display formatted report
+echo QueryDebugger::formatStats($stats);
+```
+
+**Output Example:**
+```
+Query Performance Report
+==================================================
+Total Queries: 45
+Total Time: 234.56ms
+Query Time: 198.23ms
+Overhead: 36.33ms
+
+Query Types:
+  select: 42
+  insert: 2
+  update: 1
+
+Slow Queries (>100ms): 2
+  1. 156.78ms - select * from users where ...
+  2. 123.45ms - select * from posts where ...
+
+⚠ Potential N+1 Issues: 1
+  1. Executed 20 times (89.12ms)
+     Consider using eager loading or batch loading
+     Example: select * from categories where id = ?
+```
+
+**Profile a specific operation:**
+```php
+$result = QueryDebugger::profile(function() {
+    // Your code here
+    return $resource->index($request);
+}, logResults: true);
+
+// Access result and stats
+$data = $result['result'];
+$stats = $result['stats'];
+```
+
+**Stats Array Structure:**
+```php
+[
+    'total_queries' => 45,
+    'total_time_ms' => 234.56,
+    'query_time_ms' => 198.23,
+    'overhead_ms' => 36.33,
+    'query_types' => [
+        'select' => 42,
+        'insert' => 2,
+        'update' => 1,
+        'delete' => 0,
+    ],
+    'slow_queries' => [
+        ['sql' => '...', 'time' => 156.78, 'bindings' => [...]],
+        // ...
+    ],
+    'duplicate_queries' => [
+        ['pattern' => '...', 'count' => 5, 'example' => '...'],
+        // ...
+    ],
+    'n_plus_one_suspects' => [
+        ['count' => 20, 'example' => '...', 'suggestion' => '...'],
+        // ...
+    ],
+]
+```
+
+**Important:** Only use QueryDebugger in development/debugging. Do not enable in production as it adds overhead.
+
 ### Debugging Performance
 
 Enable query logging to identify bottlenecks:
