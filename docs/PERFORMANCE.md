@@ -163,17 +163,27 @@ OptionsCache::remember($key, $callback, null);
 
 ### Cache Invalidation
 
-Cache invalidation is manual for now:
+**Note**: Fine-grained cache invalidation (`invalidate()` and `flush()`) is not yet implemented in the current version. These methods will throw `BadMethodCallException` until proper cache tag support is added.
+
+For now, use these alternatives:
 
 ```php
-// After creating/updating related models
-OptionsCache::invalidate(UserResource::class, 'role');
+// Clear all application cache (use with caution)
+Cache::flush();
 
-// Or clear all options cache
-OptionsCache::flush();
+// Or rely on TTL expiry (recommended)
+// Cache entries expire automatically based on configured TTL
 ```
 
-**Note**: Future versions may include automatic cache invalidation via model observers.
+**Future Enhancement**: Cache invalidation will be implemented in a future version using cache tags (requires Redis or Memcached driver):
+
+```php
+// This will work once implemented
+OptionsCache::invalidate(UserResource::class, 'role');
+OptionsCache::flush(); // Clear all options cache
+```
+
+Until then, choose appropriate TTLs based on how frequently your data changes.
 
 ## Best Practices
 

@@ -86,7 +86,7 @@ The goal was to identify and improve slow or inefficient code in the Nadota Lara
 **Key Features**:
 - Request-scoped caching (doesn't persist between requests)
 - Separate caches for `fields()` and `flattenFields()`
-- User-aware cache keys for user-specific field configurations
+- User-aware cache keys for user-specific field configurations (SHA-256 hashing)
 - Manual cache clearing for testing
 
 **Usage** (automatic):
@@ -103,9 +103,10 @@ use MemoizesFields; // Added to base Resource class
 
 **Key Features**:
 - Simple `remember()` API similar to Laravel's Cache
-- Automatic cache key generation from query parameters
+- Automatic cache key generation from query parameters (SHA-256 hashing)
 - Configurable TTL per use case
 - Bypass option for dynamic data
+- Cache invalidation methods (not yet implemented - requires cache tags)
 
 **Usage**:
 ```php

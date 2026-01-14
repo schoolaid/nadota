@@ -76,7 +76,8 @@ trait MemoizesFields
         // Include resource key to avoid collisions between resources
         $resourceKey = static::class;
         
-        return md5("{$resourceKey}_{$userId}_{$type}");
+        // Use SHA-256 for better hash distribution and security practices
+        return hash('sha256', "{$resourceKey}_{$userId}_{$type}");
     }
 
     /**

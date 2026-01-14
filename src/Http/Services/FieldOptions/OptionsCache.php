@@ -72,42 +72,61 @@ class OptionsCache
             'params' => $relevantParams,
         ];
 
-        return md5(json_encode($keyData));
+        // Use SHA-256 for better hash distribution and security practices
+        return hash('sha256', json_encode($keyData));
     }
 
     /**
      * Invalidate cached options for a specific resource/field combination.
      *
+     * Note: This is a placeholder for future implementation with cache tags.
+     * Current implementation does not support fine-grained invalidation.
+     * For now, use Cache::flush() to clear all cache or wait for TTL expiry.
+     *
      * @param string $resourceClass Resource class name
      * @param string|null $fieldName Field name (null = all fields for resource)
      * @return void
+     * @throws \BadMethodCallException Always throws until proper implementation
+     * 
+     * @deprecated This method is not yet implemented. Will be available in future version with cache tag support.
      */
     public static function invalidate(string $resourceClass, ?string $fieldName = null): void
     {
-        // Note: This is a simple implementation. For production use with many keys,
-        // consider using cache tags (Redis/Memcached) or a more sophisticated approach.
-        $pattern = self::CACHE_PREFIX;
+        throw new \BadMethodCallException(
+            'OptionsCache::invalidate() is not yet implemented. ' .
+            'Requires cache driver with tag support (Redis/Memcached). ' .
+            'For now, use Cache::flush() or wait for cache TTL expiry.'
+        );
         
-        if ($fieldName) {
-            // Specific field - would need cache tag support for efficient invalidation
-            // For now, this is a placeholder for future implementation
-            // Cache::tags([self::CACHE_PREFIX, $resourceClass, $fieldName])->flush();
-        } else {
-            // All fields for resource - would need cache tag support
-            // Cache::tags([self::CACHE_PREFIX, $resourceClass])->flush();
-        }
+        // Future implementation with cache tags:
+        // if ($fieldName) {
+        //     Cache::tags([self::CACHE_PREFIX, $resourceClass, $fieldName])->flush();
+        // } else {
+        //     Cache::tags([self::CACHE_PREFIX, $resourceClass])->flush();
+        // }
     }
 
     /**
      * Clear all field options cache.
-     * Use sparingly - mainly for testing or cache maintenance.
+     * 
+     * Note: This is a placeholder for future implementation with cache tags.
+     * Current implementation does not support scoped flushing.
+     * For now, use Cache::flush() to clear all application cache.
      *
      * @return void
+     * @throws \BadMethodCallException Always throws until proper implementation
+     * 
+     * @deprecated This method is not yet implemented. Will be available in future version with cache tag support.
      */
     public static function flush(): void
     {
-        // Note: This would require cache tag support for efficient implementation
-        // For now, this is a placeholder
+        throw new \BadMethodCallException(
+            'OptionsCache::flush() is not yet implemented. ' .
+            'Requires cache driver with tag support (Redis/Memcached). ' .
+            'For now, use Cache::flush() to clear all cache.'
+        );
+        
+        // Future implementation with cache tags:
         // Cache::tags([self::CACHE_PREFIX])->flush();
     }
 }
