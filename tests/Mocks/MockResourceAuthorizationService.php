@@ -15,7 +15,7 @@ class MockResourceAuthorizationService implements ResourceAuthorizationInterface
         return $this;
     }
 
-    public function authorizedTo(NadotaRequest $request, string $action): bool
+    public function authorizedTo(NadotaRequest $request, string $action, array $context = []): bool
     {
         // Always authorize in tests
         return true;

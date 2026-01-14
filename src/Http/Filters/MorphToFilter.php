@@ -72,18 +72,32 @@ class MorphToFilter
 
     /**
      * Generate the two filters needed for morph relationships
-     * 
+     *
      * @return array Returns [MorphTypeFilter, MorphEntityFilter]
      */
     public function generateFilters(): array
     {
-        // Filter 1: Select morph type
-        $typeFilter = new SelectFilter(
-            $this->name . ' - Tipo',
+        // Filter 1: Select morph type (converts alias to model class)
+        // Use the morphTypeField as label base for translation
+        // If name is "fields.targetable", type label will be "fields.targetable_type"
+        $typeLabel = $this->name;
+
+        // If the name looks like a translation key (contains dots), append _type
+        // Otherwise, keep the original name for backward compatibility
+        if (str_contains($this->name, '.')) {
+            // Extract the base key without the prefix
+            $parts = explode('.', $this->name);
+            $lastPart = array_pop($parts);
+            $typeLabel = implode('.', $parts) . '.' . $this->morphTypeField;
+        }
+
+        $typeFilter = new MorphTypeFilter(
+            $typeLabel,
             $this->morphTypeField,
             'select'
         );
-        $typeFilter->options($this->formatMorphTypes());
+        $typeFilter->options($this->formatMorphTypes())
+            ->morphTypes($this->morphTypes);
 
         // Filter 2: Select entity based on type
         $entityFilter = new DynamicSelectFilter(
@@ -91,43 +105,35 @@ class MorphToFilter
             $this->morphIdField,
             'dynamicSelect'
         );
-        
+
         // Configure entity filter
+        $fieldName = str_replace('_id', '', $this->morphIdField);
         $entityFilter
             ->searchable($this->searchable)
             ->multiple($this->multiple)
             ->dependsOn([$this->morphTypeField]) // Hard dependency on type
-            ->filtersToSend([$this->morphTypeField]); // Send type to endpoint
-
-        // Set dynamic endpoint based on selected type
-        if ($this->resourceKey) {
-            $fieldName = str_replace('_id', '', $this->morphIdField);
-            $apiPrefix = config('nadota.api.prefix', 'nadota-api');
-            // Use placeholder {morphType} that frontend will replace with actual type
-            $baseEndpoint = "/{$apiPrefix}/{$this->resourceKey}/resource/field/{$fieldName}/morph-options/{morphType}";
-            
-            // The endpoint will be constructed dynamically in the frontend
-            // Frontend should replace {morphType} with the selected type value
-            $entityFilter->endpoint($baseEndpoint);
-        }
+            ->filtersToSend([$this->morphTypeField]) // Send type to endpoint
+            ->asMorphFilter($fieldName); // Mark as morph filter for dynamic endpoint building
 
         return [$typeFilter, $entityFilter];
     }
 
     /**
      * Format morph types for SelectFilter options
+     * Returns array with label as key and alias as value for Filter::toArray() processing
      */
     protected function formatMorphTypes(): array
     {
         $options = [];
-        
+
         foreach ($this->morphTypes as $alias => $config) {
             if (is_array($config)) {
                 $label = $config['label'] ?? ucfirst(str_replace(['_', '-'], ' ', $alias));
-                $options[$alias] = $label;
+                $options[$label] = $alias;
             } else {
                 // If it's just a string (model class), use alias as a label
-                $options[$alias] = ucfirst(str_replace(['_', '-'], ' ', $alias));
+                $label = ucfirst(str_replace(['_', '-'], ' ', $alias));
+                $options[$label] = $alias;
             }
         }
 

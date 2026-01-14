@@ -5,6 +5,7 @@ namespace SchoolAid\Nadota\Http\Services;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use SchoolAid\Nadota\Contracts\ResourceInterface;
+use SchoolAid\Nadota\Http\Criteria\FilterCriteria;
 use SchoolAid\Nadota\Http\Fields\Field;
 use SchoolAid\Nadota\Http\Fields\Relations\BelongsToMany;
 use SchoolAid\Nadota\Http\Fields\Relations\HasMany;
@@ -68,6 +69,7 @@ class RelationIndexService
         // Apply query modifications
         $query = $this->buildQuery($request, $query, $field, $relatedResource);
         $query = $this->applySearch($request, $query, $field, $relatedResource);
+        $query = $this->applyFilters($request, $query, $field, $relatedResource);
         $query = $this->applySorting($request, $query, $field);
 
         // Paginate and format response
@@ -194,6 +196,50 @@ class RelationIndexService
     }
 
     /**
+     * Apply filters to the query.
+     *
+     * This method collects filters from the related resource's filterable fields
+     * and applies them to the relation query based on the filters[] query parameters.
+     *
+     * @param NadotaRequest $request
+     * @param mixed $query The relation query
+     * @param Field $field The relation field
+     * @param ResourceInterface|null $resource The related resource
+     * @return mixed The query with filters applied
+     */
+    protected function applyFilters(NadotaRequest $request, $query, Field $field, ?ResourceInterface $resource)
+    {
+        if (!$resource) {
+            return $query;
+        }
+
+        // Get filterable fields from the related resource
+        $filterableFields = collect($resource->fieldsForIndex($request))
+            ->filter(fn($field) => $field->isFilterable());
+
+        // Collect all Filter objects from filterable fields
+        $filters = $filterableFields->flatMap(fn($field) => $field->filters())->all();
+
+        // Also include filters defined directly on the resource
+        $resourceFilters = $resource->filters($request);
+        if (!empty($resourceFilters)) {
+            $filters = array_merge($filters, $resourceFilters);
+        }
+
+        // Get filter values from request
+        $requestFilters = $request->get('filters', []);
+
+        if (empty($requestFilters) || empty($filters)) {
+            return $query;
+        }
+
+        // Apply filters using FilterCriteria
+        (new FilterCriteria($requestFilters))->apply($request, $query, $filters);
+
+        return $query;
+    }
+
+    /**
      * Apply sorting to the query.
      */
     protected function applySorting(NadotaRequest $request, $query, Field $field)
@@ -234,6 +280,9 @@ class RelationIndexService
         // Format items
         $items = $this->formatItems($paginated->items(), $field, $relatedResource, $request);
 
+        // Get available filters from related resource
+        $filters = $this->getAvailableFilters($request, $field, $relatedResource);
+
         // Build response
         return response()->json([
             'data' => $items,
@@ -247,6 +296,7 @@ class RelationIndexService
                 'resource' => $relatedResource ? $relatedResource::getKey() : null,
                 'relation_type' => method_exists($field, 'relationType') ? $field->relationType() : null,
                 'has_pivot' => method_exists($field, 'hasPivotColumns') ? $field->hasPivotColumns() : false,
+                'filters' => $filters,
             ],
             'links' => [
                 'first' => $paginated->url(1),
@@ -255,6 +305,66 @@ class RelationIndexService
                 'next' => $paginated->nextPageUrl(),
             ],
         ]);
+    }
+
+    /**
+     * Get available filters from the related resource.
+     *
+     * @param NadotaRequest $request
+     * @param Field $field
+     * @param ResourceInterface|null $resource
+     * @return array
+     */
+    protected function getAvailableFilters(NadotaRequest $request, Field $field, ?ResourceInterface $resource): array
+    {
+        if (!$resource) {
+            return [];
+        }
+
+        // Create a temporary request with the related resource for filter serialization
+        // This ensures that filter endpoints are built using the correct resource key
+        $relatedRequest = $this->createRelatedResourceRequest($request, $resource);
+
+        $filters = [];
+
+        // Get filterable fields from the related resource
+        $filterableFields = collect($resource->fieldsForIndex($relatedRequest))
+            ->filter(fn($field) => $field->isFilterable());
+
+        // Collect Filter objects from filterable fields and format them
+        $fieldFilters = $filterableFields
+            ->flatMap(fn($field) => $field->filters())
+            ->map(fn($filter) => $filter->toArray($relatedRequest))
+            ->toArray();
+
+        // Get filters defined directly on the resource
+        $resourceFilters = collect($resource->filters($relatedRequest))
+            ->map(fn($filter) => $filter->toArray($relatedRequest))
+            ->toArray();
+
+        // Merge both sources
+        $filters = array_merge($fieldFilters, $resourceFilters);
+
+        return $filters;
+    }
+
+    /**
+     * Create a request instance with the related resource set.
+     * This is needed for proper filter serialization in relation contexts.
+     *
+     * @param NadotaRequest $request
+     * @param ResourceInterface $resource
+     * @return NadotaRequest
+     */
+    protected function createRelatedResourceRequest(NadotaRequest $request, ResourceInterface $resource): NadotaRequest
+    {
+        // Clone the request to avoid modifying the original
+        $relatedRequest = clone $request;
+
+        // Set the related resource on the cloned request
+        $relatedRequest->setResource($resource);
+
+        return $relatedRequest;
     }
 
     /**

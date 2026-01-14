@@ -490,13 +490,17 @@ class HasMany extends Field
             $apiPrefix = static::safeConfig('nadota.api.prefix', 'nadota-api');
             $frontendPrefix = static::safeConfig('nadota.frontend.prefix', 'resources');
 
-            // Initialize URLs array
-            $props['urls'] = [];
+            // Options URL is always available (no model ID needed)
+            $props['urls'] = [
+                'options' => "/{$apiPrefix}/{$resourceKey}/resource/field/{$fieldKey}/options",
+            ];
 
             // Attach/detach URLs require an existing model
             if ($model) {
                 $modelId = $model->getKey();
 
+                // Update options URL with resource ID context
+                $props['urls']['options'] = "/{$apiPrefix}/{$resourceKey}/resource/field/{$fieldKey}/options?resourceId={$modelId}";
                 $props['urls']['attachable'] = "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/attachable/{$fieldKey}";
                 $props['urls']['attach'] = "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/attach/{$fieldKey}";
                 $props['urls']['detach'] = "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/detach/{$fieldKey}";

@@ -126,21 +126,7 @@ class ResourceIndexController extends Controller
             ->toArray();
 
         return [
-            'resource' => [
-                'key' => $resource->getKey(),
-                'label' => $resource->title(),
-                'canCreate' => $resource->canCreate,
-                'softDeletes' => $resource->getUseSoftDeletes(),
-                'perPage' => $resource->getPerPage(),
-                'allowedPerPage' => $resource->getAllowedPerPage(),
-                'components' => $resource->getComponents(),
-                'detailCardWidth' => $resource->getDetailCardWidth(),
-                'search' => [
-                    'key' => $resource->getSearchKey(),
-                    'enabled' => $resource->isSearchable(),
-                ],
-                'selection' => $resource->getSelectionConfig(),
-            ],
+            'resource' => $resource->toInfoArray($request),
             'fields' => $fields,
             'filters' => $filters,
             'actions' => $actions,

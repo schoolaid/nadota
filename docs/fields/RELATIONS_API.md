@@ -117,6 +117,122 @@ Relacion uno a muchos. El modelo padre tiene muchos hijos.
 | `detach` | POST | Desadjuntar un item |
 | `paginationUrl` | GET | Cargar mas items (si `paginated: true`) |
 
+### Paginacion (HasMany con `paginated: true`)
+
+Cuando un campo HasMany tiene `paginated: true`, se incluye una URL `paginationUrl` que permite cargar los items relacionados de forma paginada con soporte para filtros, busqueda y ordenamiento.
+
+**Endpoint:**
+```
+GET /nadota-api/{resource}/resource/{id}/relation/{field}
+```
+
+**Parametros de Query:**
+
+| Parametro | Tipo | Descripcion |
+|-----------|------|-------------|
+| `page` | number | Numero de pagina (default: 1) |
+| `per_page` | number | Items por pagina (default: 15) |
+| `search` | string | Busqueda en campos searchable del recurso relacionado |
+| `filters[{field}]` | any | Filtros por campo (usa los filtros del recurso relacionado) |
+| `sort_field` | string | Campo para ordenar |
+| `sort_direction` | string | Direccion de orden (`asc`/`desc`) |
+
+**Ejemplo de Request:**
+```
+GET /nadota-api/accesses-qr/resource/2/relation/internals?page=1&per_page=10&search=Juan&filters[document_type_id]=5&sort_field=name&sort_direction=asc
+```
+
+**Ejemplo de Response:**
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "label": "Juan Perez",
+      "attributes": { "name": "Juan Perez", "document": "12345678" }
+    },
+    {
+      "id": 2,
+      "label": "Juan Garcia",
+      "attributes": { "name": "Juan Garcia", "document": "87654321" }
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "last_page": 3,
+    "per_page": 10,
+    "total": 25,
+    "from": 1,
+    "to": 10,
+    "resource": "access-internal",
+    "relation_type": "hasMany",
+    "has_pivot": false,
+    "filters": [
+      {
+        "key": "document_type_id",
+        "label": "Tipo de Documento",
+        "component": "FilterSelect",
+        "type": "select",
+        "options": [
+          { "value": 1, "label": "DNI" },
+          { "value": 2, "label": "Pasaporte" }
+        ]
+      },
+      {
+        "key": "name",
+        "label": "Nombre",
+        "component": "FilterText",
+        "type": "text"
+      }
+    ]
+  },
+  "links": {
+    "first": "/nadota-api/accesses-qr/resource/2/relation/internals?page=1",
+    "last": "/nadota-api/accesses-qr/resource/2/relation/internals?page=3",
+    "prev": null,
+    "next": "/nadota-api/accesses-qr/resource/2/relation/internals?page=2"
+  }
+}
+```
+
+**Notas:**
+- Los filtros disponibles dependen de los campos marcados como `filterable()` en el recurso relacionado
+- La busqueda usa los campos marcados como `searchable()` en el recurso relacionado
+- El ordenamiento por defecto puede estar definido en el campo usando `orderBy()` y `orderDirection()`
+
+**Configuración de Filtros:**
+Los filtros disponibles se incluyen automáticamente en `meta.filters` de la respuesta. Estos filtros provienen de:
+1. Campos del recurso relacionado marcados con `->filterable()`
+2. Filtros definidos en el método `filters()` del recurso relacionado
+
+**Ejemplo en el Recurso Relacionado:**
+```php
+class AccessInternalResource extends Resource
+{
+    public function fields(NadotaRequest $request): array
+    {
+        return [
+            Input::make('Name', 'name')
+                ->filterable()  // ← Genera un filtro de texto
+                ->searchable(),
+
+            BelongsTo::make('Document Type', 'documentType', DocumentTypeResource::class)
+                ->filterable(),  // ← Genera un filtro de select
+        ];
+    }
+
+    public function filters(NadotaRequest $request): array
+    {
+        return [
+            // Filtros personalizados adicionales
+            new DateRangeFilter('Created At', 'created_at'),
+        ];
+    }
+}
+```
+
+El frontend recibirá todos estos filtros en `meta.filters` al hacer la primera petición al endpoint de paginación.
+
 ---
 
 ## HasOne
@@ -317,6 +433,65 @@ Relacion muchos a muchos con tabla pivot. No tiene `createContext` porque relaci
 | `attach` | POST | `{ "id": 1, "pivot": {...} }` | Adjuntar item |
 | `detach` | POST | `{ "id": 1 }` | Desadjuntar item |
 | `sync` | POST | `{ "ids": [1, 2, 3] }` | Sincronizar todos |
+| `paginationUrl` | GET | - | Cargar items paginados (si `paginated: true`) |
+
+### Paginacion (BelongsToMany con `paginated: true`)
+
+Las relaciones BelongsToMany tambien soportan paginacion con filtros, busqueda y ordenamiento usando el mismo endpoint que HasMany:
+
+**Endpoint:**
+```
+GET /nadota-api/{resource}/resource/{id}/relation/{field}
+```
+
+**Parametros:**
+Los mismos que HasMany (ver seccion anterior)
+
+**Diferencias con HasMany:**
+- La respuesta puede incluir datos de la tabla pivot en `pivot`:
+  ```json
+  {
+    "id": 1,
+    "label": "Admin",
+    "pivot": { "assigned_at": "2025-01-15", "expires_at": "2026-01-15" }
+  }
+  ```
+- `meta.has_pivot` sera `true` si el campo tiene columnas pivot configuradas
+- Los filtros NO se aplican a columnas pivot, solo a columnas del modelo relacionado
+- `meta.filters` incluye los filtros disponibles (igual que HasMany)
+
+**Ejemplo de Response con Pivot:**
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "label": "Admin",
+      "pivot": { "assigned_at": "2025-01-15", "expires_at": "2026-01-15" }
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "total": 5,
+    "resource": "roles",
+    "has_pivot": true,
+    "filters": [
+      {
+        "key": "name",
+        "label": "Role Name",
+        "component": "FilterText",
+        "type": "text"
+      },
+      {
+        "key": "is_active",
+        "label": "Active",
+        "component": "FilterBoolean",
+        "type": "boolean"
+      }
+    ]
+  }
+}
+```
 
 ---
 
@@ -407,6 +582,180 @@ interface CreateContextPolymorphic extends CreateContext {
 ---
 
 ## Uso en Frontend
+
+### Cargar Relacion Paginada con Filtros
+
+```typescript
+interface PaginatedRelationResponse {
+  data: Array<{
+    id: number;
+    label: string;
+    attributes?: Record<string, any>;
+    pivot?: Record<string, any>;
+  }>;
+  meta: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    resource: string;
+    filters: Array<{
+      key: string;
+      label: string;
+      component: string;
+      type: string;
+      options?: any[];
+    }>;
+  };
+  links: {
+    first: string;
+    last: string;
+    prev: string | null;
+    next: string | null;
+  };
+}
+
+async function loadPaginatedRelation(
+  paginationUrl: string,
+  options?: {
+    page?: number;
+    perPage?: number;
+    search?: string;
+    filters?: Record<string, any>;
+    sortField?: string;
+    sortDirection?: 'asc' | 'desc';
+  }
+): Promise<PaginatedRelationResponse> {
+  const params = new URLSearchParams();
+
+  if (options?.page) params.append('page', String(options.page));
+  if (options?.perPage) params.append('per_page', String(options.perPage));
+  if (options?.search) params.append('search', options.search);
+  if (options?.sortField) params.append('sort_field', options.sortField);
+  if (options?.sortDirection) params.append('sort_direction', options.sortDirection);
+
+  // Agregar filtros
+  if (options?.filters) {
+    Object.entries(options.filters).forEach(([key, value]) => {
+      params.append(`filters[${key}]`, String(value));
+    });
+  }
+
+  const url = `${paginationUrl}?${params.toString()}`;
+  const response = await fetch(url);
+  return response.json();
+}
+
+// Uso
+const result = await loadPaginatedRelation(
+  '/nadota-api/accesses-qr/resource/2/relation/internals',
+  {
+    page: 1,
+    perPage: 10,
+    search: 'Juan',
+    filters: {
+      document_type_id: 5,
+      is_active: true
+    },
+    sortField: 'name',
+    sortDirection: 'asc'
+  }
+);
+
+// Los filtros disponibles estan en result.meta.filters
+console.log('Available filters:', result.meta.filters);
+```
+
+### Componente React con Filtros Dinamicos
+
+```tsx
+import React, { useState, useEffect } from 'react';
+
+interface Filter {
+  key: string;
+  label: string;
+  component: string;
+  type: string;
+  options?: any[];
+}
+
+interface PaginatedRelationProps {
+  paginationUrl: string;
+}
+
+export function PaginatedRelation({ paginationUrl }: PaginatedRelationProps) {
+  const [data, setData] = useState([]);
+  const [meta, setMeta] = useState(null);
+  const [filters, setFilters] = useState<Filter[]>([]);
+  const [activeFilters, setActiveFilters] = useState({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadData();
+  }, [activeFilters]);
+
+  async function loadData(page = 1) {
+    setLoading(true);
+    const result = await loadPaginatedRelation(paginationUrl, {
+      page,
+      filters: activeFilters
+    });
+
+    setData(result.data);
+    setMeta(result.meta);
+
+    // Los filtros solo se cargan en la primera request
+    if (result.meta.filters && filters.length === 0) {
+      setFilters(result.meta.filters);
+    }
+
+    setLoading(false);
+  }
+
+  function handleFilterChange(filterKey: string, value: any) {
+    setActiveFilters(prev => ({
+      ...prev,
+      [filterKey]: value
+    }));
+  }
+
+  return (
+    <div>
+      {/* Renderizar filtros dinamicamente */}
+      <div className="filters">
+        {filters.map(filter => (
+          <FilterComponent
+            key={filter.key}
+            filter={filter}
+            value={activeFilters[filter.key]}
+            onChange={(value) => handleFilterChange(filter.key, value)}
+          />
+        ))}
+      </div>
+
+      {/* Renderizar datos */}
+      {loading ? (
+        <div>Cargando...</div>
+      ) : (
+        <div>
+          {data.map(item => (
+            <div key={item.id}>{item.label}</div>
+          ))}
+        </div>
+      )}
+
+      {/* Paginacion */}
+      {meta && (
+        <Pagination
+          currentPage={meta.current_page}
+          lastPage={meta.last_page}
+          onPageChange={loadData}
+        />
+      )}
+    </div>
+  );
+}
+```
 
 ### Crear Item Relacionado (HasMany)
 

@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use SchoolAid\Nadota\Contracts\ResourceInterface;
 use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
+use SchoolAid\Nadota\Http\Filters\ExistsFilter;
 
 class Exists extends Field
 {
@@ -146,13 +147,41 @@ class Exists extends Field
     }
 
     /**
+     * Override filters() to provide a custom ExistsFilter instead of auto-generated BooleanFilter.
+     *
+     * This is necessary because the default FilterableTrait would create a BooleanFilter
+     * that tries to do WHERE on the virtual column, which doesn't exist in the database.
+     *
+     * @return array Array of Filter objects
+     */
+    public function filters(): array
+    {
+        if (!$this->filterable) {
+            return [];
+        }
+
+        return [
+            new ExistsFilter(
+                $this->fieldData->label,
+                $this->fieldData->attribute,
+                $this->existsRelation,
+                $this->existsConstraint
+            )
+        ];
+    }
+
+    /**
      * Apply filter to query.
      * Filters by existence (true) or non-existence (false) of the relation.
+     *
+     * NOTE: This method is kept for backward compatibility but is NOT used
+     * by the filter system. Use filters() instead which returns an ExistsFilter.
      *
      * @param Builder $query
      * @param mixed $value The filter value (true/false, 1/0, "true"/"false")
      * @param Model $modelInstance
      * @return Builder
+     * @deprecated Not used by the filter system - kept for backward compatibility
      */
     public function applyFilter(Builder $query, $value, $modelInstance): Builder
     {

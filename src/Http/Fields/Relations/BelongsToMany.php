@@ -63,6 +63,16 @@ class BelongsToMany extends Field
     protected bool $withPivot = false;
 
     /**
+     * Whether to allow creating new related items from this field.
+     */
+    protected bool $canCreate = false;
+
+    /**
+     * Whether to auto-attach newly created items.
+     */
+    protected bool $autoAttach = true;
+
+    /**
      * Whether to include timestamps from pivot table.
      */
     protected bool $withTimestamps = false;
@@ -217,6 +227,30 @@ class BelongsToMany extends Field
     public function withTimestamps(bool $withTimestamps = true): static
     {
         $this->withTimestamps = $withTimestamps;
+        return $this;
+    }
+
+    /**
+     * Enable or disable creation of new related items.
+     *
+     * @param bool $canCreate
+     * @return static
+     */
+    public function canCreate(bool $canCreate = true): static
+    {
+        $this->canCreate = $canCreate;
+        return $this;
+    }
+
+    /**
+     * Enable or disable auto-attach of newly created items.
+     *
+     * @param bool $autoAttach
+     * @return static
+     */
+    public function autoAttach(bool $autoAttach = true): static
+    {
+        $this->autoAttach = $autoAttach;
         return $this;
     }
 
@@ -610,6 +644,8 @@ class BelongsToMany extends Field
             'withPivot' => $this->withPivot,
             'withTimestamps' => $this->withTimestamps,
             'pivotDefaults' => $this->hasPivotDefaults() ? $this->getResolvedPivotDefaults() : null,
+            'canCreate' => $this->canCreate,
+            'autoAttach' => $this->autoAttach,
         ]);
 
         // Add URLs - options URL is always needed (for create and edit forms)
@@ -634,6 +670,27 @@ class BelongsToMany extends Field
                 // Add pagination URL if paginated
                 if ($this->paginated) {
                     $props['paginationUrl'] = "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/relation/{$fieldKey}";
+                }
+
+                // Add createContext if canCreate is enabled
+                if ($this->canCreate) {
+                    $relatedResourceClass = $this->getResource();
+                    if ($relatedResourceClass) {
+                        $relatedResourceKey = $relatedResourceClass::getKey();
+                        $frontendPrefix = static::safeConfig('nadota.frontend.prefix', 'resources');
+
+                        $props['createContext'] = [
+                            'parentResource' => $resourceKey,
+                            'parentId' => $modelId,
+                            'relatedResource' => $relatedResourceKey,
+                            'relationType' => 'belongsToMany',
+                            'autoAttach' => $this->autoAttach,
+                            'attachUrl' => "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/attach/{$fieldKey}",
+                            'returnUrl' => "/{$frontendPrefix}/{$resourceKey}/{$modelId}",
+                            'createUrl' => "/{$apiPrefix}/{$relatedResourceKey}/resource/create",
+                            'storeUrl' => "/{$apiPrefix}/{$relatedResourceKey}/resource",
+                        ];
+                    }
                 }
             }
         }

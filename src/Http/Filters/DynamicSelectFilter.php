@@ -20,6 +20,8 @@ class DynamicSelectFilter extends Filter
     protected array|Closure|null $options = null;
     protected ?string $relation = null;
     protected ?string $resourceKey = null;
+    protected bool $isMorphFilter = false;
+    protected ?string $morphFieldName = null;
 
     public function __construct(
         string $name = null,
@@ -149,6 +151,19 @@ class DynamicSelectFilter extends Filter
     }
 
     /**
+     * Mark this filter as a morph filter
+     *
+     * @param string $fieldName The base field name (without _id) for the morph relation
+     * @return static
+     */
+    public function asMorphFilter(string $fieldName): static
+    {
+        $this->isMorphFilter = true;
+        $this->morphFieldName = $fieldName;
+        return $this;
+    }
+
+    /**
      * Apply the filter to the query
      */
     public function apply(NadotaRequest $request, $query, $value)
@@ -245,6 +260,20 @@ class DynamicSelectFilter extends Filter
             return $this->endpoint;
         }
 
+        // Build morph endpoint if this is a morph filter
+        if ($this->isMorphFilter && $this->morphFieldName) {
+            try {
+                $resource = $request->getResource();
+                if ($resource) {
+                    $resourceKey = $resource::getKey();
+                    $apiPrefix = config('nadota.api.prefix', 'nadota-api');
+                    return "/{$apiPrefix}/{$resourceKey}/resource/field/{$this->morphFieldName}/morph-options/{morphType}";
+                }
+            } catch (\Exception $e) {
+                // Resource not available
+            }
+        }
+
         // Build endpoint from a resource key and field name
         if ($this->resourceKey && $this->field) {
             $apiPrefix = config('nadota.api.prefix', 'nadota-api');
@@ -303,6 +332,12 @@ class DynamicSelectFilter extends Filter
             }
         }
 
+        // If this is a morph filter, mark it accordingly
+        // The actual endpoint will be built in toArray() but we need the flags here
+        if ($this->isMorphFilter) {
+            $props['isMorphEndpoint'] = true;
+        }
+
         if ($this->dependsOn !== null) {
             $props['dependsOn'] = $this->dependsOn;
         }
@@ -335,6 +370,12 @@ class DynamicSelectFilter extends Filter
             $data['endpoint'] = $endpoint;
             // Also add to props for frontend
             $data['props']['endpoint'] = $endpoint;
+
+            // If this is a morph endpoint, add the template
+            if (str_contains($endpoint, '{morphType}') || str_contains($endpoint, '/morph-options/')) {
+                $data['props']['isMorphEndpoint'] = true;
+                $data['props']['endpointTemplate'] = $endpoint;
+            }
         }
 
         // Add static options if provided (not a closure)

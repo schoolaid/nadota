@@ -67,16 +67,22 @@ class AttachmentController extends Controller
         // Find the parent model
         $model = $resource->getQuery($request)->findOrFail($resourceId);
 
-        // Check permissions
-        if (!$resource->authorizedTo($request, 'attach', $model)) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
-        }
-
-        // Get the field
+        // Get the field first to pass in authorization context
         $fieldInstance = $this->findField($request, $resource, $field);
 
         if (!$fieldInstance) {
             return response()->json(['success' => false, 'message' => 'Field not found'], 404);
+        }
+
+        // Check permissions with field context
+        $authContext = [
+            'field' => $field,
+            'items' => $request->get('items', []),
+            'pivot' => $request->get('pivot', []),
+        ];
+
+        if (!$resource->authorizedTo($request, 'attach', $model, $authContext)) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
         if (!$fieldInstance->isAttachable()) {
@@ -107,16 +113,21 @@ class AttachmentController extends Controller
         // Find the parent model
         $model = $resource->getQuery($request)->findOrFail($id);
 
-        // Check permissions
-        if (!$resource->authorizedTo($request, 'detach', $model)) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
-        }
-
-        // Get the field
+        // Get the field first to pass in authorization context
         $fieldInstance = $this->findField($request, $resource, $field);
 
         if (!$fieldInstance) {
             return response()->json(['success' => false, 'message' => 'Field not found'], 404);
+        }
+
+        // Check permissions with field context
+        $authContext = [
+            'field' => $field,
+            'items' => $request->get('items', []),
+        ];
+
+        if (!$resource->authorizedTo($request, 'detach', $model, $authContext)) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
         if (!$fieldInstance->isAttachable()) {
@@ -147,16 +158,23 @@ class AttachmentController extends Controller
         // Find the parent model
         $model = $resource->getQuery($request)->findOrFail($id);
 
-        // Check permissions (use attach permission for sync)
-        if (!$resource->authorizedTo($request, 'attach', $model)) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
-        }
-
-        // Get the field
+        // Get the field first to pass in authorization context
         $fieldInstance = $this->findField($request, $resource, $field);
 
         if (!$fieldInstance) {
             return response()->json(['success' => false, 'message' => 'Field not found'], 404);
+        }
+
+        // Check permissions (use attach permission for sync) with field context
+        $authContext = [
+            'field' => $field,
+            'items' => $request->get('items', []),
+            'pivot' => $request->get('pivot', []),
+            'detaching' => $request->get('detaching', true),
+        ];
+
+        if (!$resource->authorizedTo($request, 'attach', $model, $authContext)) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
         if (!$fieldInstance->isAttachable()) {

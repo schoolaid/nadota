@@ -88,17 +88,32 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
      */
     protected ?string $detailCardWidth = null;
 
+    /**
+     * Whether the main card on index is collapsible
+     */
+    protected bool $mainCardCollapsible = true;
+
+    /**
+     * Whether the main card on index is collapsed by default
+     */
+    protected bool $mainCardDefaultCollapsed = true;
+
+    /**
+     * Custom title for the main card on index
+     */
+    protected ?string $mainCardTitle = null;
+
     public function __construct(
         ResourceAuthorizationInterface $resourceAuthorization = null
     )
     {
         $this->resourceAuthorization = $resourceAuthorization ?? app(ResourceAuthorizationInterface::class);
     }
-    public function authorizedTo(NadotaRequest $request, string $action, $model = null): bool
+    public function authorizedTo(NadotaRequest $request, string $action, $model = null, array $context = []): bool
     {
         return $this->resourceAuthorization
             ->setModel($model ?? $this->model)
-            ->authorizedTo($request, $action);
+            ->authorizedTo($request, $action, $context);
     }
     public function title(): string
     {
@@ -367,6 +382,69 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
     public function getDetailCardWidth(): ?string
     {
         return $this->detailCardWidth;
+    }
+
+    /**
+     * Check if the main card on index is collapsible.
+     */
+    public function isMainCardCollapsible(): bool
+    {
+        return $this->mainCardCollapsible;
+    }
+
+    /**
+     * Check if the main card on index is collapsed by default.
+     */
+    public function isMainCardDefaultCollapsed(): bool
+    {
+        return $this->mainCardDefaultCollapsed;
+    }
+
+    /**
+     * Get the custom title for the main card on index.
+     */
+    public function getMainCardTitle(): ?string
+    {
+        return $this->mainCardTitle;
+    }
+
+    /**
+     * Get the main card configuration for index.
+     */
+    public function getMainCardConfig(): array
+    {
+        return [
+            'collapsible' => $this->mainCardCollapsible,
+            'defaultCollapsed' => $this->mainCardDefaultCollapsed,
+            'title' => $this->mainCardTitle,
+        ];
+    }
+
+    /**
+     * Get the resource info array for API responses.
+     * Used by both /info and /config endpoints to ensure consistency.
+     *
+     * @param \Illuminate\Http\Request|NadotaRequest $request
+     */
+    public function toInfoArray(\Illuminate\Http\Request $request): array
+    {
+        return [
+            'key' => static::getKey(),
+            'title' => $this->title(),
+            'description' => $this->description(),
+            'perPage' => $this->getPerPage(),
+            'allowedPerPage' => $this->getAllowedPerPage(),
+            'allowedSoftDeletes' => $this->getUseSoftDeletes(),
+            'canCreate' => $this->canCreate ?? false,
+            'components' => $this->getComponents(),
+            'detailCardWidth' => $this->getDetailCardWidth(),
+            'mainCard' => $this->getMainCardConfig(),
+            'search' => [
+                'key' => $this->getSearchKey(),
+                'enabled' => $this->isSearchable(),
+            ],
+            'selection' => $this->getSelectionConfig(),
+        ];
     }
 
     /**

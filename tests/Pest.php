@@ -13,7 +13,7 @@
 
 pest()->extend(\SchoolAid\Nadota\Tests\TestCase::class)
     ->use(\Illuminate\Foundation\Testing\RefreshDatabase::class)
-    ->in('Feature', 'Unit');
+    ->in('Feature', 'Unit', 'ServiceIntegration');
 
 /*
 |--------------------------------------------------------------------------
