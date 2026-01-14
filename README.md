@@ -17,6 +17,7 @@ Nadota is a Laravel admin panel package that provides a resource-based CRUD inte
 - **Sorting & Searching**: Configurable sorting and search capabilities
 - **Authorization**: Integration with Laravel policies for fine-grained permissions
 - **Inertia.js Integration**: Seamless SPA experience with Vue 3 frontend
+- **Performance Optimizations**: Field memoization, query optimization, and optional caching for scalability
 - **Comprehensive Testing**: 126 passing tests with extensive coverage
 
 ## Status
@@ -309,6 +310,17 @@ Nadota automatically generates RESTful API endpoints:
 - Laravel 11.0+ | 12.0+
 - Inertia.js 2.0+
 - Pest 3.0+ (for testing)
+
+## Performance
+
+Nadota includes built-in performance optimizations for handling large datasets and complex resource configurations:
+
+- **Field Memoization**: Caches field definitions within request lifecycle to avoid repeated computation
+- **Lazy Strategy Sorting**: Defers sorting of field option strategies until needed
+- **Optimized Query Building**: Efficient column selection and eager loading
+- **Optional Field Options Caching**: Cache expensive dropdown/autocomplete queries
+
+For detailed performance guidelines, optimization tips, and benchmarks, see [docs/PERFORMANCE.md](docs/PERFORMANCE.md).
 
 ## Contributing
 
