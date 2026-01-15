@@ -22,13 +22,19 @@ class ResourceOptionsController extends Controller
     /**
      * Get options for a resource.
      *
+     * Authorizes using viewAny first, falls back to viewOptions if viewAny is denied.
+     *
      * @param NadotaRequest $request
      * @return JsonResponse
      */
     public function index(NadotaRequest $request): JsonResponse
     {
-        $request->authorized('viewAny');
         $resource = $request->getResource();
+
+        // Check viewAny first, fallback to viewOptions
+        if (!$resource->authorizedTo($request, 'viewAny') && !$resource->authorizedTo($request, 'viewOptions')) {
+            abort(403);
+        }
 
         $result = $this->resourceOptionsService->getOptions($request, $resource);
 
