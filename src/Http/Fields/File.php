@@ -17,6 +17,7 @@ class File extends Field
     protected ?int $maxSize = null; // in bytes
     protected ?string $disk = null;
     protected ?string $path = null;
+    protected ?string $visibility = null; // 'public' or 'private'
     protected bool $downloadable = true;
     protected ?string $downloadRoute = null;
     protected bool $useTemporaryUrl = false;
@@ -75,6 +76,33 @@ class File extends Field
     public function path(string $path): static
     {
         $this->path = $path;
+        return $this;
+    }
+
+    /**
+     * Set the file visibility ('public' or 'private').
+     */
+    public function visibility(string $visibility): static
+    {
+        $this->visibility = $visibility;
+        return $this;
+    }
+
+    /**
+     * Set the file visibility to public (shortcut for S3 public files).
+     */
+    public function public(): static
+    {
+        $this->visibility = 'public';
+        return $this;
+    }
+
+    /**
+     * Set the file visibility to private.
+     */
+    public function private(): static
+    {
+        $this->visibility = 'private';
         return $this;
     }
 
@@ -343,6 +371,7 @@ class File extends Field
             'maxSizeMB' => $this->maxSize ? round($this->maxSize / (1024 * 1024), 2) : null,
             'disk' => $this->disk,
             'path' => $this->path,
+            'visibility' => $this->visibility,
             'downloadable' => $this->downloadable,
             'useTemporaryUrl' => $this->useTemporaryUrl,
             'cacheUrl' => $this->cacheUrl,
@@ -376,7 +405,15 @@ class File extends Field
                 // Determine a storage path
                 $storagePath = $this->path ?? 'uploads';
 
-                $request->file($requestAttribute)->store($storagePath, ['disk' => $disk]);
+                // Build storage options
+                $options = ['disk' => $disk];
+
+                // Add visibility if specified (for S3 public/private files)
+                if ($this->visibility !== null) {
+                    $options['visibility'] = $this->visibility;
+                }
+
+                $request->file($requestAttribute)->store($storagePath, $options);
 
                 $model->{$this->getAttribute()} = $storagePath . '/' . $request->file($requestAttribute)->hashName();
             }

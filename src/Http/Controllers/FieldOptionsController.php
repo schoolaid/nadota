@@ -22,6 +22,8 @@ class FieldOptionsController extends Controller
     /**
      * Get options for a specific field.
      *
+     * Authorizes using viewAny first, falls back to viewOptions if viewAny is denied.
+     *
      * @param NadotaRequest $request
      * @param string $resourceKey
      * @param string $fieldName
@@ -29,6 +31,8 @@ class FieldOptionsController extends Controller
      */
     public function index(NadotaRequest $request, string $resourceKey, string $fieldName): JsonResponse
     {
+        $this->authorizeOptions($request);
+
         $options = $this->fieldOptionsService->getFieldOptions(
             $request,
             $resourceKey,
@@ -41,6 +45,8 @@ class FieldOptionsController extends Controller
     /**
      * Get paginated options for a specific field.
      *
+     * Authorizes using viewAny first, falls back to viewOptions if viewAny is denied.
+     *
      * @param NadotaRequest $request
      * @param string $resourceKey
      * @param string $fieldName
@@ -48,6 +54,8 @@ class FieldOptionsController extends Controller
      */
     public function paginated(NadotaRequest $request, string $resourceKey, string $fieldName): JsonResponse
     {
+        $this->authorizeOptions($request);
+
         $options = $this->fieldOptionsService->getPaginatedOptions(
             $request,
             $resourceKey,
@@ -59,6 +67,8 @@ class FieldOptionsController extends Controller
 
     /**
      * Get options for a specific morph type of morph field.
+     *
+     * Authorizes using viewAny first, falls back to viewOptions if viewAny is denied.
      *
      * @param NadotaRequest $request
      * @param string $resourceKey
@@ -72,6 +82,8 @@ class FieldOptionsController extends Controller
         string $fieldName,
         string $morphType
     ): JsonResponse {
+        $this->authorizeOptions($request);
+
         $options = $this->fieldOptionsService->getFieldOptions(
             $request,
             $resourceKey,
@@ -80,5 +92,20 @@ class FieldOptionsController extends Controller
         );
 
         return response()->json($options);
+    }
+
+    /**
+     * Authorize options access.
+     *
+     * Checks viewAny first, falls back to viewOptions if viewAny is denied.
+     * viewOptions returns true by default if not defined in the policy.
+     */
+    protected function authorizeOptions(NadotaRequest $request): void
+    {
+        $resource = $request->getResource();
+
+        if (!$resource->authorizedTo($request, 'viewAny') && !$resource->authorizedTo($request, 'viewOptions')) {
+            abort(403);
+        }
     }
 }
