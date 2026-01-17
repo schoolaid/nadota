@@ -59,9 +59,16 @@ trait ManagesFieldVisibility
 
     /**
      * Extract all fields from fields array, flattening sections.
+     * Uses memoization to avoid repeated flattening operations.
      */
     public function flattenFields(NadotaRequest $request): Collection
     {
+        // Use memoization if available (from MemoizesFields trait)
+        if (method_exists($this, 'getMemoizedFlattenedFields')) {
+            return $this->getMemoizedFlattenedFields($request);
+        }
+
+        // Fallback to direct computation if memoization not available
         return collect($this->fields($request))
             ->flatMap(function ($item) {
                 if ($item instanceof Section) {
@@ -90,7 +97,12 @@ trait ManagesFieldVisibility
      */
     protected function getStructuredFieldsFilteredByVisibility(NadotaRequest $request, string $visibilityMethod): Collection
     {
-        $items = collect($this->fields($request));
+        // Use memoized fields if available to avoid repeated fields() calls
+        $fields = method_exists($this, 'getMemoizedFields') 
+            ? $this->getMemoizedFields($request) 
+            : $this->fields($request);
+        
+        $items = collect($fields);
         $result = collect();
         $looseFields = collect();
 
@@ -163,7 +175,12 @@ trait ManagesFieldVisibility
             default => 'isShowOnDetail',
         };
 
-        $items = collect($this->fields($request));
+        // Use memoized fields if available to avoid repeated fields() calls
+        $fields = method_exists($this, 'getMemoizedFields') 
+            ? $this->getMemoizedFields($request) 
+            : $this->fields($request);
+        
+        $items = collect($fields);
         $result = [];
         $looseFieldKeys = [];
 

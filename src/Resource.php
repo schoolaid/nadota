@@ -17,6 +17,7 @@ use SchoolAid\Nadota\Http\Traits\ResourcePagination;
 use SchoolAid\Nadota\Http\Traits\ResourceRelatable;
 use SchoolAid\Nadota\Http\Traits\ResourceSearchable;
 use SchoolAid\Nadota\Http\Traits\VisibleWhen;
+use SchoolAid\Nadota\Http\Traits\MemoizesFields;
 
 #[AllowDynamicProperties] abstract class Resource implements Contracts\ResourceInterface
 {
@@ -27,7 +28,8 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
         ResourceFrontUtils,
         ResourceRelatable,
         ResourceSearchable,
-        ResourceExportable;
+        ResourceExportable,
+        MemoizesFields;
 
     public string $model;
     protected bool $usesSoftDeletes = false;
