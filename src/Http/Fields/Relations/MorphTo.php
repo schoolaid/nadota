@@ -283,6 +283,11 @@ class MorphTo extends Field
         // Find the alias for this morph type
         $alias = $this->getMorphAlias($morphType);
 
+        // If we couldn't resolve the alias, use the morph type as fallback
+        if ($alias === null) {
+            $alias = class_basename($morphType);
+        }
+
         // Get the resource for this morph type if available
         $morphResource = null;
         if (isset($this->morphResources[$alias])) {
@@ -599,10 +604,16 @@ class MorphTo extends Field
         // Get the alias and label
         $alias = $this->getMorphAlias($morphType);
         $label = $this->resolveLabel($relatedModel, $resource);
+
+        // If we couldn't resolve the alias, use the morph type as fallback
+        if ($alias === null) {
+            $alias = class_basename($morphType);
+        }
+
         $typeLabel = $this->getMorphTypeLabel($alias);
 
         // Return formatted string: "Type: Label" or just "Label" if no type
-        return $alias ? "[{$typeLabel}] {$label}" : $label;
+        return "[{$typeLabel}] {$label}";
     }
 
     /**
