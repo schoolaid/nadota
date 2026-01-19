@@ -38,4 +38,5 @@ enum FieldType: string
     case DYNAMIC = 'dynamic';
     case SIGNATURE = 'signature';
     case VARIABLE_TEXT = 'variableText';
+    case RICH_TEXT = 'richText';
 }
