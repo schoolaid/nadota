@@ -382,6 +382,54 @@ class DynamicField extends Field
             $columns[] = $this->typeField;
         }
 
+        // Include columns from all possible nested fields
+        foreach ($this->typeMap as $fieldOrCallback) {
+            if ($fieldOrCallback instanceof Field) {
+                $columns = array_merge($columns, $fieldOrCallback->getColumnsForSelect($modelClass));
+            }
+        }
+
+        if ($this->defaultField instanceof Field) {
+            $columns = array_merge($columns, $this->defaultField->getColumnsForSelect($modelClass));
+        }
+
         return array_unique($columns);
+    }
+
+    /**
+     * Get all nested relation fields from all type mappings.
+     * This allows the eager loading system to load all possible relations
+     * that might be needed for any record in the index.
+     *
+     * @return array<Field>
+     */
+    public function getNestedRelationFields(): array
+    {
+        $relationFields = [];
+
+        foreach ($this->typeMap as $fieldOrCallback) {
+            // Only handle non-closure fields for eager loading
+            // Closures would need the model to resolve
+            if ($fieldOrCallback instanceof Field && $fieldOrCallback->isRelationship()) {
+                $relationFields[] = $fieldOrCallback;
+            }
+        }
+
+        if ($this->defaultField instanceof Field && $this->defaultField->isRelationship()) {
+            $relationFields[] = $this->defaultField;
+        }
+
+        return $relationFields;
+    }
+
+    /**
+     * Check if any nested field is a relationship.
+     * This helps the eager loading system identify DynamicFields that contain relations.
+     *
+     * @return bool
+     */
+    public function hasNestedRelations(): bool
+    {
+        return !empty($this->getNestedRelationFields());
     }
 }

@@ -283,6 +283,9 @@ class RelationIndexService
         // Get available filters from related resource
         $filters = $this->getAvailableFilters($request, $field, $relatedResource);
 
+        // Get available actions from related resource
+        $actions = $this->getAvailableActions($request, $relatedResource);
+
         // Build response
         return response()->json([
             'data' => $items,
@@ -297,6 +300,7 @@ class RelationIndexService
                 'relation_type' => method_exists($field, 'relationType') ? $field->relationType() : null,
                 'has_pivot' => method_exists($field, 'hasPivotColumns') ? $field->hasPivotColumns() : false,
                 'filters' => $filters,
+                'actions' => $actions,
             ],
             'links' => [
                 'first' => $paginated->url(1),
@@ -305,6 +309,29 @@ class RelationIndexService
                 'next' => $paginated->nextPageUrl(),
             ],
         ]);
+    }
+
+    /**
+     * Get available actions from the related resource.
+     *
+     * @param NadotaRequest $request
+     * @param ResourceInterface|null $resource
+     * @return array
+     */
+    protected function getAvailableActions(NadotaRequest $request, ?ResourceInterface $resource): array
+    {
+        if (!$resource) {
+            return [];
+        }
+
+        // Create a request with the related resource for proper action serialization
+        $relatedRequest = $this->createRelatedResourceRequest($request, $resource);
+
+        return collect($resource->actions($relatedRequest))
+            ->filter(fn($action) => $action->showOnIndex())
+            ->map(fn($action) => $action->toArray($relatedRequest))
+            ->values()
+            ->toArray();
     }
 
     /**

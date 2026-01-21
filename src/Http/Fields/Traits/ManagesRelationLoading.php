@@ -23,12 +23,25 @@ trait ManagesRelationLoading
         // Always filter out paginated fields - they should be loaded via pagination endpoint
         $fields = $fields->filter(fn($field) => !$this->isFieldPaginated($field));
 
-        return $fields
+        // Get direct relation fields
+        $relations = $fields
             ->filter(fn($field) => $field->isRelationship())
             ->mapWithKeys(function ($field) use ($request) {
                 return $this->buildRelationConstraint($field, $request);
             })
             ->toArray();
+
+        // Also include nested relation fields from DynamicFields
+        $nestedRelations = $fields
+            ->filter(fn($field) => method_exists($field, 'getNestedRelationFields'))
+            ->flatMap(fn($field) => $field->getNestedRelationFields())
+            ->filter(fn($field) => !$this->isFieldPaginated($field))
+            ->mapWithKeys(function ($field) use ($request) {
+                return $this->buildRelationConstraint($field, $request);
+            })
+            ->toArray();
+
+        return array_merge($relations, $nestedRelations);
     }
 
     /**
