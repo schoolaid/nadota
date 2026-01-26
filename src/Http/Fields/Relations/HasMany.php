@@ -299,6 +299,10 @@ class HasMany extends Field
             $relationResource->withoutFields();
         }
 
+        // Propagate withoutId setting
+        if (!$this->shouldIncludeId()) {
+            $relationResource->withoutId();
+        }
 
         return $relationResource->formatCollection($items, $request);
     }
@@ -353,12 +357,17 @@ class HasMany extends Field
                     }
                 }
 
-                return [
-                    'id' => $item->getKey(),
+                $data = [
                     'label' => $label ?? "Item #{$item->getKey()}",
                     'attributes' => $item->toArray(),
                     'deletedAt' => $item->deleted_at ?? null,
                 ];
+
+                if ($this->shouldIncludeId()) {
+                    $data = ['id' => $item->getKey()] + $data;
+                }
+
+                return $data;
             })->toArray(),
             'meta' => [
                 'total' => $items->count(),

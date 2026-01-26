@@ -117,6 +117,11 @@ abstract class Field implements FieldInterface
     protected bool $isCustomField = false;
 
     /**
+     * Whether to include 'id' in the field's response (for relation fields).
+     */
+    protected bool $includeIdInResponse = true;
+
+    /**
      * Path to the custom component (e.g., '@/components/fields/MyField.vue')
      */
     protected ?string $componentPath = null;
@@ -310,6 +315,28 @@ abstract class Field implements FieldInterface
     public function isCustomField(): bool
     {
         return $this->isCustomField;
+    }
+
+    /**
+     * Disable including 'id' in the field's response.
+     * Useful for relation fields where you don't want to expose IDs.
+     *
+     * @return static
+     */
+    public function withoutId(): static
+    {
+        $this->includeIdInResponse = false;
+        return $this;
+    }
+
+    /**
+     * Check if 'id' should be included in the field's response.
+     *
+     * @return bool
+     */
+    public function shouldIncludeId(): bool
+    {
+        return $this->includeIdInResponse;
     }
 
     /**

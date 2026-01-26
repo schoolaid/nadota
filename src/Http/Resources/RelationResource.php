@@ -16,6 +16,7 @@ class RelationResource
     protected bool $includePermissions;
     protected bool $includeFields;
     protected array $pivotColumns = [];
+    protected bool $includeId = true;
 
     public function __construct(
         Collection $fields,
@@ -23,7 +24,8 @@ class RelationResource
         ?array $exceptFieldKeys = null,
         ?\Closure $labelResolver = null,
         bool $includePermissions = true,
-        bool $includeFields = true
+        bool $includeFields = true,
+        bool $includeId = true
     ) {
         $this->fields = $this->filterFields($fields, $exceptFieldKeys);
         $this->resource = $resource;
@@ -31,6 +33,7 @@ class RelationResource
         $this->labelResolver = $labelResolver;
         $this->includePermissions = $includePermissions;
         $this->includeFields = $includeFields;
+        $this->includeId = $includeId;
     }
 
     /**
@@ -59,11 +62,14 @@ class RelationResource
     {
         // Use the same structure as index/show response
         $data = [
-            'id' => $item->getKey(),
-            'key' => $item->getKey(),
             'label' => $this->resolveLabel($item),
             'resource' => $this->resource ? $this->resource::getKey() : null,
         ];
+
+        // Only include 'id' if enabled
+        if ($this->includeId) {
+            $data = ['id' => $item->getKey(), 'key' => $item->getKey()] + $data;
+        }
 
         // Use 'attributes' instead of 'fields' to match index/show structure
         if ($this->includeFields) {
@@ -200,6 +206,23 @@ class RelationResource
     {
         $this->pivotColumns = $columns;
         return $this;
+    }
+
+    /**
+     * Disable including 'id' in the response.
+     */
+    public function withoutId(): static
+    {
+        $this->includeId = false;
+        return $this;
+    }
+
+    /**
+     * Check if 'id' should be included in the response.
+     */
+    public function shouldIncludeId(): bool
+    {
+        return $this->includeId;
     }
 
     /**

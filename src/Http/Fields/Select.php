@@ -102,7 +102,28 @@ class Select extends Field
      */
     public function uuidValueFormat(): static
     {
-        return $this->valueKey('uuid')->labelKey('value');
+        return $this->optionKeys('uuid', 'value');
+    }
+
+    /**
+     * Configure both value and label keys at once.
+     *
+     * @param string $valueKey The key to use as the option value (e.g., 'uuid', 'id')
+     * @param string $labelKey The key to use as the option label (e.g., 'value', 'name', 'label')
+     * @return static
+     *
+     * @example
+     * // Options: [{"uuid":"ec1", "value":"Soltero(a)"}]
+     * Select::make('Status', 'status')
+     *     ->options($options)
+     *     ->optionKeys('uuid', 'value')
+     *     ->withLabel();
+     */
+    public function optionKeys(string $valueKey, string $labelKey): static
+    {
+        $this->valueKey = $valueKey;
+        $this->labelKey = $labelKey;
+        return $this;
     }
 
     /**

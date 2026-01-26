@@ -42,6 +42,18 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
     protected array $defaultSort = [];
 
     /**
+     * Polling interval in seconds for automatic data refresh.
+     * Set to null to disable polling.
+     */
+    protected ?int $pollingInterval = null;
+
+    /**
+     * Whether to include the 'id' field in API responses.
+     * Set to false to exclude the id from index/show responses.
+     */
+    protected bool $includeIdInResponse = true;
+
+    /**
      * Relations to an eager load on index queries
      */
     protected array $withOnIndex = [];
@@ -226,7 +238,37 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
             'restore' => $restore && $hasSoftDelete && $trashed,
             'attach' => $this->authorizedTo($request, 'attach', $resource),
             'detach' => $this->authorizedTo($request, 'detach', $resource),
+            'fields' => $this->getFieldPermissions($request, $resource),
         ];
+    }
+
+    /**
+     * Get field-specific permissions for attachable fields.
+     *
+     * @param NadotaRequest $request
+     * @param Model $resource
+     * @return array
+     */
+    protected function getFieldPermissions(NadotaRequest $request, Model $resource): array
+    {
+        $permissions = [];
+
+        $fields = $this->flattenFields($request);
+
+        foreach ($fields as $field) {
+            if (!method_exists($field, 'isAttachable') || !$field->isAttachable()) {
+                continue;
+            }
+
+            $fieldKey = $field->key();
+
+            $permissions[$fieldKey] = [
+                'attach' => $this->authorizedTo($request, 'attach', $resource, ['field' => $fieldKey]),
+                'detach' => $this->authorizedTo($request, 'detach', $resource, ['field' => $fieldKey]),
+            ];
+        }
+
+        return $permissions;
     }
     public function usesSoftDeletes(): bool
     {
@@ -444,6 +486,7 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
                 'enabled' => $this->isSearchable(),
             ],
             'selection' => $this->getSelectionConfig(),
+            'pollingInterval' => $this->getPollingInterval(),
         ];
     }
 
@@ -534,6 +577,32 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
     public function getDefaultSort(): array
     {
         return $this->defaultSort;
+    }
+
+    /**
+     * Get the polling interval in seconds.
+     * Returns null if polling is disabled.
+     */
+    public function getPollingInterval(): ?int
+    {
+        return $this->pollingInterval;
+    }
+
+    /**
+     * Check if the 'id' field should be included in API responses.
+     */
+    public function shouldIncludeId(): bool
+    {
+        return $this->includeIdInResponse;
+    }
+
+    /**
+     * Disable including the 'id' field in API responses.
+     */
+    public function withoutId(): static
+    {
+        $this->includeIdInResponse = false;
+        return $this;
     }
 
     /**

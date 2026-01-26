@@ -41,7 +41,15 @@ trait ManagesRelationLoading
             })
             ->toArray();
 
-        return array_merge($relations, $nestedRelations);
+        // Include required relations from DynamicFields (e.g., typeField relation)
+        $dynamicFieldRelations = $fields
+            ->filter(fn($field) => method_exists($field, 'getRequiredRelations'))
+            ->flatMap(fn($field) => $field->getRequiredRelations())
+            ->unique()
+            ->mapWithKeys(fn($relation) => [$relation => fn($q) => $q])
+            ->toArray();
+
+        return array_merge($relations, $nestedRelations, $dynamicFieldRelations);
     }
 
     /**

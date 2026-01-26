@@ -11,12 +11,18 @@ trait TransformsFieldData
      */
     public function transformForIndex($item, NadotaRequest $request, $fields): array
     {
-        return [
-            'id' => $item[$this::$attributeKey],
+        $data = [
             'attributes' => $this->transformFieldsToArray($fields, $request, $item),
             'deletedAt' => $item->deleted_at ?? null,
             'permissions' => $this->getPermissionsForResource($request, $item),
         ];
+
+        // Only include 'id' if the resource allows it
+        if ($this->shouldIncludeId()) {
+            $data = ['id' => $item[$this::$attributeKey]] + $data;
+        }
+
+        return $data;
     }
 
     /**

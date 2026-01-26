@@ -426,6 +426,11 @@ class RelationIndexService
             $relationResource->withPivotColumns($field->getPivotColumns());
         }
 
+        // Propagate withoutId setting
+        if (method_exists($field, 'shouldIncludeId') && !$field->shouldIncludeId()) {
+            $relationResource->withoutId();
+        }
+
         return collect($items)->map(fn($item) => $relationResource->formatItem($item, $request))->toArray();
     }
 
@@ -434,12 +439,18 @@ class RelationIndexService
      */
     protected function formatBasicItems(array $items, Field $field): array
     {
-        return collect($items)->map(function ($item) use ($field) {
+        $includeId = !method_exists($field, 'shouldIncludeId') || $field->shouldIncludeId();
+
+        return collect($items)->map(function ($item) use ($field, $includeId) {
             $data = [
-                'id' => $item->getKey(),
                 'label' => $this->resolveLabel($item, $field, null),
                 'deletedAt' => $item->deleted_at ?? null,
             ];
+
+            // Only include 'id' if enabled
+            if ($includeId) {
+                $data = ['id' => $item->getKey()] + $data;
+            }
 
             // Include pivot data if available
             if (method_exists($field, 'hasPivotColumns') && $field->hasPivotColumns() && isset($item->pivot)) {

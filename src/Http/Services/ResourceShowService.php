@@ -76,7 +76,6 @@ class ResourceShowService implements ResourceShowInterface
         });
 
         $response = [
-            'id' => $model->getKey(),
             'key' => $resource::getKey(),
             'attributes' => $attributes,
             'permissions' => $resource->getPermissionsForResource($request, $model),
@@ -84,6 +83,11 @@ class ResourceShowService implements ResourceShowInterface
             'deletedAt' => $model->deleted_at ?? null,
             'detailCardWidth' => $resource->getDetailCardWidth(),
         ];
+
+        // Only include 'id' if the resource allows it
+        if ($resource->shouldIncludeId()) {
+            $response = ['id' => $model->getKey()] + $response;
+        }
 
         // Include additional data for show action
         if ($action === 'show') {

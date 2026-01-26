@@ -35,7 +35,7 @@ class DynamicField extends Field
     /**
      * Whether to include all possible field configs in the response.
      */
-    protected bool $includeAllTypes = true;
+    protected bool $includeAllTypes = false;
 
     public function __construct(string $name, string $attribute)
     {
@@ -103,12 +103,27 @@ class DynamicField extends Field
 
     /**
      * Only include the matched field config (not all types).
+     * This is now the default behavior.
      *
      * @return static
+     * @deprecated Use default behavior instead. This method is kept for backwards compatibility.
      */
     public function onlyMatchedType(): static
     {
         $this->includeAllTypes = false;
+
+        return $this;
+    }
+
+    /**
+     * Include all possible field configs in the response.
+     * Useful when the frontend needs to render different field types dynamically.
+     *
+     * @return static
+     */
+    public function withAllTypes(): static
+    {
+        $this->includeAllTypes = true;
 
         return $this;
     }
@@ -420,6 +435,39 @@ class DynamicField extends Field
         }
 
         return $relationFields;
+    }
+
+    /**
+     * Get the relation name from the typeField if it uses dot notation.
+     * E.g., 'formItem.form_item_type_id' returns 'formItem'
+     *
+     * @return string|null
+     */
+    public function getTypeFieldRelation(): ?string
+    {
+        if ($this->typeField === null || !str_contains($this->typeField, '.')) {
+            return null;
+        }
+
+        return explode('.', $this->typeField)[0];
+    }
+
+    /**
+     * Get relations that need to be eager loaded for this field.
+     * Includes the typeField relation if it uses dot notation.
+     *
+     * @return array
+     */
+    public function getRequiredRelations(): array
+    {
+        $relations = [];
+
+        $typeFieldRelation = $this->getTypeFieldRelation();
+        if ($typeFieldRelation !== null) {
+            $relations[] = $typeFieldRelation;
+        }
+
+        return $relations;
     }
 
     /**
