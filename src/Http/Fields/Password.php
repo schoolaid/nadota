@@ -2,6 +2,7 @@
 
 namespace SchoolAid\Nadota\Http\Fields;
 
+use Illuminate\Support\Facades\Hash;
 use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
 use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\Model;
@@ -16,7 +17,7 @@ class Password extends Field
     public function __construct(string $name, string $attribute)
     {
         parent::__construct($name, $attribute, FieldType::PASSWORD->value, static::safeConfig('nadota.fields.password.component', 'FieldPassword'));
-        
+
         $this->onlyOnForms();
     }
 
@@ -41,20 +42,20 @@ class Password extends Field
     public function getRules(): array
     {
         $rules = parent::getRules();
-        
+
         // Add minimum length validation if specified
         if ($this->minLength !== null) {
             $rules[] = 'min:' . $this->minLength;
         }
-        
+
         // Add string validation
         $rules[] = 'string';
-        
+
         // Add confirmed validation if confirmable
         if ($this->confirmable) {
             $rules[] = 'confirmed';
         }
-        
+
         return $rules;
     }
 
@@ -71,5 +72,33 @@ class Password extends Field
     {
         // Never return actual password values
         return null;
+    }
+
+    /**
+     * Resolve the field value for storing.
+     *
+     * @param Request $request
+     * @param Model $model
+     * @param ResourceInterface|null $resource
+     * @param mixed $value
+     * @return mixed
+     */
+    public function resolveForStore(Request $request, Model $model, ?ResourceInterface $resource, $value): mixed
+    {
+        return Hash::make($value);
+    }
+
+    /**
+     * Resolve the field value for updating.
+     *
+     * @param Request $request
+     * @param Model $model
+     * @param ResourceInterface|null $resource
+     * @param mixed $value
+     * @return mixed
+     */
+    public function resolveForUpdate(Request $request, Model $model, ?ResourceInterface $resource, $value): mixed
+    {
+        return Hash::make($value);
     }
 }
