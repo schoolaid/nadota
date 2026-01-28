@@ -22,6 +22,8 @@ class File extends Field
     protected ?string $downloadRoute = null;
     protected bool $useTemporaryUrl = false;
     protected ?int $temporaryUrlMinutes = 29;
+    protected bool $signUrl = true;
+    protected bool $storedAsUrl = false;
     protected bool $cacheUrl = false;
     protected ?int $cacheMinutes = 30;
     protected ?string $cachePrefix = null;
@@ -131,6 +133,33 @@ class File extends Field
     {
         $this->useTemporaryUrl = true;
         $this->temporaryUrlMinutes = $minutes;
+        return $this;
+    }
+
+    /**
+     * Disable URL signing and return plain URLs.
+     */
+    public function withoutSigning(): static
+    {
+        $this->signUrl = false;
+        return $this;
+    }
+
+    /**
+     * Enable URL signing (default behavior).
+     */
+    public function withSigning(): static
+    {
+        $this->signUrl = true;
+        return $this;
+    }
+
+    /**
+     * Indicate that the stored value is already a full URL (not a relative path).
+     */
+    public function storedAsUrl(bool $stored = true): static
+    {
+        $this->storedAsUrl = $stored;
         return $this;
     }
 
@@ -286,8 +315,13 @@ class File extends Field
     protected function generateFileUrl(string $disk, string $path): ?string
     {
         try {
-            // Use temporary URL if configured
-            if ($this->useTemporaryUrl && Storage::disk($disk)->providesTemporaryUrls()) {
+            // If the stored value is already a full URL, return it directly
+            if ($this->storedAsUrl) {
+                return $path;
+            }
+
+            // Use temporary URL if configured and signing is enabled
+            if ($this->signUrl && $this->useTemporaryUrl && Storage::disk($disk)->providesTemporaryUrls()) {
                 return Storage::disk($disk)->temporaryUrl($path, now()->addMinutes($this->temporaryUrlMinutes));
             }
 
@@ -374,6 +408,8 @@ class File extends Field
             'visibility' => $this->visibility,
             'downloadable' => $this->downloadable,
             'useTemporaryUrl' => $this->useTemporaryUrl,
+            'signUrl' => $this->signUrl,
+            'storedAsUrl' => $this->storedAsUrl,
             'cacheUrl' => $this->cacheUrl,
         ]);
     }
@@ -415,7 +451,14 @@ class File extends Field
 
                 $request->file($requestAttribute)->store($storagePath, $options);
 
-                $model->{$this->getAttribute()} = $storagePath . '/' . $request->file($requestAttribute)->hashName();
+                $relativePath = $storagePath . '/' . $request->file($requestAttribute)->hashName();
+
+                // Store as full URL or relative path based on configuration
+                if ($this->storedAsUrl) {
+                    $model->{$this->getAttribute()} = Storage::disk($disk)->url($relativePath);
+                } else {
+                    $model->{$this->getAttribute()} = $relativePath;
+                }
             }
         }
     }
