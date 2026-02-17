@@ -162,6 +162,7 @@ abstract class Field implements FieldInterface
             'showOnDetail' => $this->isShowOnDetail($request, $model),
             'showOnCreation' => $this->isShowOnCreation($request, $model),
             'showOnUpdate' => $this->isShowOnUpdate($request, $model),
+            'exportable' => $this->isExportable(),
             'props' => $this->getProps($request, $model, $resource),
             'rules' => $this->getRules(),
             'optionsUrl' => $this->getOptionsUrl($resource),

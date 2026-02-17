@@ -78,6 +78,24 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
     protected bool $showRowCheckbox = false;
 
     /**
+     * Whether delete is globally enabled for this resource.
+     * Set to false to disable delete for all records.
+     */
+    protected bool $canDelete = true;
+
+    /**
+     * Whether force delete is globally enabled for this resource.
+     * Set to false to disable force delete for all records.
+     */
+    protected bool $canForceDelete = true;
+
+    /**
+     * Whether restore is globally enabled for this resource.
+     * Set to false to disable restore for all records.
+     */
+    protected bool $canRestore = true;
+
+    /**
      * Show select all checkbox in table header
      */
     protected bool $showSelectAll = false;
@@ -227,19 +245,64 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
         $hasSoftDelete = array_key_exists('deleted_at', $resource->getAttributes());
         $trashed = $resource->deleted_at !== null;
 
-        $forceDelete = $this->authorizedTo($request, 'forceDelete', $resource);
-        $restore = $this->authorizedTo($request, 'restore', $resource);
+        // Check delete permission (property + method + policy)
+        $canDelete = $this->canDelete($resource, $request) && $this->authorizedTo($request, 'delete', $resource);
+
+        // Check force delete permission (property + method + policy)
+        $canForceDelete = $this->canForceDelete($resource, $request) && $this->authorizedTo($request, 'forceDelete', $resource);
+
+        // Check restore permission (property + method + policy)
+        $canRestore = $this->canRestore($resource, $request) && $this->authorizedTo($request, 'restore', $resource);
 
         return [
             'view' => $this->authorizedTo($request, 'view', $resource),
             'update' => $this->authorizedTo($request, 'update', $resource),
-            'delete' => $this->authorizedTo($request, 'delete', $resource),
-            'forceDelete' => $forceDelete && $hasSoftDelete,
-            'restore' => $restore && $hasSoftDelete && $trashed,
+            'delete' => $canDelete,
+            'forceDelete' => $canForceDelete && $hasSoftDelete,
+            'restore' => $canRestore && $hasSoftDelete && $trashed,
             'attach' => $this->authorizedTo($request, 'attach', $resource),
             'detach' => $this->authorizedTo($request, 'detach', $resource),
             'fields' => $this->getFieldPermissions($request, $resource),
         ];
+    }
+
+    /**
+     * Determine if a record can be deleted.
+     * Override this method for custom logic per record.
+     *
+     * @param Model $model
+     * @param NadotaRequest $request
+     * @return bool
+     */
+    public function canDelete(Model $model, NadotaRequest $request): bool
+    {
+        return $this->canDelete;
+    }
+
+    /**
+     * Determine if a record can be force deleted.
+     * Override this method for custom logic per record.
+     *
+     * @param Model $model
+     * @param NadotaRequest $request
+     * @return bool
+     */
+    public function canForceDelete(Model $model, NadotaRequest $request): bool
+    {
+        return $this->canForceDelete;
+    }
+
+    /**
+     * Determine if a record can be restored.
+     * Override this method for custom logic per record.
+     *
+     * @param Model $model
+     * @param NadotaRequest $request
+     * @return bool
+     */
+    public function canRestore(Model $model, NadotaRequest $request): bool
+    {
+        return $this->canRestore;
     }
 
     /**

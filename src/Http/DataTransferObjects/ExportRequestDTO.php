@@ -55,13 +55,20 @@ class ExportRequestDTO extends IndexRequestDTO
 
     /**
      * Get headers for export based on fields.
+     * Uses the resource's getExportHeaders method which handles translation.
      */
     public function getHeaders(): array
     {
-        $fields = $this->getExportableFields();
+        // Get all headers from resource
+        $allHeaders = $this->resource->getExportHeaders($this->request);
 
-        return collect($fields)->mapWithKeys(function ($field) {
-            return [$field->key() => $field->getName()];
-        })->all();
+        // If specific columns requested, filter to only those
+        if ($this->columns) {
+            return collect($allHeaders)
+                ->filter(fn($label, $key) => in_array($key, $this->columns))
+                ->all();
+        }
+
+        return $allHeaders;
     }
 }

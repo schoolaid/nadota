@@ -115,8 +115,23 @@ trait ResourceExportable
     public function getExportHeaders(NadotaRequest $request): array
     {
         return $this->getExportableFields($request)
-            ->mapWithKeys(fn($field) => [$field->key() => $field->getName()])
+            ->mapWithKeys(fn($field) => [$field->key() => $this->translateExportHeader($field->getName())])
             ->all();
+    }
+
+    /**
+     * Translate export header label.
+     * Override to customize translation logic.
+     */
+    protected function translateExportHeader(string $label): string
+    {
+        // If label looks like a translation key (e.g., 'fields.photo', 'labels.name')
+        // try to translate it. If translation doesn't exist, return original label.
+        $translated = __($label);
+
+        // Laravel returns the key itself if translation doesn't exist
+        // So we check if the translation is different from the key
+        return $translated !== $label ? $translated : $label;
     }
 
     /**
@@ -199,8 +214,11 @@ trait ResourceExportable
     {
         $defaultColumns = $this->getDefaultExportColumns();
 
+        $prefix = config('nadota.api_prefix', 'nadota-api');
+
         return [
             'enabled' => $this->isExportEnabled() && $this->authorizedTo($request, 'export'),
+            'url' => "/{$prefix}/{$this::getKey()}/resource/export",
             'formats' => $this->getAllowedExportFormatsWithExtensions(),
             'syncLimit' => $this->getSyncExportLimit(),
             'defaultColumns' => $defaultColumns,
@@ -209,7 +227,7 @@ trait ResourceExportable
                     $key = $field->key();
                     return [
                         'key' => $key,
-                        'label' => $field->getName(),
+                        'label' => $this->translateExportHeader($field->getName()),
                         'selected' => $defaultColumns === null || in_array($key, $defaultColumns),
                     ];
                 })

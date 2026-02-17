@@ -536,6 +536,11 @@ class HasMany extends Field
                         'createUrl' => "/{$apiPrefix}/{$relatedResourceKey}/resource/create",
                         'storeUrl' => "/{$apiPrefix}/{$relatedResourceKey}/resource",
                     ];
+
+                    // Add export URL with filter for parent model
+                    if ($foreignKey && $this->isExportable()) {
+                        $props['urls']['export'] = "/{$apiPrefix}/{$relatedResourceKey}/resource/export?filters[{$foreignKey}]={$modelId}";
+                    }
                 }
             }
         }
