@@ -34,8 +34,15 @@ class MenuService implements MenuServiceInterface
         // Build menu structure
         $menuStructure = [];
         
-        foreach ($resources as $resource) {
-            $resourceInstance = new $resource['class'];
+        // Cache resource instances to avoid repeated instantiation
+        $resourceInstances = [];
+        
+        foreach ($resources as $key => $resource) {
+            // Instantiate once and cache
+            if (!isset($resourceInstances[$key])) {
+                $resourceInstances[$key] = new $resource['class'];
+            }
+            $resourceInstance = $resourceInstances[$key];
 
             if (!$resourceInstance->displayInMenu($request)) {
                 continue;

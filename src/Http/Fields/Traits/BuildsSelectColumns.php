@@ -19,14 +19,21 @@ trait BuildsSelectColumns
         $fields = $fields ?? $this->flattenFields($request)
             ->filter(fn($field) => $field->isAppliedInShowQuery());
 
-        $columns = $fields
-            ->flatMap(fn($field) => $field->getColumnsForSelect($this->model))
-            ->filter()
-            ->unique()
-            ->values()
-            ->toArray();
-
+        // Use array_flip for O(1) lookups instead of in_array
+        $columnSet = [];
+        
+        foreach ($fields as $field) {
+            $fieldColumns = $field->getColumnsForSelect($this->model);
+            foreach ($fieldColumns as $column) {
+                if ($column) { // Filter out null/empty values
+                    $columnSet[$column] = true;
+                }
+            }
+        }
+        
         // Always include the primary key
-        return array_unique([...$columns, $this::$attributeKey]);
+        $columnSet[$this::$attributeKey] = true;
+        
+        return array_keys($columnSet);
     }
 }

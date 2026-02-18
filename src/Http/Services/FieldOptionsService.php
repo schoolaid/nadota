@@ -22,6 +22,11 @@ class FieldOptionsService
      */
     protected array $strategies = [];
 
+    /**
+     * Flag to track if strategies have been sorted.
+     */
+    protected bool $strategiesSorted = false;
+
     public function __construct(
         protected ResourceManager $resourceManager
     ) {
@@ -50,11 +55,22 @@ class FieldOptionsService
     public function registerStrategy(FieldOptionsStrategy $strategy): void
     {
         $this->strategies[] = $strategy;
+        // Mark as unsorted - sorting will happen once when needed
+        $this->strategiesSorted = false;
+    }
 
-        // Sort strategies by priority (higher priority first)
-        usort($this->strategies, function ($a, $b) {
-            return $b->getPriority() <=> $a->getPriority();
-        });
+    /**
+     * Ensure strategies are sorted by priority (higher priority first).
+     * Only sorts once, subsequent calls are no-ops.
+     */
+    protected function ensureStrategiesSorted(): void
+    {
+        if (!$this->strategiesSorted) {
+            usort($this->strategies, function ($a, $b) {
+                return $b->getPriority() <=> $a->getPriority();
+            });
+            $this->strategiesSorted = true;
+        }
     }
 
     /**
@@ -467,6 +483,9 @@ class FieldOptionsService
      */
     protected function findStrategy(Field $field): ?FieldOptionsStrategy
     {
+        // Ensure strategies are sorted before searching
+        $this->ensureStrategiesSorted();
+        
         foreach ($this->strategies as $strategy) {
             if ($strategy->canHandle($field)) {
                 return $strategy;
