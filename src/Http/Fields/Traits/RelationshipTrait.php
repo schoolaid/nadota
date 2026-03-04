@@ -17,6 +17,11 @@ trait RelationshipTrait
     protected ?string $relatedResource = null;
 
     /**
+     * Custom scope callback for options query.
+     */
+    protected $optionsScopeCallback = null;
+
+    /**
      * Limit for options endpoint. Null means no limit.
      */
     protected ?int $optionsLimit = null;
@@ -150,6 +155,39 @@ trait RelationshipTrait
         $apiPrefix = config('nadota.api.prefix', 'nadota-api');
 
         return "/{$apiPrefix}/{$resourceKey}/resource/field/{$fieldName}/options";
+    }
+
+    /**
+     * Set a custom scope callback for the options query.
+     * The callback receives the query builder and should return it.
+     *
+     * @param callable $callback fn(Builder $query): Builder
+     * @return static
+     */
+    public function optionsScope(callable $callback): static
+    {
+        $this->optionsScopeCallback = $callback;
+        return $this;
+    }
+
+    /**
+     * Get the options scope callback.
+     *
+     * @return callable|null
+     */
+    public function getOptionsScope(): ?callable
+    {
+        return $this->optionsScopeCallback;
+    }
+
+    /**
+     * Check if a custom options scope is set.
+     *
+     * @return bool
+     */
+    public function hasOptionsScope(): bool
+    {
+        return $this->optionsScopeCallback !== null;
     }
 
     /**

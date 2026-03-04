@@ -1,6 +1,6 @@
 {
   "name": "schoolaid/nadota",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "type": "library",
   "description": "Laravel admin panel package for resource-based CRUD interfaces similar to Laravel Nova",
   "keywords": [
@@ -26,13 +26,14 @@
     "phpoffice/phpspreadsheet": "^1.30|^2.0|^3.0"
   },
   "require-dev": {
-    "pestphp/pest": "^3.0",
-    "pestphp/pest-plugin-laravel": "^3.0",
+    "fakerphp/faker": "^1.23",
+    "laravel/boost": "^1.8",
+    "laravel/sanctum": "^4.0",
     "mockery/mockery": "^1.6",
     "nunomaduro/collision": "^8.0",
-    "fakerphp/faker": "^1.23",
-    "laravel/sanctum": "^4.0",
-    "orchestra/testbench": "^9.0"
+    "orchestra/testbench": "^9.0",
+    "pestphp/pest": "^3.0",
+    "pestphp/pest-plugin-laravel": "^3.0"
   },
   "autoload": {
     "psr-4": {

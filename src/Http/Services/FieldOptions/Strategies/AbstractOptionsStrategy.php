@@ -135,6 +135,11 @@ abstract class AbstractOptionsStrategy implements FieldOptionsStrategy
         // Apply resource's optionsQuery customization
         $query = $this->applyResourceOptionsQuery($query, $fieldResourceInstance, $request, $originalParams);
 
+        // Apply field-level options scope
+        if (method_exists($field, 'hasOptionsScope') && $field->hasOptionsScope()) {
+            $query = call_user_func($field->getOptionsScope(), $query);
+        }
+
         // Apply custom filters
         if (!empty($filters)) {
             $this->applyFilters($query, $filters, $fieldResourceInstance);

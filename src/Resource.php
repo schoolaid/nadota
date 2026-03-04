@@ -18,7 +18,8 @@ use SchoolAid\Nadota\Http\Traits\ResourceRelatable;
 use SchoolAid\Nadota\Http\Traits\ResourceSearchable;
 use SchoolAid\Nadota\Http\Traits\VisibleWhen;
 
-#[AllowDynamicProperties] abstract class Resource implements Contracts\ResourceInterface
+#[AllowDynamicProperties]
+abstract class Resource implements Contracts\ResourceInterface
 {
     use ResourcePagination,
         ResourceMenuOptions,
@@ -139,12 +140,14 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
     {
         $this->resourceAuthorization = $resourceAuthorization ?? app(ResourceAuthorizationInterface::class);
     }
+
     public function authorizedTo(NadotaRequest $request, string $action, $model = null, array $context = []): bool
     {
         return $this->resourceAuthorization
             ->setModel($model ?? $this->model)
             ->authorizedTo($request, $action, $context);
     }
+
     public function title(): string
     {
         return $this->title ?? Str::plural(Str::title(Str::snake(class_basename(get_called_class()), ' ')));
@@ -164,12 +167,12 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
 
         foreach ($commonAttributes as $attr) {
             if (isset($model->{$attr}) && $model->{$attr} !== null) {
-                return (string) $model->{$attr};
+                return (string)$model->{$attr};
             }
         }
 
         // Fallback to primary key
-        return (string) $model->getKey();
+        return (string)$model->getKey();
     }
 
     /**
@@ -201,7 +204,7 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
         if (is_array($item)) {
             return [
                 'value' => $item['id'] ?? null,
-                'label' => $item['label'] ?? null ,
+                'label' => $item['label'] ?? null,
             ];
         }
 
@@ -224,15 +227,19 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
     {
         return Helpers::toUri(get_called_class());
     }
+
     public function displayIcon(): string|null
     {
         return $this->displayIcon;
     }
+
     public function getUseSoftDeletes(): bool
     {
         return $this->usesSoftDeletes;
     }
+
     abstract public function fields(NadotaRequest $request);
+
     public function getQuery(NadotaRequest $request, Model $modelInstance = null): Builder
     {
         if ($modelInstance) {
@@ -240,6 +247,7 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
         }
         return (new $this->model)->newQuery();
     }
+
     public function getPermissionsForResource(NadotaRequest $request, Model $resource): array
     {
         $hasSoftDelete = array_key_exists('deleted_at', $resource->getAttributes());
@@ -333,18 +341,22 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
 
         return $permissions;
     }
+
     public function usesSoftDeletes(): bool
     {
         return $this->usesSoftDeletes;
     }
+
     public function actions(NadotaRequest $request): array
     {
         return [];
     }
+
     public function filters(NadotaRequest $request): array
     {
         return [];
     }
+
     public function queryIndex(NadotaRequest $request, $query)
     {
         return $query;
@@ -431,6 +443,7 @@ use SchoolAid\Nadota\Http\Traits\VisibleWhen;
     {
         return null;
     }
+
     public function tools(NadotaRequest $request): array
     {
         return [];
