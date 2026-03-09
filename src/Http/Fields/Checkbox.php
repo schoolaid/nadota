@@ -57,8 +57,8 @@ class Checkbox extends Field
 
     public function resolveForStore(Request $request, Model $model, ?ResourceInterface $resource, $value): mixed
     {
-        if ($value != null) {
-            $value = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+        if ($value !== null) {
+            return filter_var($value, FILTER_VALIDATE_BOOLEAN) ? $this->trueValue : $this->falseValue;
         }
 
         return parent::resolveForStore($request, $model, $resource, $value);
@@ -66,8 +66,8 @@ class Checkbox extends Field
 
     public function resolveForUpdate(Request $request, Model $model, ?ResourceInterface $resource, $value): mixed
     {
-        if ($value != null) {
-            $value = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+        if ($value !== null) {
+            return filter_var($value, FILTER_VALIDATE_BOOLEAN) ? $this->trueValue : $this->falseValue;
         }
 
         return parent::resolveForUpdate($request, $model, $resource, $value);
