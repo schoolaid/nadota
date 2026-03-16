@@ -2,6 +2,7 @@
 
 namespace SchoolAid\Nadota\Http\Services;
 
+use Illuminate\Support\Facades\Cache;
 use SchoolAid\Nadota\Contracts\MenuServiceInterface;
 use SchoolAid\Nadota\Contracts\ResourceAuthorizationInterface;
 use SchoolAid\Nadota\NadotaService;
@@ -20,8 +21,9 @@ class MenuService implements MenuServiceInterface
         if (NadotaService::$prepareMenuUsing) {
             return call_user_func(NadotaService::$prepareMenuUsing, $request);
         }
-
+        
         $resources = ResourceManager::getResources();
+
         $resourceAuthorization = app(ResourceAuthorizationInterface::class);
 
         // Filter resources by authorization
@@ -33,7 +35,7 @@ class MenuService implements MenuServiceInterface
 
         // Build menu structure
         $menuStructure = [];
-        
+
         foreach ($resources as $resource) {
             $resourceInstance = new $resource['class'];
 
@@ -147,23 +149,23 @@ class MenuService implements MenuServiceInterface
         $children[] = $menuItem;
         $section->setChildren($children);
     }
-    
+
     /**
      * Build the final menu array from the structure
      */
     private function buildFinalMenu(array $menuStructure): array
     {
         $finalMenu = [];
-        
+
         foreach ($menuStructure as $key => $item) {
             if ($item instanceof MenuItemInterface) {
                 $finalMenu[] = $item;
             }
         }
-        
+
         return $finalMenu;
     }
-    
+
     /**
      * Sort menu items recursively
      */
@@ -172,7 +174,7 @@ class MenuService implements MenuServiceInterface
         usort($menuItems, function ($a, $b) {
             return $a->getOrder() <=> $b->getOrder();
         });
-        
+
         foreach ($menuItems as $menuItem) {
             if ($menuItem instanceof MenuItemInterface) {
                 $children = $menuItem->getChildren();

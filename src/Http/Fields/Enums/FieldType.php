@@ -39,4 +39,5 @@ enum FieldType: string
     case SIGNATURE = 'signature';
     case VARIABLE_TEXT = 'variableText';
     case RICH_TEXT = 'richText';
+    case STATUS = 'status';
 }

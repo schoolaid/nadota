@@ -72,6 +72,10 @@ return [
             'type' => 'checkboxList',
             'component' => 'FieldCheckboxList'
         ],
+        'status' => [
+            'type' => 'status',
+            'component' => 'FieldStatus'
+        ],
         'keyvalue' => [
             'type' => 'keyvalue',
             'component' => 'FieldKeyValue'

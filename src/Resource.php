@@ -74,6 +74,11 @@ abstract class Resource implements Contracts\ResourceInterface
     protected string $deleteComponent = 'ResourceDelete';
 
     /**
+     * Whether this resource is exposed in the global /options endpoint.
+     */
+    protected bool $availableInGlobalOptions = false;
+
+    /**
      * Show checkbox on each row for bulk selection
      */
     protected bool $showRowCheckbox = false;
@@ -650,6 +655,11 @@ abstract class Resource implements Contracts\ResourceInterface
     /**
      * Get the default sort configuration
      */
+    public function isAvailableInGlobalOptions(): bool
+    {
+        return $this->availableInGlobalOptions;
+    }
+
     public function getDefaultSort(): array
     {
         return $this->defaultSort;

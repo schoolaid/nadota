@@ -11,7 +11,6 @@ use SchoolAid\Nadota\Http\Controllers\AttachmentController;
 use SchoolAid\Nadota\Http\Controllers\RelationController;
 use SchoolAid\Nadota\Http\Controllers\ActionEventController;
 use SchoolAid\Nadota\Http\Controllers\ExportController;
-
 Route::get('/menu', [MenuController::class, 'menu'])->name('menu');
 
 Route::prefix('/{resourceKey}/resource')->group(function () {

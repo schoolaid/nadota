@@ -3,12 +3,14 @@
 namespace SchoolAid\Nadota;
 
 use Exception;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Collection;
 use SchoolAid\Nadota\Http\Helpers\Helpers;
 use Symfony\Component\Finder\Finder;
 
 class ResourceManager
 {
+    protected static ?Collection $resources = null;
+
     /**
      * @throws Exception
      */
@@ -35,12 +37,12 @@ class ResourceManager
 
             if (is_subclass_of($resourceClass, Resource::class)) {
                 $key = Helpers::toUri($resourceClass);
-                if(isset($resources[$key])){
+                if (isset($resources[$key])) {
                     throw new Exception("Resource with uri key $key already exists");
                 }
 
                 $resource = new $resourceClass();
-                if(!isset($resource->model)){
+                if (!isset($resource->model)) {
                     throw new Exception("Resource $resourceClass must have a model property");
                 }
 
@@ -51,13 +53,13 @@ class ResourceManager
             }
         }
 
-        Cache::put(config('nadota.key_resources_cache'), collect($resources));
+        static::$resources = collect($resources);
         return new static();
     }
 
     public static function getResourceByKey($key): string
     {
-        $resources = Cache::get(config('nadota.key_resources_cache'));
+        $resources = static::getResources();
 
         return tap(once(function () use ($resources, $key) {
             return $resources[$key]['class'] ?? null;
@@ -66,21 +68,21 @@ class ResourceManager
         });
     }
 
-    public static function getResources()
+    public static function getResources(): Collection
     {
-        return Cache::get(config('nadota.key_resources_cache'));
+        return static::$resources ?? collect();
     }
 
     public static function exists($key): bool
     {
-        $resources = Cache::get(config('nadota.key_resources_cache'));
+        $resources = static::getResources();
 
         return isset($resources[$key]);
     }
 
     public static function getModelByResource(string $resource)
     {
-        $resources = Cache::get(config('nadota.key_resources_cache'));
+        $resources = static::getResources();
 
         return tap(once(function () use ($resources, $resource) {
             return array_search($resource, $resources);
@@ -102,16 +104,13 @@ class ResourceManager
             throw new Exception("Class $resourceClass must extend Resource");
         }
 
-        $resources = Cache::get(config('nadota.key_resources_cache'), collect());
-
-        if (!($resources instanceof \Illuminate\Support\Collection)) {
-            $resources = collect($resources);
+        if (static::$resources === null) {
+            static::$resources = collect();
         }
 
         $key = Helpers::toUri($resourceClass);
 
-        if ($resources->has((array)$key)) {
-            // Resource already registered, skip
+        if (static::$resources->has($key)) {
             return;
         }
 
@@ -121,11 +120,9 @@ class ResourceManager
             throw new Exception("Resource $resourceClass must have a model property");
         }
 
-        $resources[$key] = [
+        static::$resources[$key] = [
             'class' => $resourceClass,
             'model' => $resource->model,
         ];
-
-        Cache::put(config('nadota.key_resources_cache'), $resources);
     }
 }

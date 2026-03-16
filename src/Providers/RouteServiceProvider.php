@@ -15,9 +15,25 @@ class RouteServiceProvider extends ServiceProvider
 
     protected function registerRoutes(): void
     {
+        // Public routes (no auth middleware)
+        Route::group($this->publicRouteConfiguration(), function () {
+            $this->loadRoutesFrom(__DIR__.'/../../routes/public.php');
+        });
+
+        // Protected routes (with configured middleware)
         Route::group($this->routeConfiguration(), function () {
             $this->loadRoutesFrom(__DIR__.'/../../routes/api.php');
         });
+    }
+
+    protected function publicRouteConfiguration(): array
+    {
+        return [
+            'prefix' => config('nadota.prefix', 'nadota-api'),
+            'as' => 'nadota.api.',
+            'excluded_middleware' => [SubstituteBindings::class],
+            'middleware' => ['api'],
+        ];
     }
 
     protected function routeConfiguration(): array

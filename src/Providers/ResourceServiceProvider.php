@@ -48,9 +48,9 @@ class ResourceServiceProvider extends ServiceProvider
             if (!Cache::has(config('nadota.key_resources_cache'))) {
                 ResourceManager::registerResource($path);
             }
+        } else {
+            ResourceManager::registerResource($path);
         }
-
-        ResourceManager::registerResource($path);
 
         // Register built-in resources
         $this->registerBuiltInResources();
