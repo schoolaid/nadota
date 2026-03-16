@@ -2,6 +2,7 @@
 
 namespace SchoolAid\Nadota\Http\Fields;
 
+use SchoolAid\Nadota\Http\Helpers\PasswordHandler;
 use Illuminate\Support\Facades\Hash;
 use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
 use Illuminate\Http\Request;
@@ -85,7 +86,7 @@ class Password extends Field
      */
     public function resolveForStore(Request $request, Model $model, ?ResourceInterface $resource, $value): mixed
     {
-        return Hash::make($value);
+        return PasswordHandler::make($value);
     }
 
     /**
@@ -99,6 +100,6 @@ class Password extends Field
      */
     public function resolveForUpdate(Request $request, Model $model, ?ResourceInterface $resource, $value): mixed
     {
-        return Hash::make($value);
+        return PasswordHandler::make($value);
     }
 }
