@@ -12,6 +12,7 @@ use SchoolAid\Nadota\Http\Filters\NumberFilter;
 use SchoolAid\Nadota\Http\Filters\RangeFilter;
 use SchoolAid\Nadota\Http\Filters\RelationFilter;
 use SchoolAid\Nadota\Http\Filters\SelectFilter;
+use SchoolAid\Nadota\Http\Filters\TimeFilter;
 
 trait FilterableTrait
 {
@@ -133,8 +134,10 @@ trait FilterableTrait
 
             // Campos de fecha/hora - DateFilter (por defecto single, puede ser range)
             FieldType::DATE->value,
-            FieldType::DATETIME->value,
-            FieldType::TIME->value => new DateFilter($label, $attribute, $type, null, null, false),
+            FieldType::DATETIME->value => new DateFilter($label, $attribute, $type, null, null, false),
+
+            // Campos de tiempo - TimeFilter
+            FieldType::TIME->value => new TimeFilter($label, $attribute, $type, null, null, false),
 
             // Campos booleanos - BooleanFilter
             FieldType::BOOLEAN->value,
@@ -169,8 +172,8 @@ trait FilterableTrait
         return match ($type) {
             FieldType::NUMBER->value => new NumberFilter($name, $attribute, $type, null, null, true),
             FieldType::DATE->value,
-            FieldType::DATETIME->value,
-            FieldType::TIME->value => new DateFilter($name, $attribute, $type, null, null, true),
+            FieldType::DATETIME->value => new DateFilter($name, $attribute, $type, null, null, true),
+            FieldType::TIME->value => new TimeFilter($name, $attribute, $type, null, null, true),
             default => new RangeFilter($name, $attribute, $type),
         };
     }

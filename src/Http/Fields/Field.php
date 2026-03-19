@@ -97,6 +97,11 @@ abstract class Field implements FieldInterface
     protected bool $exportable = false;
 
     /**
+     * Custom metadata for the field
+     */
+    protected array $meta = [];
+
+    /**
      * Attribute to use when exporting relation items.
      */
     protected ?string $exportAttribute = null;
@@ -167,6 +172,7 @@ abstract class Field implements FieldInterface
             'rules' => $this->getRules(),
             'optionsUrl' => $this->getOptionsUrl($resource),
             'dependencies' => $this->getDependencyConfig(),
+            'meta' => $this->meta,
         ]);
 
         if ($model) {
@@ -190,6 +196,18 @@ abstract class Field implements FieldInterface
     public function withData(callable $callback): static
     {
         $this->dataCallback = $callback;
+        return $this;
+    }
+
+    /**
+     * Add custom metadata to the field
+     *
+     * @param array $meta
+     * @return static
+     */
+    public function withMeta(array $meta): static
+    {
+        $this->meta = array_merge($this->meta, $meta);
         return $this;
     }
 
