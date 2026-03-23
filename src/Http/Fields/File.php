@@ -27,6 +27,9 @@ class File extends Field
     protected bool $cacheUrl = false;
     protected ?int $cacheMinutes = 30;
     protected ?string $cachePrefix = null;
+    protected ?\Closure $storeCallback = null;
+    protected ?\Closure $deleteCallback = null;
+    protected ?\Closure $filenameCallback = null;
 
     public function __construct(string $name, string $attribute)
     {
@@ -171,6 +174,40 @@ class File extends Field
         $this->cacheUrl = true;
         $this->cacheMinutes = $minutes;
         $this->cachePrefix = $prefix;
+        return $this;
+    }
+
+    /**
+     * Set a custom store callback for full control over file storage.
+     *
+     * The callback receives: ($request, $model, $attribute, $requestAttribute, $disk, $path)
+     * and should return the stored file path (or value to save on the model).
+     */
+    public function store(\Closure $callback): static
+    {
+        $this->storeCallback = $callback;
+        return $this;
+    }
+
+    /**
+     * Set a custom delete callback for removing old files.
+     *
+     * The callback receives: ($model, $disk, $oldPath)
+     */
+    public function deleteUsing(\Closure $callback): static
+    {
+        $this->deleteCallback = $callback;
+        return $this;
+    }
+
+    /**
+     * Set a custom filename callback.
+     *
+     * The callback receives: ($request, $requestAttribute) and should return the filename string.
+     */
+    public function storeAs(\Closure $callback): static
+    {
+        $this->filenameCallback = $callback;
         return $this;
     }
 
@@ -431,36 +468,76 @@ class File extends Field
         $requestAttribute = $this->getAttribute();
 
         // Check if a file was uploaded
-        if ($request->hasFile($requestAttribute)) {
+        if ($request->hasFile($requestAttribute) && $request->file($requestAttribute)) {
+            // Determine storage disk
+            $disk = $this->disk ?? config('filesystems.default', 'local');
 
-            // Validate the file is valid
-            if ($request->file($requestAttribute)) {
-                // Determine storage disk
-                $disk = $this->disk ?? config('filesystems.default', 'local');
+            // Determine a storage path
+            $storagePath = $this->path ?? 'uploads';
 
-                // Determine a storage path
-                $storagePath = $this->path ?? 'uploads';
+            // Delete old file if exists
+            $this->performDelete($model, $disk);
 
-                // Build storage options
-                $options = ['disk' => $disk];
+            // Use custom store callback if provided
+            if ($this->storeCallback) {
+                $result = call_user_func(
+                    $this->storeCallback,
+                    $request,
+                    $model,
+                    $this->getAttribute(),
+                    $requestAttribute,
+                    $disk,
+                    $storagePath
+                );
 
-                // Add visibility if specified (for S3 public/private files)
-                if ($this->visibility !== null) {
-                    $options['visibility'] = $this->visibility;
-                }
+                $model->{$this->getAttribute()} = $result;
+                return;
+            }
 
+            // Build storage options
+            $options = ['disk' => $disk];
+
+            // Add visibility if specified (for S3 public/private files)
+            if ($this->visibility !== null) {
+                $options['visibility'] = $this->visibility;
+            }
+
+            // Use custom filename callback if provided
+            if ($this->filenameCallback) {
+                $filename = call_user_func($this->filenameCallback, $request, $requestAttribute);
+                $request->file($requestAttribute)->storeAs($storagePath, $filename, $options);
+                $relativePath = $storagePath . '/' . $filename;
+            } else {
                 $request->file($requestAttribute)->store($storagePath, $options);
-
                 $relativePath = $storagePath . '/' . $request->file($requestAttribute)->hashName();
+            }
 
-                // Store as full URL or relative path based on configuration
-                if ($this->storedAsUrl) {
-                    $model->{$this->getAttribute()} = Storage::disk($disk)->url($relativePath);
-                } else {
-                    $model->{$this->getAttribute()} = $relativePath;
-                }
+            // Store as full URL or relative path based on configuration
+            if ($this->storedAsUrl) {
+                $model->{$this->getAttribute()} = Storage::disk($disk)->url($relativePath);
+            } else {
+                $model->{$this->getAttribute()} = $relativePath;
             }
         }
+    }
+
+    /**
+     * Delete the existing file using custom callback or default behavior.
+     */
+    protected function performDelete(Model $model, string $disk): void
+    {
+        $oldPath = $model->getOriginal($this->getAttribute());
+
+        if (!$oldPath) {
+            return;
+        }
+
+        if ($this->deleteCallback) {
+            call_user_func($this->deleteCallback, $model, $disk, $oldPath);
+            return;
+        }
+
+        $this->deleteOldFile($model);
     }
 
     /**

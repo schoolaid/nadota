@@ -92,6 +92,22 @@ class ResourceManager
     }
 
     /**
+     * Remove resources by their class names.
+     *
+     * @param array<class-string> $resourceClasses
+     */
+    public static function removeResourcesByClass(array $resourceClasses): void
+    {
+        if (static::$resources === null) {
+            return;
+        }
+
+        static::$resources = static::$resources->reject(function ($resource) use ($resourceClasses) {
+            return in_array($resource['class'], $resourceClasses);
+        });
+    }
+
+    /**
      * Register a single resource class directly
      * Used for built-in package resources
      *

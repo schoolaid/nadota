@@ -6,6 +6,7 @@ use Exception;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
+use SchoolAid\Nadota\NadotaService;
 use SchoolAid\Nadota\ResourceManager;
 
 class ResourceServiceProvider extends ServiceProvider
@@ -54,6 +55,12 @@ class ResourceServiceProvider extends ServiceProvider
 
         // Register built-in resources
         $this->registerBuiltInResources();
+
+        // Apply resource exclusions
+        $excluded = NadotaService::getExcludedResources();
+        if (!empty($excluded)) {
+            ResourceManager::removeResourcesByClass($excluded);
+        }
     }
 
     /**
