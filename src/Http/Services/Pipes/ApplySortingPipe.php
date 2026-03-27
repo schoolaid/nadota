@@ -41,26 +41,29 @@ class ApplySortingPipe
     {
         $defaultSort = $data->resource->getDefaultSort();
 
-        if (empty($defaultSort)) {
-            return;
-        }
+        if (!empty($defaultSort)) {
+            $sortField = $defaultSort['field'] ?? null;
+            $sortDirection = $defaultSort['direction'] ?? 'desc';
 
-        $sortField = $defaultSort['field'] ?? null;
-        $sortDirection = $defaultSort['direction'] ?? 'desc';
+            if ($sortField) {
+                /** @var Field $field */
+                $field = $fields->first(fn($field) => $field->key() === $sortField);
 
-        if (!$sortField) {
-            return;
-        }
-
-        /** @var Field $field */
-        $field = $fields->first(fn($field) => $field->key() === $sortField);
-
-        if ($field) {
-            if ($field->isRelationship()) {
-                $data->query = $field->applySorting($data->query, $sortDirection, $data->modelInstance);
-            } else {
-                $data->query->orderBy($field->getAttribute(), $sortDirection);
+                if ($field) {
+                    if ($field->isRelationship()) {
+                        $data->query = $field->applySorting($data->query, $sortDirection, $data->modelInstance);
+                    } else {
+                        $data->query->orderBy($field->getAttribute(), $sortDirection);
+                    }
+                    return;
+                }
             }
+        }
+
+        // Fallback: if table has timestamps, sort by created_at desc
+        if ($data->modelInstance->usesTimestamps()) {
+            $createdAtColumn = $data->modelInstance->getCreatedAtColumn();
+            $data->query->orderBy($createdAtColumn, 'desc');
         }
     }
 }
