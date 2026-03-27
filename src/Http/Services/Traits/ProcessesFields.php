@@ -61,13 +61,17 @@ trait ProcessesFields
      */
     protected function buildValidationRules(Collection $fields, ?Model $model = null): array
     {
+        $isUpdate = $model !== null;
         $rules = [];
 
         foreach ($fields as $field) {
             if ($field instanceof MorphTo) {
                 $this->addMorphToRules($field, $rules, $model);
             } else {
-                $fieldRules = $field->getRules();
+                $fieldRules = method_exists($field, 'getRulesFor')
+                    ? $field->getRulesFor($isUpdate)
+                    : $field->getRules();
+
                 $rules[$field->getAttribute()] = $model
                     ? $this->replaceIdPlaceholder($fieldRules, $model)
                     : $fieldRules;

@@ -14,11 +14,20 @@ class Password extends Field
     protected ?int $minLength = null;
     protected bool $showStrengthIndicator = false;
 
+    /**
+     * Custom hashing callback. Defaults to Hash::make.
+     */
+    protected $hashUsing = null;
+
     public function __construct(string $name, string $attribute)
     {
         parent::__construct($name, $attribute, FieldType::PASSWORD->value, static::safeConfig('nadota.fields.password.component', 'FieldPassword'));
 
         $this->onlyOnForms();
+
+        // Password is required on creation, nullable on update by default
+        $this->creationRules(['required']);
+        $this->updateRules(['nullable']);
     }
 
     public function confirmable(bool $confirmable = true): static
@@ -36,6 +45,18 @@ class Password extends Field
     public function showStrengthIndicator(bool $show = true): static
     {
         $this->showStrengthIndicator = $show;
+        return $this;
+    }
+
+    /**
+     * Set a custom hashing callback.
+     *
+     * @param callable $callback Receives (string $value) and returns the hashed string
+     * @return static
+     */
+    public function hashUsing(callable $callback): static
+    {
+        $this->hashUsing = $callback;
         return $this;
     }
 
@@ -85,7 +106,7 @@ class Password extends Field
      */
     public function resolveForStore(Request $request, Model $model, ?ResourceInterface $resource, $value): mixed
     {
-        return Hash::make($value);
+        return $this->hashValue($value);
     }
 
     /**
@@ -99,6 +120,18 @@ class Password extends Field
      */
     public function resolveForUpdate(Request $request, Model $model, ?ResourceInterface $resource, $value): mixed
     {
+        return $this->hashValue($value);
+    }
+
+    /**
+     * Hash the value using the custom callback or Hash::make.
+     */
+    protected function hashValue(string $value): string
+    {
+        if ($this->hashUsing !== null) {
+            return call_user_func($this->hashUsing, $value);
+        }
+
         return Hash::make($value);
     }
 }
