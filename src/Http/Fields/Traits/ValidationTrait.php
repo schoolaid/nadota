@@ -101,6 +101,7 @@ trait ValidationTrait
     /**
      * Get rules for a specific operation context (store or update).
      * Merges base rules with context-specific rules.
+     * Context rules override conflicting base rules (e.g., nullable overrides required).
      *
      * @param bool $isUpdate
      * @return array
@@ -112,14 +113,34 @@ trait ValidationTrait
         $contextRules = $isUpdate ? $this->updateRules : $this->creationRules;
 
         if (!empty($contextRules)) {
+            // Context rules override conflicting base rules
+            if (in_array('nullable', $contextRules)) {
+                $rules = array_values(array_diff($rules, ['required']));
+            }
+            if (in_array('required', $contextRules)) {
+                $rules = array_values(array_diff($rules, ['nullable']));
+            }
+
             $rules = array_merge($rules, $contextRules);
         }
 
         return array_unique($rules);
     }
 
-    public function isRequired(): bool
+    /**
+     * Check if field is required, considering operation context.
+     *
+     * @param bool|null $isUpdate null = no context (base), true = update, false = creation
+     * @return bool
+     */
+    public function isRequired(?bool $isUpdate = null): bool
     {
-        return $this->required;
+        if ($isUpdate === null) {
+            return $this->required;
+        }
+
+        $rules = $this->getRulesFor($isUpdate);
+
+        return in_array('required', $rules) && !in_array('nullable', $rules);
     }
 }

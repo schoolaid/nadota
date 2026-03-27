@@ -145,11 +145,16 @@ abstract class Field implements FieldInterface
 
     public function toArray(NadotaRequest $request, ?Model $model = null, ?ResourceInterface $resource = null): array
     {
+        // Determine operation context from request action parameter
+        $action = $request->get('action');
+        $isUpdate = $action === 'update' || $action === 'edit';
+        $hasContext = in_array($action, ['create', 'store', 'edit', 'update']);
+
         $data = array_merge($this->fieldData->toArray(), [
             'key' => $this->key(),
             'readonly' => $this->isReadonly(),
             'disabled' => $this->isDisabled(),
-            'required' => $this->isRequired(),
+            'required' => $hasContext ? $this->isRequired($isUpdate) : $this->isRequired(),
             'helpText' => $this->getHelpText(),
             'alert' => $this->getAlert(),
             'default' => $this->hasDefault() ? $this->resolveDefault($request, $model, $resource) : null,
@@ -164,7 +169,7 @@ abstract class Field implements FieldInterface
             'showOnUpdate' => $this->isShowOnUpdate($request, $model),
             'exportable' => $this->isExportable(),
             'props' => $this->getProps($request, $model, $resource),
-            'rules' => $this->getRules(),
+            'rules' => $hasContext ? $this->getRulesFor($isUpdate) : $this->getRules(),
             'optionsUrl' => $this->getOptionsUrl($resource),
             'dependencies' => $this->getDependencyConfig(),
         ]);
