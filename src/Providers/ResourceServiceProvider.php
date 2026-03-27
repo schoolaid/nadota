@@ -11,67 +11,67 @@ use SchoolAid\Nadota\ResourceManager;
 
 class ResourceServiceProvider extends ServiceProvider
 {
-    /**
-     * @throws Exception
-     */
-    public function boot(): void
-    {
-        if ($this->app->runningInConsole()) {
-            $this->registerPublishing();
-        }
+	/**
+	 * @throws Exception
+	 */
+	public function boot(): void
+	{
+		if ($this->app->runningInConsole()) {
+			$this->registerPublishing();
+		}
 
-        if (! $this->app->configurationIsCached()) {
-            $this->mergeConfigFrom(__DIR__ . '/../../config/nadota.php', 'nadota');
-        }
+		if (!$this->app->configurationIsCached()) {
+			$this->mergeConfigFrom(__DIR__ . '/../../config/nadota.php', 'nadota');
+		}
 
-        $this->registerResources();
-    }
+		$this->registerResources();
+	}
 
-    protected function registerPublishing(): void
-    {
-        $this->publishes([
-            __DIR__.'/../../Console/stubs/NadotaServiceProvider.stub' => app_path('Providers/NadotaServiceProvider.php'),
-        ], 'nadota-provider');
+	protected function registerPublishing(): void
+	{
+		$this->publishes([
+			__DIR__ . '/../../Console/stubs/NadotaServiceProvider.stub' => app_path('Providers/NadotaServiceProvider.php'),
+		], 'nadota-provider');
 
-        $this->publishes([
-            __DIR__ . '/../../config/nadota.php' => config_path('nadota.php'),
-        ], 'nadota-config');
-    }
+		$this->publishes([
+			__DIR__ . '/../../config/nadota.php' => config_path('nadota.php'),
+		], 'nadota-config');
+	}
 
-    /**
-     * @throws Exception
-     */
-    protected function registerResources(): void
-    {
-        $path = Config::get('nadota.path_resources');
+	/**
+	 * @throws Exception
+	 */
+	protected function registerResources(): void
+	{
+		$path = Config::get('nadota.path_resources');
 
-        if(config('app.env') == 'production') {
-            if (!Cache::has(config('nadota.key_resources_cache'))) {
-                ResourceManager::registerResource($path);
-            }
-        } else {
-            ResourceManager::registerResource($path);
-        }
+		if (config('app.env') == 'production') {
+			if (!Cache::has(config('nadota.key_resources_cache'))) {
+				ResourceManager::registerResource($path);
+			}
+		}
 
-        // Register built-in resources
-        $this->registerBuiltInResources();
+		ResourceManager::registerResource($path);
 
-        // Apply resource exclusions
-        $excluded = NadotaService::getExcludedResources();
-        if (!empty($excluded)) {
-            ResourceManager::removeResourcesByClass($excluded);
-        }
-    }
+		// Register built-in resources
+		$this->registerBuiltInResources();
 
-    /**
-     * Register built-in package resources
-     * @throws Exception
-     */
-    protected function registerBuiltInResources(): void
-    {
-        // Register ActionEventResource if action tracking is enabled
-        if (config('nadota.track_actions', true)) {
-            ResourceManager::registerResourceClass(\SchoolAid\Nadota\Resources\ActionEventResource::class);
-        }
-    }
+		// Apply resource exclusions
+		$excluded = NadotaService::getExcludedResources();
+		if (!empty($excluded)) {
+			ResourceManager::removeResourcesByClass($excluded);
+		}
+	}
+
+	/**
+	 * Register built-in package resources
+	 * @throws Exception
+	 */
+	protected function registerBuiltInResources(): void
+	{
+		// Register ActionEventResource if action tracking is enabled
+		if (config('nadota.track_actions', true)) {
+			ResourceManager::registerResourceClass(\SchoolAid\Nadota\Resources\ActionEventResource::class);
+		}
+	}
 }
