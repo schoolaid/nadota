@@ -155,6 +155,8 @@ trait SearchesOptions
             ? $resourceInstance->getAllowedOptionsFilters()
             : null;
 
+        $supportedOperators = ['=', '!=', '<>', '>', '<', '>=', '<=', 'like'];
+
         foreach ($filters as $field => $value) {
             // Skip if allowedFilters is defined and field is not in it
             if ($allowedFilters !== null && !in_array($field, $allowedFilters)) {
@@ -164,6 +166,30 @@ trait SearchesOptions
             // Handle null values
             if ($value === null || $value === 'null') {
                 $query->whereNull($field);
+                continue;
+            }
+
+            // Handle operator format: { value: ..., operator: "like" }
+            if (is_array($value) && array_key_exists('value', $value) && isset($value['operator'])) {
+                $operator = strtolower($value['operator']);
+                $filterValue = $value['value'];
+
+                if (!in_array($operator, $supportedOperators)) {
+                    continue;
+                }
+
+                if ($filterValue === null || $filterValue === 'null') {
+                    $operator === '!=' || $operator === '<>'
+                        ? $query->whereNotNull($field)
+                        : $query->whereNull($field);
+                    continue;
+                }
+
+                if ($operator === 'like') {
+                    $filterValue = str_contains($filterValue, '%') ? $filterValue : '%' . $filterValue . '%';
+                }
+
+                $query->where($field, $operator, $filterValue);
                 continue;
             }
 
