@@ -434,8 +434,8 @@ class FieldOptionsService
                 continue;
             }
 
-            // Handle standard equality
-            $query->where($field, $value);
+            // Handle standard search with like
+            $query->where($field, 'like', '%' . $value . '%');
         }
     }
 
