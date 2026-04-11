@@ -2,11 +2,13 @@
 
 namespace SchoolAid\Nadota\Http\Fields;
 
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Request;
+use SchoolAid\Nadota\Contracts\ResourceInterface;
 use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
 
 class CheckboxList extends Field
 {
-    protected string $component = 'field-checkbox-list';
     protected array $options = [];
     protected ?int $minSelections = null;
     protected ?int $maxSelections = null;
@@ -58,12 +60,10 @@ class CheckboxList extends Field
 
     protected function formatOptions(): array
     {
-        // If options are already in the correct format, return them
         if ($this->isFormattedOptions($this->options)) {
             return $this->options;
         }
 
-        // Convert associative array to proper format
         $formatted = [];
         foreach ($this->options as $value => $label) {
             $formatted[] = [
@@ -85,31 +85,87 @@ class CheckboxList extends Field
         return is_array($firstOption) && isset($firstOption['value']) && isset($firstOption['label']);
     }
 
-    public function resolve(\Illuminate\Http\Request $request, \Illuminate\Database\Eloquent\Model $model, ?\SchoolAid\Nadota\Contracts\ResourceInterface $resource): mixed
+    public function resolve(Request $request, Model $model, ?ResourceInterface $resource): mixed
     {
         $value = $model->{$this->getAttribute()};
-        
-        if ($value === null) {
+
+        if ($value === null || $value === '') {
             return [];
         }
-        
-        return is_array($value) ? $value : json_decode($value, true) ?? [];
+
+        if (is_array($value)) {
+            return $value;
+        }
+
+        $decoded = json_decode($value, true);
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    public function resolveForStore(Request $request, Model $model, ?ResourceInterface $resource, $value): mixed
+    {
+        return $this->prepareValueForPersistence($model, $value);
+    }
+
+    public function resolveForUpdate(Request $request, Model $model, ?ResourceInterface $resource, $value): mixed
+    {
+        return $this->prepareValueForPersistence($model, $value);
+    }
+
+    protected function prepareValueForPersistence(Model $model, mixed $value): mixed
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            $value = is_array($decoded) ? $decoded : [$value];
+        }
+
+        if (! is_array($value)) {
+            $value = [$value];
+        }
+
+        $value = array_values($value);
+
+        if ($this->modelCastsAttributeToArray($model)) {
+            return $value;
+        }
+
+        return json_encode($value);
+    }
+
+    protected function modelCastsAttributeToArray(Model $model): bool
+    {
+        $casts = $model->getCasts();
+        $cast = $casts[$this->getAttribute()] ?? null;
+
+        if ($cast === null) {
+            return false;
+        }
+
+        return in_array($cast, ['array', 'json', 'object', 'collection'], true)
+            || str_starts_with($cast, 'encrypted:array')
+            || str_starts_with($cast, 'encrypted:json')
+            || str_starts_with($cast, 'encrypted:collection');
     }
 
     public function getRules(): array
     {
         $rules = parent::getRules();
-        
+
+        if ($this->minSelections !== null || $this->maxSelections !== null) {
+            $rules[] = 'array';
+        }
+
         if ($this->minSelections !== null) {
-            $rules[] = "array";
             $rules[] = "min:{$this->minSelections}";
         }
-        
+
         if ($this->maxSelections !== null) {
-            $rules[] = "array";
             $rules[] = "max:{$this->maxSelections}";
         }
-        
-        return array_unique($rules);
+
+        return array_values(array_unique($rules));
     }
 }

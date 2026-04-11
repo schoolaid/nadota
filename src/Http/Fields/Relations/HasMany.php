@@ -477,6 +477,10 @@ class HasMany extends Field
     {
         $props = parent::getProps($request, $model, $resource);
 
+        $canCreate = $this->resolveCanCreate($request);
+        $canAttach = $this->resolveCanAttach($request, $resource, $model);
+        $canDetach = $this->resolveCanDetach($request, $resource, $model);
+
         $props = array_merge($props, [
             'limit' => $this->limit,
             'paginated' => $this->paginated,
@@ -484,46 +488,51 @@ class HasMany extends Field
             'orderDirection' => $this->orderDirection,
             'relationType' => 'hasMany',
             'resource' => $this->getResource() ? $this->getResource()::getKey() : null,
-            'canCreate' => $this->canCreate,
+            'canCreate' => $canCreate,
+            'canAttach' => $canAttach,
+            'canDetach' => $canDetach,
         ]);
 
-        // Add attachment configuration
         if ($this->attachable) {
-            $props['attachment'] = $this->getAttachmentConfig();
+            $props['attachment'] = array_merge($this->getAttachmentConfig(), [
+                'canAttach' => $canAttach,
+                'canDetach' => $canDetach,
+            ]);
         }
 
-        // Add URLs when we have resource context
         if ($resource) {
             $resourceKey = $resource::getKey();
             $fieldKey = $this->key();
             $apiPrefix = static::safeConfig('nadota.api.prefix', 'nadota-api');
             $frontendPrefix = static::safeConfig('nadota.frontend.prefix', 'resources');
 
-            // Options URL is always available (no model ID needed)
             $props['urls'] = [
                 'options' => "/{$apiPrefix}/{$resourceKey}/resource/field/{$fieldKey}/options",
             ];
 
-            // Attach/detach URLs require an existing model
             if ($model) {
                 $modelId = $model->getKey();
 
-                // Update options URL with resource ID context
                 $props['urls']['options'] = "/{$apiPrefix}/{$resourceKey}/resource/field/{$fieldKey}/options?resourceId={$modelId}";
-                $props['urls']['attachable'] = "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/attachable/{$fieldKey}";
-                $props['urls']['attach'] = "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/attach/{$fieldKey}";
-                $props['urls']['detach'] = "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/detach/{$fieldKey}";
 
-                // Add pagination URL if paginated
+                if ($canAttach) {
+                    $props['urls']['attachable'] = "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/attachable/{$fieldKey}";
+                    $props['urls']['attach'] = "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/attach/{$fieldKey}";
+                }
+
+                if ($canDetach) {
+                    $props['urls']['detach'] = "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/detach/{$fieldKey}";
+                }
+
                 if ($this->paginated) {
                     $props['paginationUrl'] = "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/relation/{$fieldKey}";
                 }
 
-                // Add createContext for frontend to handle relation creation
                 $relatedResourceClass = $this->getResource();
-                if ($relatedResourceClass) {
+                $foreignKey = $relatedResourceClass ? $this->resolveForeignKeyFromModel($resource->model) : null;
+
+                if ($relatedResourceClass && $canCreate) {
                     $relatedResourceKey = $relatedResourceClass::getKey();
-                    $foreignKey = $this->resolveForeignKeyFromModel($resource->model);
 
                     $props['createContext'] = [
                         'parentResource' => $resourceKey,
@@ -536,16 +545,83 @@ class HasMany extends Field
                         'createUrl' => "/{$apiPrefix}/{$relatedResourceKey}/resource/create",
                         'storeUrl' => "/{$apiPrefix}/{$relatedResourceKey}/resource",
                     ];
+                }
 
-                    // Add export URL with filter for parent model
-                    if ($foreignKey && $this->isExportable()) {
-                        $props['urls']['export'] = "/{$apiPrefix}/{$relatedResourceKey}/resource/export?filters[{$foreignKey}]={$modelId}";
-                    }
+                if ($relatedResourceClass && $foreignKey && $this->isExportable()) {
+                    $relatedResourceKey = $relatedResourceClass::getKey();
+                    $props['urls']['export'] = "/{$apiPrefix}/{$relatedResourceKey}/resource/export?filters[{$foreignKey}]={$modelId}";
                 }
             }
         }
 
         return $props;
+    }
+
+    /**
+     * Resolve whether the current user can create new related items.
+     * Combines the developer flag with the related resource's policy.
+     */
+    protected function resolveCanCreate(Request $request): bool
+    {
+        if (!$this->canCreate) {
+            return false;
+        }
+
+        $relatedResourceClass = $this->getResource();
+        if (!$relatedResourceClass || !is_subclass_of($relatedResourceClass, ResourceInterface::class)) {
+            return true;
+        }
+
+        if (!$request instanceof NadotaRequest) {
+            return true;
+        }
+
+        $relatedResource = new $relatedResourceClass;
+        return $relatedResource->authorizedTo($request, 'create');
+    }
+
+    /**
+     * Resolve whether the current user can attach items to this relation.
+     * Uses the parent resource's policy with field context so policies can
+     * implement field-specific methods like attachImages().
+     */
+    protected function resolveCanAttach(Request $request, ?ResourceInterface $resource, ?Model $model): bool
+    {
+        if (!$this->attachable) {
+            return false;
+        }
+
+        if (!$resource || !$request instanceof NadotaRequest) {
+            return true;
+        }
+
+        return $resource->authorizedTo(
+            $request,
+            'attach',
+            $model,
+            ['field' => $this->key()]
+        );
+    }
+
+    /**
+     * Resolve whether the current user can detach items from this relation.
+     */
+    protected function resolveCanDetach(Request $request, ?ResourceInterface $resource, ?Model $model): bool
+    {
+        if (!$this->attachable) {
+            return false;
+        }
+
+        if (!$resource || !$request instanceof NadotaRequest) {
+            return true;
+        }
+
+        return $resource->authorizedTo(
+            $request,
+            'detach',
+            $model,
+            ['field' => $this->key()]
+        );
     }
 
     /**
