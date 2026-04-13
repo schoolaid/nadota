@@ -71,7 +71,13 @@ class DateTime extends Field
             return $value->format($this->getStoreFormat());
         }
 
-        // Try to parse the value (handles ISO 8601 format from frontend)
+        // Try parsing using the configured display format first (e.g. d/m/Y)
+        $dateTime = \DateTime::createFromFormat($this->format, $value);
+        if ($dateTime !== false) {
+            return $dateTime->format($this->getStoreFormat());
+        }
+
+        // Fallback: try to parse the value (handles ISO 8601 format from frontend)
         try {
             $dateTime = new \DateTime($value);
             return $dateTime->format($this->getStoreFormat());
