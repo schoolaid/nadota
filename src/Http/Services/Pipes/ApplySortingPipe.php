@@ -22,7 +22,7 @@ class ApplySortingPipe
         /** @var Field $field */
         $field = $fields->first(fn($field) => $field->key() === $sortField);
 
-        if (!$field) {
+        if (!$field || !$field->isSortable()) {
             $this->applyDefaultSort($data, $fields);
             return $next($data);
         }

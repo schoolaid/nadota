@@ -256,10 +256,10 @@ class BelongsTo extends Field
         $relation = $modelInstance->{$this->getRelation()}();
         $relatedTable = $relation->getRelated()->getTable();
         $modelTable = $modelInstance->getTable();
-        $displayField = $this->getAttributeForDisplay();
 
         $foreignKey = $relation->getForeignKeyName();
         $relatedKey = $relation->getOwnerKeyName();
+        $displayField = $this->getAttributeForDisplay() ?? $relatedKey;
         $query->join($relatedTable, "$modelTable.$foreignKey", '=', "$relatedTable.$relatedKey");
 
 

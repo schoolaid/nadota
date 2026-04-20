@@ -50,4 +50,20 @@ class Date extends Field
         }
         return $value;
     }
+
+    public function resolveForStore(\Illuminate\Http\Request $request, \Illuminate\Database\Eloquent\Model $model, ?\SchoolAid\Nadota\Contracts\ResourceInterface $resource, $value): mixed
+    {
+        if ($value === '' || $value === null) {
+            return null;
+        }
+        return parent::resolveForStore($request, $model, $resource, $value);
+    }
+
+    public function resolveForUpdate(\Illuminate\Http\Request $request, \Illuminate\Database\Eloquent\Model $model, ?\SchoolAid\Nadota\Contracts\ResourceInterface $resource, $value): mixed
+    {
+        if ($value === '' || $value === null) {
+            return null;
+        }
+        return parent::resolveForUpdate($request, $model, $resource, $value);
+    }
 }
