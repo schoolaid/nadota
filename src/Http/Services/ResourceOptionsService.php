@@ -164,6 +164,11 @@ class ResourceOptionsService
     /**
      * Apply custom filters to the query.
      *
+     * Filter config from the resource's getAllowedOptionsFilters() supports:
+     *   ['field']                              → operator '=' (default)
+     *   ['field' => ['operator' => 'like']]    → custom operator
+     *   ['field', 'other' => ['operator' => 'like']]  → mixed
+     *
      * @param Builder $query
      * @param array $filters
      * @param ResourceInterface $resource
@@ -171,58 +176,62 @@ class ResourceOptionsService
      */
     protected function applyFilters(Builder $query, array $filters, ResourceInterface $resource): void
     {
-        // Get allowed filters from resource (if defined)
         $allowedFilters = method_exists($resource, 'getAllowedOptionsFilters')
-            ? $resource->getAllowedOptionsFilters()
+            ? $this->normalizeAllowedFilters($resource->getAllowedOptionsFilters())
             : null;
 
         $supportedOperators = ['=', '!=', '<>', '>', '<', '>=', '<=', 'like'];
 
         foreach ($filters as $field => $value) {
-            // Skip if allowedFilters is defined and field is not in it
-            if ($allowedFilters !== null && !in_array($field, $allowedFilters)) {
+            if ($allowedFilters !== null && !array_key_exists($field, $allowedFilters)) {
                 continue;
             }
 
-            // Handle null values
             if ($value === null || $value === 'null') {
                 $query->whereNull($field);
                 continue;
             }
 
-            // Handle operator format: { value: ..., operator: "like" }
-            if (is_array($value) && array_key_exists('value', $value) && isset($value['operator'])) {
-                $operator = strtolower($value['operator']);
-                $filterValue = $value['value'];
-
-                if (!in_array($operator, $supportedOperators)) {
-                    continue;
-                }
-
-                if ($filterValue === null || $filterValue === 'null') {
-                    $operator === '!=' || $operator === '<>'
-                        ? $query->whereNotNull($field)
-                        : $query->whereNull($field);
-                    continue;
-                }
-
-                if ($operator === 'like') {
-                    $filterValue = str_contains($filterValue, '%') ? $filterValue : '%' . $filterValue . '%';
-                }
-
-                $query->where($field, $operator, $filterValue);
-                continue;
-            }
-
-            // Handle array values (whereIn)
             if (is_array($value)) {
                 $query->whereIn($field, $value);
                 continue;
             }
 
-            // Handle standard search with like
-            $query->where($field, 'like', '%' . $value . '%');
+            $operator = strtolower($allowedFilters[$field]['operator'] ?? '=');
+            if (!in_array($operator, $supportedOperators)) {
+                $operator = '=';
+            }
+
+            if ($operator === 'like') {
+                $value = str_contains((string) $value, '%') ? $value : '%' . $value . '%';
+            }
+
+            $query->where($field, $operator, $value);
         }
+    }
+
+    /**
+     * Normalize allowed filters to [field => config] format.
+     *
+     * @param array|null $allowedFilters
+     * @return array|null
+     */
+    protected function normalizeAllowedFilters(?array $allowedFilters): ?array
+    {
+        if ($allowedFilters === null) {
+            return null;
+        }
+
+        $normalized = [];
+        foreach ($allowedFilters as $key => $value) {
+            if (is_int($key)) {
+                $normalized[$value] = [];
+            } else {
+                $normalized[$key] = is_array($value) ? $value : [];
+            }
+        }
+
+        return $normalized;
     }
 
     /**
