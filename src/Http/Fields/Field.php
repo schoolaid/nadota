@@ -86,6 +86,12 @@ abstract class Field implements FieldInterface
     protected bool $computed = false;
 
     /**
+     * Whether this is a virtual field (included in validation but not persisted to DB).
+     * Useful for flags/parameters consumed by beforeStore/beforeUpdate hooks.
+     */
+    protected bool $virtual = false;
+
+    /**
      * Whether to skip filling this field during store/update operations.
      * Useful for custom fields that handle their own data via afterSave.
      */
@@ -576,6 +582,32 @@ abstract class Field implements FieldInterface
     }
 
     /**
+     * Mark this field as virtual.
+     * Virtual fields are included in forms and validation but are NOT persisted to the database.
+     * Use this for flags/parameters consumed by beforeStore/beforeUpdate hooks via $request->input().
+     *
+     * @param bool $virtual
+     * @return static
+     */
+    public function virtual(bool $virtual = true): static
+    {
+        $this->virtual = $virtual;
+        $this->skipFill = true;
+
+        return $this;
+    }
+
+    /**
+     * Check if this is a virtual field.
+     *
+     * @return bool
+     */
+    public function isVirtual(): bool
+    {
+        return $this->virtual;
+    }
+
+    /**
      * Check if field has a display callback
      *
      * @return bool
@@ -594,6 +626,11 @@ abstract class Field implements FieldInterface
      */
     public function getColumnsForSelect(string $modelClass): array
     {
+        // Virtual fields don't map to database columns
+        if ($this->virtual) {
+            return [];
+        }
+
         // Regular fields just need their attribute
         $attribute = $this->getAttribute();
 
