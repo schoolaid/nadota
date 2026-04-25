@@ -7,6 +7,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 use SchoolAid\Nadota\Contracts\ResourceInterface;
 use SchoolAid\Nadota\Http\Fields\Contracts\FillableFieldInterface;
 use SchoolAid\Nadota\Http\Fields\File;
@@ -85,6 +86,10 @@ abstract class AbstractResourcePersistService
             $this->trackAction($model, $request, $validatedData, $originalData);
 
             DB::commit();
+        } catch (ValidationException $e) {
+            DB::rollBack();
+
+            throw $e;
         } catch (\Exception $e) {
             DB::rollBack();
 
