@@ -289,29 +289,37 @@ Si `handle()` no retorna una `ActionResponse`, el runner la envuelve automática
 
 ## 11. Integración con `ActionEvent`
 
-Cada Action ejecutada genera **un `ActionEvent` por cada modelo afectado**, automáticamente, después de `handle()`:
+Cada Action ejecutada genera registros en `action_events` automáticamente:
 
-`ActionExecutionService::logActionExecution()` (líneas 108-127):
+- **Éxito**: un `ActionEvent` con `status=finished` por cada modelo autorizado.
+- **Fallo (`handle()` lanza)**: un `ActionEvent` con `status=failed` y `exception` poblado por cada modelo autorizado. La respuesta HTTP es `ActionResponse::danger($e->getMessage())`.
+- **Standalone**: un único `ActionEvent` sin `model_id` (con `target_type` = clase del Resource), con el mismo lifecycle `finished`/`failed`.
+
+El registro lo orquesta `ActionExecutionService::execute()` envolviendo `handle()` en `try/catch \Throwable`. Para detalles ver [`ACTIONS_EVENT_LOGGING_IMPLEMENTATION.md`](ACTIONS_EVENT_LOGGING_IMPLEMENTATION.md).
+
+Snippet del runner (`ActionExecutionService::logActionExecution()`):
 
 ```php
+$metadata = [
+    'status'    => $status,         // 'finished' o 'failed'
+    'exception' => $exception,      // mensaje cuando status === 'failed'
+];
+
 $this->actionEventService->logAction(
-    action:   'action:' . $action::getKey(),     // ← prefijo distintivo
-    model:    $model,
+    action:   'action:' . $action::getKey(),    // prefijo distintivo
+    model:    $model,                            // null para standalone
     resource: $resource,
     request:  $request,
     fields:   $request->only(array_keys($request->all())),
-    metadata: [
-        'action_name' => $action->name(),
-        'action_key'  => $action::getKey(),
-    ]
+    metadata: $metadata
 );
 ```
 
 Detalles:
 
 - El `name` del `ActionEvent` queda como `action:school-aid-...-send-email-action`. Esto permite distinguir en queries entre acciones CRUD (`create`, `update`, etc.) y acciones custom.
-- El `metadata` se guarda en las columnas `original` / `changes` del `ActionEvent` (vía `ActionEventService::log()`).
-- Tras crear el `ActionEvent`, se dispara el evento Laravel `ActionLogged` (si `nadota.action_events.dispatch_events = true`). Es el punto recomendado para reaccionar a la finalización de una Action sin tocar la propia clase.
+- Si `model === null` (standalone), `target_type` y `model_type` se rellenan con la clase del Resource para satisfacer el `NOT NULL` del schema; `model_id` queda en `null`.
+- Tras crear el `ActionEvent`, se dispara el evento Laravel `ActionLogged` (si `nadota.action_events.dispatch_events = true`). Es el punto recomendado para reaccionar a la finalización de una Action sin tocar la propia clase. Los listeners deben verificar `actionEvent->status` ya que ahora pueden recibir tanto `finished` como `failed`.
 - Si `nadota.action_events.queue = true`, el registro se hace vía el job `LogActionEvent` en cola.
 
 Para detalles completos de este sistema, ver [`EVENT_TRACKING.md`](EVENT_TRACKING.md).
@@ -320,12 +328,14 @@ Para detalles completos de este sistema, ver [`EVENT_TRACKING.md`](EVENT_TRACKIN
 
 ## 12. Tests
 
-A día de hoy **no hay tests dedicados a Actions** en la suite del paquete:
+`tests/Unit/Services/ActionExecutionServiceTest.php` cubre el lifecycle de ejecución y el registro en `action_events`:
 
-- `tests/Unit/` y `tests/ServiceIntegration/` cubren campos, modelos y servicios CRUD.
-- No existen archivos `*ActionTest.php` ni casos para `ActionExecutionService` / `ActionController`.
+- éxito sobre N modelos → N filas `finished`,
+- fallo de `handle()` → N filas `failed` con `exception` poblado y respuesta `danger`,
+- standalone éxito y fallo → 1 sola fila con `model_id=null`,
+- `batch_id` compartido entre eventos de la misma ejecución.
 
-Es un hueco a tener en cuenta si se modifica el flujo de ejecución o se añaden nuevos hooks.
+No hay (todavía) tests específicos para `ActionController` (HTTP) ni para los hooks de visibilidad (`showOnIndex`/`showOnDetail`).
 
 ---
 

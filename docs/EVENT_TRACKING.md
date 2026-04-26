@@ -30,6 +30,8 @@ TracksActionEvents trait  ──► ActionEventService::log*()
 
 Acciones rastreadas por defecto: `create`, `update`, `delete`, `restore`, `forceDelete`. También se pueden registrar acciones personalizadas vía `ActionEventService::logAction()` / `trackCustomAction()`.
 
+Las Actions de Resources (ver [`ACTIONS.md`](ACTIONS.md)) generan eventos con prefijo `action:<key>` y se registran tanto en éxito (`status=finished`) como en fallo (`status=failed` con `exception` poblado). Las Actions `standalone` producen un único `ActionEvent` sin `model_id`. Para detalles del lifecycle ver [`ACTIONS_EVENT_LOGGING_IMPLEMENTATION.md`](ACTIONS_EVENT_LOGGING_IMPLEMENTATION.md).
+
 ---
 
 ## 2. Modelo: `ActionEvent`

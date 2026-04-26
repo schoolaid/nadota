@@ -133,11 +133,17 @@ class ActionEventService
     }
 
     /**
-     * Log a custom action
+     * Log a custom action.
+     *
+     * Supported $metadata keys:
+     *  - original  (?array)  state before the action
+     *  - changes   (?array)  state after the action
+     *  - status    (string)  'finished' (default) | 'failed' | 'running'
+     *  - exception (?string) error message when status === 'failed'
      */
     public function logAction(
         string $action,
-        Model $model,
+        ?Model $model,
         ResourceInterface $resource,
         NadotaRequest $request,
         array $fields = [],
@@ -150,7 +156,9 @@ class ActionEventService
             request: $request,
             fields: $fields,
             original: $metadata['original'] ?? null,
-            changes: $metadata['changes'] ?? null
+            changes: $metadata['changes'] ?? null,
+            status: $metadata['status'] ?? 'finished',
+            exception: $metadata['exception'] ?? null
         );
     }
 
@@ -159,26 +167,34 @@ class ActionEventService
      */
     protected function log(
         string $action,
-        Model $model,
+        ?Model $model,
         ResourceInterface $resource,
         NadotaRequest $request,
         array $fields = [],
         ?array $original = null,
-        ?array $changes = null
+        ?array $changes = null,
+        string $status = 'finished',
+        ?string $exception = null
     ): ActionEvent {
+        // target_type / model_type are NOT NULL in the schema. When the action
+        // runs without a target model (standalone actions), fall back to the
+        // resource class so the row stays valid.
+        $modelType = $model ? get_class($model) : get_class($resource);
+        $modelId = $model?->getKey();
+
         $data = [
             'batch_id' => $this->getBatchId(),
             'user_id' => $this->resolveUserId(),
             'name' => $action,
             'actionable_type' => get_class($resource),
             'actionable_id' => 0, // Resource doesn't have ID, using 0
-            'target_type' => get_class($model),
-            'target_id' => $model->getKey() ?? 0,
-            'model_type' => get_class($model),
-            'model_id' => $model->getKey(),
+            'target_type' => $modelType,
+            'target_id' => $modelId ?? 0,
+            'model_type' => $modelType,
+            'model_id' => $modelId,
             'fields' => $this->sanitizeFields($fields),
-            'status' => 'finished',
-            'exception' => null,
+            'status' => $status,
+            'exception' => $exception,
             'original' => $original ? $this->sanitizeData($original) : null,
             'changes' => $changes ? $this->sanitizeData($changes) : null,
         ];

@@ -56,10 +56,14 @@ class ActionExecutionService
             return ActionResponse::danger('You are not authorized to run this action on the selected resources.');
         }
 
-        // Execute the action
-        $result = $action->handle($authorizedModels, $request);
+        try {
+            $result = $action->handle($authorizedModels, $request);
+        } catch (\Throwable $e) {
+            $this->logActionExecution($request, $action, $authorizedModels, $resource, 'failed', $e->getMessage());
 
-        // Log the action execution
+            return ActionResponse::danger($e->getMessage());
+        }
+
         $this->logActionExecution($request, $action, $authorizedModels, $resource);
 
         // Ensure we return an ActionResponse
@@ -104,24 +108,46 @@ class ActionExecutionService
 
     /**
      * Log the action execution.
+     *
+     * Writes one ActionEvent per affected model. Standalone actions (no
+     * authorized models) generate a single event with model_id null.
      */
     protected function logActionExecution(
         NadotaRequest $request,
         ActionInterface $action,
         Collection $models,
-        $resource
+        $resource,
+        string $status = 'finished',
+        ?string $exception = null
     ): void {
+        $name = 'action:' . $action::getKey();
+        $fields = $request->only(array_keys($request->all()));
+        $metadata = [
+            'status' => $status,
+            'exception' => $exception,
+        ];
+
+        if ($models->isEmpty()) {
+            // Standalone action: log a single event without a target model.
+            $this->actionEventService->logAction(
+                action: $name,
+                model: null,
+                resource: $resource,
+                request: $request,
+                fields: $fields,
+                metadata: $metadata
+            );
+            return;
+        }
+
         foreach ($models as $model) {
             $this->actionEventService->logAction(
-                action: 'action:' . $action::getKey(),
+                action: $name,
                 model: $model,
                 resource: $resource,
                 request: $request,
-                fields: $request->only(array_keys($request->all())),
-                metadata: [
-                    'action_name' => $action->name(),
-                    'action_key' => $action::getKey(),
-                ]
+                fields: $fields,
+                metadata: $metadata
             );
         }
     }
@@ -146,13 +172,21 @@ class ActionExecutionService
             $models = $this->getModels($modelClass, $chunkIds, $resource->usesSoftDeletes());
             $authorizedModels = $this->filterAuthorizedModels($request, $action, $models);
 
-            if ($authorizedModels->isNotEmpty()) {
-                $lastResult = $action->handle($authorizedModels, $request);
-                $processedCount += $authorizedModels->count();
-
-                // Log the action execution for this batch
-                $this->logActionExecution($request, $action, $authorizedModels, $resource);
+            if ($authorizedModels->isEmpty()) {
+                continue;
             }
+
+            try {
+                $lastResult = $action->handle($authorizedModels, $request);
+            } catch (\Throwable $e) {
+                $this->logActionExecution($request, $action, $authorizedModels, $resource, 'failed', $e->getMessage());
+
+                return ActionResponse::danger($e->getMessage());
+            }
+
+            $processedCount += $authorizedModels->count();
+
+            $this->logActionExecution($request, $action, $authorizedModels, $resource);
         }
 
         if ($lastResult instanceof ActionResponse) {

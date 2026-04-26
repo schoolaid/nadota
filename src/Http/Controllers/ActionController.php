@@ -97,11 +97,15 @@ class ActionController extends Controller
             ], 422);
         }
 
+        // The execution service catches handle() failures and returns a
+        // danger ActionResponse (and logs a failed ActionEvent). The remaining
+        // try/catch protects against unexpected errors outside handle() (model
+        // resolution, serialization, etc.).
         try {
             $result = $this->actionService->execute($request, $action, $modelIds);
 
             return response()->json($result->toArray());
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return response()->json([
                 'type' => 'danger',
                 'message' => $e->getMessage(),

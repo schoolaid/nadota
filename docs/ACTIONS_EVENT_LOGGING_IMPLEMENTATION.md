@@ -97,13 +97,13 @@ La tabla `action_events` ya soporta los nuevos casos:
 
 | # | Archivo                                           | Cambio                                                                                | Estado  |
 |---|---------------------------------------------------|----------------------------------------------------------------------------------------|---------|
-| 1 | `src/Http/Services/ActionEventService.php`        | `logAction()` acepta `?Model`; `log()` acepta `status`/`exception`; fallback de tipos | pendiente |
-| 2 | `src/Http/Services/ActionExecutionService.php`    | `try/catch` alrededor de `handle()`; `logActionExecution()` con `status`/`exception`  | pendiente |
-| 3 | `src/Http/Services/ActionExecutionService.php`    | Logueo de Actions `standalone` (un único registro sin model_id)                       | pendiente |
-| 4 | `src/Http/Services/ActionExecutionService.php`    | Aplicar el mismo lifecycle a `executeBatched()`                                       | pendiente |
-| 5 | `src/Http/Controllers/ActionController.php`       | Eliminar `try/catch` redundante alrededor del `execute()` del servicio                | pendiente |
-| 6 | `tests/`                                          | Tests para: éxito, fallo (excepción) y standalone                                     | pendiente |
-| 7 | Documentación: `EVENT_TRACKING.md` y `ACTIONS.md` | Actualizar la sección "Integración con ActionEvent" con los nuevos estados            | pendiente |
+| 1 | `src/Http/Services/ActionEventService.php`        | `logAction()` acepta `?Model`; `log()` acepta `status`/`exception`; fallback de tipos | **hecho** |
+| 2 | `src/Http/Services/ActionExecutionService.php`    | `try/catch` alrededor de `handle()`; `logActionExecution()` con `status`/`exception`  | **hecho** |
+| 3 | `src/Http/Services/ActionExecutionService.php`    | Logueo de Actions `standalone` (un único registro sin model_id)                       | **hecho** |
+| 4 | `src/Http/Services/ActionExecutionService.php`    | Aplicar el mismo lifecycle a `executeBatched()`                                       | **hecho** |
+| 5 | `src/Http/Controllers/ActionController.php`       | Mantener `try/catch` defensivo; `Exception` → `Throwable`; aclarar responsabilidades | **hecho** |
+| 6 | `tests/Unit/Services/ActionExecutionServiceTest.php` | Tests para: éxito, fallo (excepción), standalone éxito/fallo, batch_id compartido | **hecho** |
+| 7 | Documentación: `EVENT_TRACKING.md` y `ACTIONS.md` | Actualizar la sección "Integración con ActionEvent" con los nuevos estados            | **hecho** |
 
 A continuación se documenta cada cambio en su sección.
 
@@ -113,21 +113,169 @@ A continuación se documenta cada cambio en su sección.
 
 > Cada cambio incluye: archivo, snippet relevante, justificación.
 
-### 5.1 — pendiente
+### 5.1 — `ActionEventService` admite modelo nullable, `status` y `exception`
 
-_(se completará al ejecutar el cambio 1)_
+**Archivo:** `src/Http/Services/ActionEventService.php`
 
-### 5.2 — pendiente
+Cambios:
 
-### 5.3 — pendiente
+- `logAction()` ahora acepta `?Model $model` (antes `Model $model`) y reconoce dos claves nuevas en `$metadata`: `status` y `exception`.
+- `log()` recibe dos parámetros nuevos: `string $status = 'finished'` y `?string $exception = null`.
+- Cuando `$model === null`, los campos `target_type` y `model_type` (NOT NULL en el schema) se rellenan con la clase del Resource. `target_id` queda en `0`, `model_id` en `null` (la migración `2025_12_15_000001_*` lo permite).
+- Se mantiene 100% compatibilidad hacia atrás: pasar un `Model` y omitir `status`/`exception` produce el mismo registro de antes.
 
-### 5.4 — pendiente
+Snippet relevante (firma final de `logAction`):
 
-### 5.5 — pendiente
+```php
+public function logAction(
+    string $action,
+    ?Model $model,
+    ResourceInterface $resource,
+    NadotaRequest $request,
+    array $fields = [],
+    array $metadata = []   // claves: original, changes, status, exception
+): ActionEvent
+```
 
-### 5.6 — pendiente
+Justificación: habilita los pasos siguientes (logueo de fallos y standalone) sin tocar `logSync` / `logAsync` y sin requerir migración nueva.
 
-### 5.7 — pendiente
+### 5.2 — `ActionExecutionService::execute()` envuelve `handle()` en `try/catch`
+
+**Archivo:** `src/Http/Services/ActionExecutionService.php`
+
+```php
+try {
+    $result = $action->handle($authorizedModels, $request);
+} catch (\Throwable $e) {
+    $this->logActionExecution($request, $action, $authorizedModels, $resource, 'failed', $e->getMessage());
+
+    return ActionResponse::danger($e->getMessage());
+}
+
+$this->logActionExecution($request, $action, $authorizedModels, $resource);
+```
+
+Justificación: con esto, todo fallo de `handle()` queda persistido en `action_events` antes de devolver la respuesta `danger` al cliente. Se usa `\Throwable` (no `\Exception`) para capturar también `Error` (TypeError, división por cero, etc.).
+
+### 5.3 — `logActionExecution()` admite `status`/`exception` y caso standalone
+
+**Archivo:** `src/Http/Services/ActionExecutionService.php`
+
+```php
+protected function logActionExecution(
+    NadotaRequest $request,
+    ActionInterface $action,
+    Collection $models,
+    $resource,
+    string $status = 'finished',
+    ?string $exception = null
+): void {
+    $name = 'action:' . $action::getKey();
+    $fields = $request->only(array_keys($request->all()));
+    $metadata = [
+        'status' => $status,
+        'exception' => $exception,
+    ];
+
+    if ($models->isEmpty()) {
+        $this->actionEventService->logAction(
+            action: $name, model: null, resource: $resource,
+            request: $request, fields: $fields, metadata: $metadata
+        );
+        return;
+    }
+
+    foreach ($models as $model) {
+        $this->actionEventService->logAction(
+            action: $name, model: $model, resource: $resource,
+            request: $request, fields: $fields, metadata: $metadata
+        );
+    }
+}
+```
+
+Decisiones:
+
+- **Standalone**: si `$models` viene vacía (típico en Actions standalone), se emite un único `ActionEvent` sin `model_id`. `target_type`/`model_type` quedan con la clase del Resource (NOT NULL en el schema).
+- **Cleanup de metadata redundante**: el código previo pasaba `action_name` y `action_key` en `metadata`, pero `logAction()` los descartaba silenciosamente (sólo leía `original` / `changes`). Como `name` ya guarda `action:<key>` y el display name es derivable del FQCN, se elimina ese envío para evitar metadata muerta.
+
+### 5.4 — Mismo lifecycle en `executeBatched()`
+
+**Archivo:** `src/Http/Services/ActionExecutionService.php`
+
+Cada chunk obtiene su propio `try/catch`. Si un chunk falla:
+
+- Sus modelos quedan `failed` en `action_events`.
+- Los chunks anteriores ya están `finished`.
+- `executeBatched()` corta la iteración y devuelve `ActionResponse::danger($e->getMessage())`.
+
+```php
+foreach ($chunks as $chunkIds) {
+    $models = $this->getModels($modelClass, $chunkIds, $resource->usesSoftDeletes());
+    $authorizedModels = $this->filterAuthorizedModels($request, $action, $models);
+
+    if ($authorizedModels->isEmpty()) {
+        continue;
+    }
+
+    try {
+        $lastResult = $action->handle($authorizedModels, $request);
+    } catch (\Throwable $e) {
+        $this->logActionExecution($request, $action, $authorizedModels, $resource, 'failed', $e->getMessage());
+
+        return ActionResponse::danger($e->getMessage());
+    }
+
+    $processedCount += $authorizedModels->count();
+    $this->logActionExecution($request, $action, $authorizedModels, $resource);
+}
+```
+
+### 5.5 — `ActionController::execute` aclara responsabilidades
+
+**Archivo:** `src/Http/Controllers/ActionController.php`
+
+- El executor ahora garantiza siempre devolver una `ActionResponse` y registrar el evento aún en fallo.
+- El `try/catch` del controller se preserva como **red de seguridad** para errores fuera de `handle()` (resolución de la Action, serialización, etc.).
+- `\Exception` → `\Throwable` por consistencia con el executor.
+- Se añade un comentario explicando la división de responsabilidades.
+
+```php
+// El executor captura los fallos de handle() y devuelve un ActionResponse
+// danger (registrando un ActionEvent failed). Este try/catch protege
+// contra errores externos a handle() (resolución de modelos, etc.).
+try {
+    $result = $this->actionService->execute($request, $action, $modelIds);
+    return response()->json($result->toArray());
+} catch (\Throwable $e) {
+    return response()->json([
+        'type' => 'danger',
+        'message' => $e->getMessage(),
+    ], 500);
+}
+```
+
+### 5.6 — Tests del lifecycle (`ActionExecutionServiceTest`)
+
+**Archivo:** `tests/Unit/Services/ActionExecutionServiceTest.php`
+
+Cinco casos cubren la fase 1:
+
+| Test | Verifica |
+|------|----------|
+| `it logs one finished ActionEvent per affected model on success` | Éxito sobre N modelos → N filas `finished` con `model_id` correcto y `name` con prefijo `action:` |
+| `it logs failed ActionEvents and returns danger when handle() throws` | Falla con N modelos → N filas `failed` con `exception` poblado; respuesta `danger` |
+| `it logs a single ActionEvent without model_id for standalone actions on success` | Action `standalone` exitosa → 1 fila `finished` con `model_id=null` |
+| `it logs a single failed ActionEvent without model_id for standalone actions that throw` | Action `standalone` que lanza → 1 fila `failed` con `exception` y `model_id=null` |
+| `it shares the same batch_id across all events of one execution` | Todos los eventos de una ejecución comparten `batch_id` |
+
+El test crea la tabla `action_events` localmente en `beforeEach` (no se modifica `tests/TestCase.php` para no afectar otras suites). Se usa una clase anónima derivada de `Action` que recibe el `handle()` como callback, lo que permite reutilizarla para los cinco escenarios.
+
+Resultados: **5/5 pasan**. La suite global Unit pasa de 429→434 (+5) sin nuevas regresiones (las 92 fallas pre-existentes no tocan Actions).
+
+### 5.7 — Actualización de `EVENT_TRACKING.md` y `ACTIONS.md`
+
+Pendiente al final del trabajo: añadir un párrafo en cada uno explicando que las Actions ahora se registran también en estado `failed` y que las acciones `standalone` generan un único `ActionEvent` sin `model_id`.
 
 ---
 
