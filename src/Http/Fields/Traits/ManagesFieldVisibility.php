@@ -21,20 +21,20 @@ trait ManagesFieldVisibility
      * Get fields visible in the show / detail view.
      * Returns flat collection of fields (without section structure).
      */
-    public function fieldsForShow(NadotaRequest $request, string $action): Collection
+    public function fieldsForShow(NadotaRequest $request, string $action, mixed $resource = null): Collection
     {
         $method = $action === 'show' ? 'isShowOnDetail' : 'isShowOnUpdate';
-        return $this->getFlatFieldsFilteredByVisibility($request, $method);
+        return $this->getFlatFieldsFilteredByVisibility($request, $method, $resource);
     }
 
     /**
      * Get fields and sections with structure for show / detail view.
      * Returns collection preserving section hierarchy.
      */
-    public function sectionsForShow(NadotaRequest $request, string $action): Collection
+    public function sectionsForShow(NadotaRequest $request, string $action, mixed $resource = null): Collection
     {
         $method = $action === 'show' ? 'isShowOnDetail' : 'isShowOnUpdate';
-        return $this->getStructuredFieldsFilteredByVisibility($request, $method);
+        return $this->getStructuredFieldsFilteredByVisibility($request, $method, $resource);
     }
 
     /**
@@ -44,7 +44,7 @@ trait ManagesFieldVisibility
     public function sectionsForForm(NadotaRequest $request, $model = null): Collection
     {
         $method = $model ? 'isShowOnUpdate' : 'isShowOnCreation';
-        return $this->getStructuredFieldsFilteredByVisibility($request, $method);
+        return $this->getStructuredFieldsFilteredByVisibility($request, $method, $model);
     }
 
     /**
@@ -54,7 +54,7 @@ trait ManagesFieldVisibility
     public function fieldsForForm(NadotaRequest $request, $model = null): Collection
     {
         $method = $model ? 'isShowOnUpdate' : 'isShowOnCreation';
-        return $this->getFlatFieldsFilteredByVisibility($request, $method);
+        return $this->getFlatFieldsFilteredByVisibility($request, $method, $model);
     }
 
     /**
@@ -76,10 +76,10 @@ trait ManagesFieldVisibility
      * Filter flat fields by visibility method.
      * Sections are flattened - their fields are extracted.
      */
-    protected function getFlatFieldsFilteredByVisibility(NadotaRequest $request, string $visibilityMethod): Collection
+    protected function getFlatFieldsFilteredByVisibility(NadotaRequest $request, string $visibilityMethod, mixed $resource = null): Collection
     {
         return $this->flattenFields($request)
-            ->filter(fn($field) => $field->{$visibilityMethod}())
+            ->filter(fn($field) => $field->{$visibilityMethod}($request, $resource))
             ->values();
     }
 
@@ -88,7 +88,7 @@ trait ManagesFieldVisibility
      * Sections with no visible fields are excluded.
      * Loose fields are grouped into a default section.
      */
-    protected function getStructuredFieldsFilteredByVisibility(NadotaRequest $request, string $visibilityMethod): Collection
+    protected function getStructuredFieldsFilteredByVisibility(NadotaRequest $request, string $visibilityMethod, mixed $resource = null): Collection
     {
         $items = collect($this->fields($request));
         $result = collect();
@@ -106,13 +106,13 @@ trait ManagesFieldVisibility
                 }
 
                 // Check if section itself is visible
-                if (!$item->{$visibilityMethod}()) {
+                if (!$item->{$visibilityMethod}($request, $resource)) {
                     continue;
                 }
 
                 // Filter visible fields within section
                 $visibleFields = collect($item->getFields())
-                    ->filter(fn($field) => $field->{$visibilityMethod}())
+                    ->filter(fn($field) => $field->{$visibilityMethod}($request, $resource))
                     ->values();
 
                 // Only include section if it has visible fields
@@ -129,7 +129,7 @@ trait ManagesFieldVisibility
                 }
             } else {
                 // Regular field - check visibility
-                if ($item->{$visibilityMethod}()) {
+                if ($item->{$visibilityMethod}($request, $resource)) {
                     $looseFields->push($item);
                 }
             }

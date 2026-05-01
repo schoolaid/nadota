@@ -14,12 +14,12 @@ class ResourceEditService implements ResourceEditInterface
         $request->prepareResource();
         $resource = $request->getResource();
 
-        // Get fields for update form (before loading model to build query correctly)
-        $fields = $resource->fieldsForForm($request, true); // true indicates update mode
+        // First pass: all update fields (no model yet) — used only to build the query
+        $allFields = $resource->fieldsForForm($request, true);
 
         // Build optimized query with proper eager loading and column selection
-        $columns = $resource->getSelectColumns($request, $fields);
-        $eagerLoadRelations = $resource->getEagerLoadRelations($request, $fields);
+        $columns = $resource->getSelectColumns($request, $allFields);
+        $eagerLoadRelations = $resource->getEagerLoadRelations($request, $allFields);
 
         // Include soft delete column if model uses soft deletes
         $columns = $this->includeDeletedAtColumn($resource, $columns);
@@ -37,6 +37,9 @@ class ResourceEditService implements ResourceEditInterface
         if ($customResourceClass && is_subclass_of($customResourceClass, JsonResource::class)) {
             return (new $customResourceClass($model))->response();
         }
+
+        // Second pass: filter fields by visibility with the loaded model
+        $fields = $resource->fieldsForForm($request, $model);
 
         return $this->buildDefaultResponse($request, $resource, $model, $fields);
     }

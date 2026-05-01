@@ -15,15 +15,14 @@ class ResourceShowService implements ResourceShowInterface
         $resource = $request->getResource();
         $action = $request->get('action', 'show');
 
-        // Get fields based on action type
-        $fields = $resource->fieldsForShow($request, $action);
+        // First pass: all fields for this action (no model yet) — used only to build the query
+        $allFields = $resource->fieldsForShow($request, $action);
 
         // Build optimized query with proper eager loading and column selection
-        // Pass the filtered fields to ensure we only load what's needed
-        $columns = $resource->getSelectColumns($request, $fields);
-        $eagerLoadRelations = $resource->getEagerLoadRelations($request, $fields);
-        $withCountRelations = $resource->getWithCountRelations($request, $fields);
-        $withExistsRelations = $resource->getWithExistsRelations($request, $fields);
+        $columns = $resource->getSelectColumns($request, $allFields);
+        $eagerLoadRelations = $resource->getEagerLoadRelations($request, $allFields);
+        $withCountRelations = $resource->getWithCountRelations($request, $allFields);
+        $withExistsRelations = $resource->getWithExistsRelations($request, $allFields);
 
         // Include soft delete column if model uses soft deletes
         $columns = $this->includeDeletedAtColumn($resource, $columns);
@@ -56,6 +55,9 @@ class ResourceShowService implements ResourceShowInterface
         if ($customResourceClass && is_subclass_of($customResourceClass, JsonResource::class)) {
             return (new $customResourceClass($model))->response();
         }
+
+        // Second pass: filter fields by visibility with the loaded model
+        $fields = $resource->fieldsForShow($request, $action, $model);
 
         return $this->buildDefaultResponse($request, $resource, $model, $action, $fields);
     }
