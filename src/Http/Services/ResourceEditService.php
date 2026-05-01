@@ -14,8 +14,10 @@ class ResourceEditService implements ResourceEditInterface
         $request->prepareResource();
         $resource = $request->getResource();
 
-        // First pass: all update fields (no model yet) — used only to build the query
-        $allFields = $resource->fieldsForForm($request, true);
+        // First pass: ALL fields (no visibility filter) — only for building the query.
+        // Using flattenFields avoids showWhen/hideWhen callbacks being evaluated without a model,
+        // which would cause fields to be incorrectly excluded and their columns not selected.
+        $allFields = $resource->flattenFields($request);
 
         // Build optimized query with proper eager loading and column selection
         $columns = $resource->getSelectColumns($request, $allFields);
