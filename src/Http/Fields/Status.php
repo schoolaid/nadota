@@ -14,6 +14,7 @@ class Status extends Field
     protected bool $clearable = false;
     protected ?string $placeholder = null;
     protected bool $resolveWithStatus = false;
+    protected bool $translateLabels = true;
 
     public function __construct(string $name, string $attribute)
     {
@@ -60,6 +61,17 @@ class Status extends Field
         return $this;
     }
 
+    public function translateLabels(bool $translate = true): static
+    {
+        $this->translateLabels = $translate;
+        return $this;
+    }
+
+    public function withoutTranslation(): static
+    {
+        return $this->translateLabels(false);
+    }
+
     public function clearable(bool $clearable = true): static
     {
         $this->clearable = $clearable;
@@ -89,6 +101,7 @@ class Status extends Field
             'statuses' => $this->formatStatuses(),
             'clearable' => $this->clearable,
             'placeholder' => $this->placeholder,
+            'translateLabels' => $this->translateLabels,
         ]);
     }
 
