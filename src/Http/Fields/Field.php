@@ -76,11 +76,6 @@ abstract class Field implements FieldInterface
     protected ?int $minHeight = null;
 
     /**
-     * Callback for computing display value
-     */
-    protected $displayCallback = null;
-
-    /**
      * Whether this is a computed field (not stored in database)
      */
     protected bool $computed = false;
@@ -537,16 +532,23 @@ abstract class Field implements FieldInterface
     }
 
     /**
-     * Define a callback to compute the display value
-     * This makes the field computed (read-only, not stored in database)
+     * Define a callback to compute the display value.
+     * For non-relation fields, also marks the field as computed (read-only, hidden from forms).
+     * For relation fields, only customizes the display label of the related model.
      *
-     * @param callable $callback Receives ($model, $resource) and returns the display value
+     * Non-relation callback receives: ($model, $resource)
+     * Relation callback receives: ($relatedModel)
+     *
+     * @param callable $callback
      * @return static
      */
     public function displayUsing(callable $callback): static
     {
         $this->displayCallback = $callback;
-        $this->computed = true;
+
+        if (!$this->isRelationship) {
+            $this->computed = true;
+        }
 
         return $this;
     }
@@ -605,16 +607,6 @@ abstract class Field implements FieldInterface
     public function isVirtual(): bool
     {
         return $this->virtual;
-    }
-
-    /**
-     * Check if field has a display callback
-     *
-     * @return bool
-     */
-    public function hasDisplayCallback(): bool
-    {
-        return $this->displayCallback !== null;
     }
 
     /**

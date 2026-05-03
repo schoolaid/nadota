@@ -22,6 +22,10 @@ return [
             'type' => 'number',
             'component' => 'FieldNumber'
         ],
+        'currency' => [
+            'type' => 'currency',
+            'component' => 'FieldCurrency'
+        ],
         'email' => [
             'type' => 'email',
             'component' => 'FieldEmail'

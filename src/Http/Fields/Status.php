@@ -2,12 +2,18 @@
 
 namespace SchoolAid\Nadota\Http\Fields;
 
+use BackedEnum;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Request;
+use SchoolAid\Nadota\Contracts\ResourceInterface;
 use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
 
 class Status extends Field
 {
-    protected string $component = 'field-status';
     protected array $statuses = [];
+    protected bool $clearable = false;
+    protected ?string $placeholder = null;
+    protected bool $resolveWithStatus = false;
 
     public function __construct(string $name, string $attribute)
     {
@@ -17,16 +23,15 @@ class Status extends Field
     /**
      * Define the status map.
      *
-     * Accepts an associative array where keys are the database values
-     * and values define the display configuration.
+     * Keys can be strings, ints, or BackedEnum cases.
+     * Values can be shorthand strings or full config arrays.
      *
      * @param array $statuses e.g. [
-     *     'paid'    => ['label' => 'Paid',    'color' => 'green'],
-     *     'pending' => ['label' => 'Pending', 'color' => 'yellow'],
-     *     'failed'  => ['label' => 'Failed',  'color' => 'red'],
+     *     StatusEnum::PAID    => ['label' => 'Paid',    'color' => 'green'],
+     *     StatusEnum::PENDING => ['label' => 'Pending', 'color' => 'yellow'],
+     *     'failed'            => ['label' => 'Failed',  'color' => 'red'],
+     *     'draft'             => 'Draft',
      * ]
-     * Or shorthand: ['paid' => 'Paid', 'pending' => 'Pending']
-     * @return static
      */
     public function map(array $statuses): static
     {
@@ -37,51 +42,71 @@ class Status extends Field
     /**
      * Add a single status entry.
      *
-     * @param string|int $value   The database value
-     * @param string     $label   Display label
-     * @param string     $color   Color name (green, yellow, red, blue, gray, etc.)
-     * @param string|null $icon   Optional icon name
-     * @return static
+     * @param string|int|BackedEnum $value  The database value or enum case
+     * @param string                $label  Display label
+     * @param string                $color  Color name (green, yellow, red, blue, gray, etc.)
+     * @param string|null           $icon   Optional icon name
      */
-    public function addStatus(string|int $value, string $label, string $color = 'gray', ?string $icon = null): static
+    public function addStatus(string|int|BackedEnum $value, string $label, string $color = 'gray', ?string $icon = null): static
     {
+        $key = $value instanceof BackedEnum ? $value->value : $value;
         $entry = ['label' => $label, 'color' => $color];
 
         if ($icon !== null) {
             $entry['icon'] = $icon;
         }
 
-        $this->statuses[$value] = $entry;
+        $this->statuses[$key] = $entry;
         return $this;
     }
 
-    protected function getProps(\Illuminate\Http\Request $request, ?\Illuminate\Database\Eloquent\Model $model, ?\SchoolAid\Nadota\Contracts\ResourceInterface $resource): array
+    public function clearable(bool $clearable = true): static
+    {
+        $this->clearable = $clearable;
+        return $this;
+    }
+
+    public function placeholder(string $placeholder): static
+    {
+        $this->placeholder = $placeholder;
+        parent::placeholder($placeholder);
+        return $this;
+    }
+
+    /**
+     * Make resolve() return the full status object {value, label, color} instead of the raw value.
+     * Useful for index/detail views that need color info without a separate lookup.
+     */
+    public function withStatus(bool $withStatus = true): static
+    {
+        $this->resolveWithStatus = $withStatus;
+        return $this;
+    }
+
+    protected function getProps(Request $request, ?Model $model, ?ResourceInterface $resource): array
     {
         return array_merge(parent::getProps($request, $model, $resource), [
             'statuses' => $this->formatStatuses(),
+            'clearable' => $this->clearable,
+            'placeholder' => $this->placeholder,
         ]);
     }
 
     /**
      * Normalize statuses to a consistent format.
+     * Enum keys are converted to their backing value.
      */
     protected function formatStatuses(): array
     {
         $formatted = [];
 
-        foreach ($this->statuses as $value => $config) {
+        foreach ($this->statuses as $key => $config) {
+            $value = $key instanceof BackedEnum ? $key->value : $key;
+
             if (is_string($config)) {
-                // Shorthand: 'paid' => 'Paid'
-                $formatted[] = [
-                    'value' => $value,
-                    'label' => $config,
-                    'color' => 'gray',
-                ];
+                $formatted[] = ['value' => $value, 'label' => $config, 'color' => 'gray'];
             } else {
-                $formatted[] = array_merge([
-                    'value' => $value,
-                    'color' => 'gray',
-                ], $config);
+                $formatted[] = array_merge(['value' => $value, 'color' => 'gray'], $config);
             }
         }
 
@@ -89,7 +114,15 @@ class Status extends Field
     }
 
     /**
-     * Find the status config for a given value.
+     * Extract the raw scalar value from a potential BackedEnum or scalar.
+     */
+    protected function extractRawValue(mixed $value): mixed
+    {
+        return $value instanceof BackedEnum ? $value->value : $value;
+    }
+
+    /**
+     * Find the status config for a given value (supports BackedEnum).
      */
     protected function findStatus(mixed $value): ?array
     {
@@ -97,8 +130,10 @@ class Status extends Field
             return null;
         }
 
+        $raw = $this->extractRawValue($value);
+
         foreach ($this->formatStatuses() as $status) {
-            if ((string) $status['value'] === (string) $value) {
+            if ((string) $status['value'] === (string) $raw) {
                 return $status;
             }
         }
@@ -106,33 +141,29 @@ class Status extends Field
         return null;
     }
 
-    public function resolve(\Illuminate\Http\Request $request, \Illuminate\Database\Eloquent\Model $model, ?\SchoolAid\Nadota\Contracts\ResourceInterface $resource): mixed
+    /**
+     * Returns the raw value by default (aligns with Select behavior, safe for form pre-population).
+     * Use withStatus() to return the full status object {value, label, color}.
+     */
+    public function resolve(Request $request, Model $model, ?ResourceInterface $resource): mixed
     {
         $value = $model->{$this->getAttribute()};
+        $raw = $this->extractRawValue($value);
 
-        $status = $this->findStatus($value);
-
-        if ($status) {
-            return $status;
+        if ($this->resolveWithStatus && $raw !== null) {
+            $status = $this->findStatus($raw);
+            return $status ?? ['value' => $raw, 'label' => $raw, 'color' => 'gray'];
         }
 
-        // Fallback: return the raw value with default color
-        return [
-            'value' => $value,
-            'label' => $value,
-            'color' => 'gray',
-        ];
+        return $raw;
     }
 
-    /**
-     * For export, return just the label.
-     */
-    public function resolveForExport(\Illuminate\Http\Request $request, \Illuminate\Database\Eloquent\Model $model, ?\SchoolAid\Nadota\Contracts\ResourceInterface $resource): mixed
+    public function resolveForExport(Request $request, Model $model, ?ResourceInterface $resource): mixed
     {
         $value = $model->{$this->getAttribute()};
         $status = $this->findStatus($value);
 
-        return $status['label'] ?? $value;
+        return $status['label'] ?? $this->extractRawValue($value);
     }
 
     public function getOptions(): array

@@ -40,4 +40,5 @@ enum FieldType: string
     case VARIABLE_TEXT = 'variableText';
     case RICH_TEXT = 'richText';
     case STATUS = 'status';
+    case CURRENCY = 'currency';
 }
