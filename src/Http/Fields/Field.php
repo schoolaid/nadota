@@ -144,6 +144,12 @@ abstract class Field implements FieldInterface
         return $this->fieldData->key;
     }
 
+    public function withKey(string $key): static
+    {
+        $this->fieldData->key = $key;
+        return $this;
+    }
+
     public function toArray(NadotaRequest $request, ?Model $model = null, ?ResourceInterface $resource = null): array
     {
         // Determine operation context from request action parameter
