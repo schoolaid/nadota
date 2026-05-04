@@ -95,7 +95,7 @@ trait ValidationTrait
             }
         }
 
-        return array_unique($rules);
+        return $this->uniqueRules($rules);
     }
 
     /**
@@ -124,7 +124,27 @@ trait ValidationTrait
             $rules = array_merge($rules, $contextRules);
         }
 
-        return array_unique($rules);
+        return $this->uniqueRules($rules);
+    }
+
+    /**
+     * Deduplicate rules without triggering Closure-to-string conversion.
+     * String/object rules are deduplicated; closures are always kept as-is.
+     */
+    private function uniqueRules(array $rules): array
+    {
+        $strings = [];
+        $objects = [];
+
+        foreach ($rules as $rule) {
+            if (is_string($rule)) {
+                $strings[$rule] = $rule;
+            } else {
+                $objects[] = $rule;
+            }
+        }
+
+        return [...array_values($strings), ...$objects];
     }
 
     /**
