@@ -150,6 +150,12 @@ abstract class Field implements FieldInterface
         return $this;
     }
 
+    public function withAttribute(string $attribute): static
+    {
+        $this->fieldData->attribute = $attribute;
+        return $this;
+    }
+
     public function toArray(NadotaRequest $request, ?Model $model = null, ?ResourceInterface $resource = null): array
     {
         // Determine operation context from request action parameter
