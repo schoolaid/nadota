@@ -259,7 +259,20 @@ class KeyValue extends Field
         }
 
         $requestAttribute = $this->getAttribute();
-        $data = $request->get($requestAttribute, []);
+        $data = $request->get($requestAttribute);
+        $isNullable = in_array('nullable', $this->rules);
+
+        // Treat empty JSON objects/strings as null when field is nullable
+        if ($isNullable && in_array($data, [null, '', '{}', '[]'], true)) {
+            $model->{$this->getAttribute()} = null;
+            return;
+        }
+
+        // Decode JSON string if needed
+        if (is_string($data)) {
+            $decoded = json_decode($data, true);
+            $data = json_last_error() === JSON_ERROR_NONE ? $decoded : [];
+        }
 
         // Ensure data is an array
         if (!is_array($data)) {
@@ -311,16 +324,32 @@ class KeyValue extends Field
     public function getRules(): array
     {
         $rules = parent::getRules();
+        $isNullable = in_array('nullable', $rules);
 
-        // Add JSON validation
-        $rules[] = 'array';
+        // Replace simple 'array' rule with a closure that also accepts JSON-encoded arrays.
+        // When nullable, empty strings and empty JSON objects ({}, []) are treated as null.
+        $rules[] = function ($attribute, $value, $fail) use ($isNullable) {
+            if ($value === null) {
+                return;
+            }
 
-        // Add key-specific validation
-        foreach ($this->keyRules as $key => $keyRuleSet) {
-            $keyAttribute = $this->getAttribute() . '.' . $key;
-            // This would need to be processed by the validator
-            // The actual implementation would depend on how the validator is set up
-        }
+            if ($isNullable && in_array($value, ['', '{}', '[]'], true)) {
+                return;
+            }
+
+            if (is_array($value)) {
+                return;
+            }
+
+            if (is_string($value)) {
+                $decoded = json_decode($value, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    return;
+                }
+            }
+
+            $fail(__('validation.array', ['attribute' => $attribute]));
+        };
 
         return $rules;
     }
