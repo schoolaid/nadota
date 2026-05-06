@@ -10,7 +10,7 @@ Sistema de campos para la definicion y renderizado de formularios y vistas.
 | [Input](#input) | [Number](#number) | [Email](#email) | [URL](#url) | [Password](#password) | [Textarea](#textarea) | [Hidden](#hidden) |
 
 ### Campos de Seleccion
-| [Select](#select) | [Radio](#radio) | [Checkbox](#checkbox) | [CheckboxList](#checkboxlist) | [Toggle](#toggle) |
+| [Select](#select) | [Status](#status) | [Radio](#radio) | [Checkbox](#checkbox) | [CheckboxList](#checkboxlist) | [Toggle](#toggle) |
 
 ### Campos Especiales
 | [DateTime](#datetime) | [Code](#code) | [Json](#json) | [KeyValue](#keyvalue) | [ArrayField](#arrayfield) | [File](#file) | [Image](#image) |
@@ -445,6 +445,159 @@ Select::make('Categorias', 'categories')
 | `multiple(bool $value = true)` | Permite seleccion multiple |
 | `clearable(bool $value = true)` | Permite limpiar la seleccion |
 | `placeholder(string $text)` | Texto placeholder |
+
+---
+
+### Status
+
+Campo de estado con etiqueta, color e icono opcional por valor. Soporta enums (`BackedEnum`) y valores escalares.
+
+**Clase:** `SchoolAid\Nadota\Http\Fields\Status`
+**Tipo:** `status`
+**Componente:** `FieldStatus`
+
+#### Uso
+
+```php
+use App\Enums\OrderStatusEnum;
+
+// Con BackedEnum (string o int)
+Status::make('Estado', 'status')
+    ->map([
+        OrderStatusEnum::PENDING => ['label' => 'Pendiente', 'color' => 'yellow'],
+        OrderStatusEnum::PAID    => ['label' => 'Pagado',    'color' => 'green'],
+        OrderStatusEnum::FAILED  => ['label' => 'Fallido',   'color' => 'red', 'icon' => 'x-circle'],
+    ]);
+
+// Con valores escalares
+Status::make('Estado', 'status')
+    ->map([
+        'active'   => ['label' => 'Activo',   'color' => 'green'],
+        'inactive' => ['label' => 'Inactivo', 'color' => 'gray'],
+        'draft'    => 'Borrador',   // shorthand: sin color (usa gray)
+    ]);
+
+// Con addStatus (encadenado)
+Status::make('Estado', 'status')
+    ->addStatus('active',   'Activo',   'green')
+    ->addStatus('inactive', 'Inactivo', 'gray')
+    ->addStatus('banned',   'Bloqueado', 'red', 'ban');
+
+// Retornar objeto completo en lugar de valor crudo (para vistas con color)
+Status::make('Estado', 'status')
+    ->map([...])
+    ->withStatus();
+
+// Sin traduccion automatica de etiquetas en el frontend
+Status::make('Estado', 'status')
+    ->map([...])
+    ->withoutTranslation();
+```
+
+#### Respuesta API
+
+**Por defecto** (`value` = valor crudo del modelo):
+
+```json
+{
+  "key": "status",
+  "label": "Estado",
+  "attribute": "status",
+  "type": "status",
+  "component": "FieldStatus",
+  "value": "pending",
+  "props": {
+    "statuses": [
+      {"value": "pending", "label": "Pendiente", "color": "yellow"},
+      {"value": "paid",    "label": "Pagado",    "color": "green"},
+      {"value": "failed",  "label": "Fallido",   "color": "red", "icon": "x-circle"}
+    ],
+    "translateLabels": true,
+    "clearable": false,
+    "placeholder": null
+  }
+}
+```
+
+**Con `->withStatus()`** (`value` = objeto completo con color):
+
+```json
+{
+  "value": {
+    "value": "pending",
+    "label": "Pendiente",
+    "color": "yellow"
+  }
+}
+```
+
+> Si el valor del modelo no esta en el mapa, `withStatus()` devuelve `{"value": "unknown", "label": "unknown", "color": "gray"}`.
+
+**Con `->clearable()` y `->placeholder()`:**
+
+```json
+{
+  "props": {
+    "clearable": true,
+    "placeholder": "Selecciona un estado"
+  }
+}
+```
+
+#### Colores disponibles
+
+El frontend interpreta estos valores como clases de color:
+
+| Color | Uso sugerido |
+|-------|-------------|
+| `green` | Exitoso, activo, pagado |
+| `yellow` | Pendiente, en proceso |
+| `red` | Error, fallido, bloqueado |
+| `blue` | Informacion, en revision |
+| `gray` | Inactivo, desconocido (default) |
+| `purple` | Estado especial |
+| `orange` | Advertencia |
+
+#### Metodos Especificos
+
+| Metodo | Descripcion |
+|--------|-------------|
+| `map(array $statuses)` | Define el mapa completo de estados. Acepta `BackedEnum` o escalar como clave |
+| `addStatus(value, label, color, icon)` | Agrega un estado individual |
+| `withStatus(bool $value = true)` | `value` devuelve el objeto `{value, label, color}` en vez del valor crudo |
+| `translateLabels(bool $value = true)` | Indica al frontend si debe traducir las etiquetas con i18n (default `true`) |
+| `withoutTranslation()` | Alias de `translateLabels(false)` |
+| `clearable(bool $value = true)` | Permite limpiar la seleccion |
+| `placeholder(string $text)` | Texto placeholder |
+
+#### Compatibilidad con BackedEnum
+
+```php
+// enum con string
+enum OrderStatus: string {
+    case PENDING = 'pending';
+    case PAID    = 'paid';
+}
+
+// enum con int
+enum Priority: int {
+    case LOW    = 1;
+    case MEDIUM = 2;
+    case HIGH   = 3;
+}
+
+// Ambos funcionan directamente como clave del mapa
+Status::make('Prioridad', 'priority')
+    ->map([
+        Priority::LOW    => ['label' => 'Baja',  'color' => 'gray'],
+        Priority::MEDIUM => ['label' => 'Media', 'color' => 'yellow'],
+        Priority::HIGH   => ['label' => 'Alta',  'color' => 'red'],
+    ]);
+```
+
+#### Export
+
+En exportaciones (Excel/CSV), el campo devuelve la etiqueta del estado (`label`) en lugar del valor crudo.
 
 ---
 

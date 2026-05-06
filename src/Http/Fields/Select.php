@@ -208,6 +208,11 @@ class Select extends Field
     {
         $value = $model->{$this->getAttribute()};
 
+        // Unwrap BackedEnum to its scalar backing value (Eloquent enum casts)
+        if ($value instanceof \BackedEnum) {
+            $value = $value->value;
+        }
+
         // Handle multiple values
         if ($this->multiple && is_string($value)) {
             // Try to decode JSON if it's a string
@@ -275,26 +280,27 @@ class Select extends Field
      */
     protected function findLabelForValue(mixed $value, array $options): ?string
     {
-        // If value is an array, we can't compare directly
         if (is_array($value)) {
             return null;
+        }
+
+        // Unwrap BackedEnum to its scalar backing value before any comparison
+        if ($value instanceof \BackedEnum) {
+            $value = $value->value;
         }
 
         foreach ($options as $option) {
             $optionValue = $option['value'] ?? null;
 
-            // Skip if option value is an array
             if (is_array($optionValue)) {
                 continue;
             }
 
-            // Handle both string and numeric comparison
             if ((string) $optionValue === (string) $value) {
                 return $option['label'] ?? null;
             }
         }
 
-        // If no label found, return the original value as string
         return is_scalar($value) ? (string) $value : null;
     }
 }
