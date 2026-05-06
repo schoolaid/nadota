@@ -111,9 +111,17 @@ abstract class Filter implements FilterInterface
             'component' => $this->component(),
             'type' => $this->type,
             'options' => collect($this->resources($request))->map(function ($value, $label) {
-                return is_array($value)
-                    ? collect($value)->put('label', $label)->all()
-                    : ['label' => $label ?? $value, 'value' => $value];
+                // Already in {value, label} format — pass through untouched.
+                // Handles output from Select::getOptions() / formatOptions().
+                if (is_array($value) && array_key_exists('value', $value) && array_key_exists('label', $value)) {
+                    return $value;
+                }
+                // Object array with extra keys — add label from the collection key
+                if (is_array($value)) {
+                    return array_merge($value, ['label' => $label]);
+                }
+                // Simple [display_label => db_value] format (e.g. BooleanFilter: ['Sí' => true])
+                return ['label' => $label ?? $value, 'value' => $value];
             })->values()->all(),
             'value' => $this->default() ?: '',
             'props' => $this->props(),

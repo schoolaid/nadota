@@ -204,6 +204,11 @@ class Select extends Field
         return $hasStandardKeys || $hasCustomKeys;
     }
 
+    public function getOptions(): array
+    {
+        return $this->formatOptions();
+    }
+
     public function resolve(\Illuminate\Http\Request $request, \Illuminate\Database\Eloquent\Model $model, ?\SchoolAid\Nadota\Contracts\ResourceInterface $resource): mixed
     {
         $value = $model->{$this->getAttribute()};

@@ -220,7 +220,10 @@ abstract class AbstractResourcePersistService
         // Default handling for simple fields
         $attribute = $field->getAttribute();
 
-        if (isset($validatedData[$attribute])) {
+        // Use array_key_exists instead of isset so that explicitly sent null values
+        // (e.g. clearing a nullable date field) are passed through to resolveForStore/Update.
+        // isset() returns false for null, silently skipping the fill and leaving stale data.
+        if (array_key_exists($attribute, $validatedData)) {
             $resolveMethod = $this->isUpdate() ? 'resolveForUpdate' : 'resolveForStore';
             $model->{$attribute} = $field->{$resolveMethod}($request, $model, $resource, $validatedData[$attribute]);
         }
