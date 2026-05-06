@@ -125,13 +125,7 @@ trait ResourceExportable
      */
     protected function translateExportHeader(string $label): string
     {
-        // If label looks like a translation key (e.g., 'fields.photo', 'labels.name')
-        // try to translate it. If translation doesn't exist, return original label.
-        $translated = __($label);
-
-        // Laravel returns the key itself if translation doesn't exist
-        // So we check if the translation is different from the key
-        return $translated !== $label ? $translated : $label;
+        return (string) __($label);
     }
 
     /**

@@ -344,8 +344,13 @@ class BelongsTo extends Field
             return null;
         }
 
-        // Return just the label for export
-        return $this->resolveLabel($relatedModel, $resource);
+        // Use the field's own related resource, not the parent resource.
+        // Passing the parent resource causes displayLabel() to be called on the
+        // wrong resource type, producing incorrect or empty labels.
+        $relatedResourceClass = $this->getResource();
+        $relatedResource = $relatedResourceClass ? new $relatedResourceClass() : null;
+
+        return $this->resolveLabel($relatedModel, $relatedResource);
     }
 
     /**
