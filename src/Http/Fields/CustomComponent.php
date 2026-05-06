@@ -34,9 +34,6 @@ class CustomComponent extends Field
 
         // Custom components are only shown on detail view by default
         $this->onlyOnDetail();
-
-        // Mark as computed since it doesn't store data
-        $this->computed = true;
     }
 
     /**
@@ -154,12 +151,21 @@ class CustomComponent extends Field
         return null;
     }
 
+    public function shouldSkipFill(): bool
+    {
+        return true;
+    }
+
+    public function isComputed(): bool
+    {
+        return false;
+    }
+
     /**
      * Override fill to prevent any data storage
      */
     public function fill(\Illuminate\Http\Request $request, \Illuminate\Database\Eloquent\Model $model): void
     {
-        // Custom components don't fill any model attributes
         return;
     }
 

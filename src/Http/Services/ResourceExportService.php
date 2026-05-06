@@ -95,12 +95,41 @@ class ResourceExportService implements ResourceExportInterface
     }
 
     /**
+     * Chunk size for batch loading — matches AbstractExporter default.
+     */
+    protected int $chunkSize = 500;
+
+    /**
      * Create lazy collection from query for memory-efficient export.
+     *
+     * Uses forPage() chunks instead of cursor() so that the eager-load
+     * constraints set by BuildQueryPipe (with/withCount) are executed per
+     * batch, eliminating N+1 queries on relation fields.
      */
     protected function createLazyData(ExportRequestDTO $dto, array $fields): LazyCollection
     {
-        return $dto->query->cursor()->map(function ($model) use ($dto, $fields) {
-            return $dto->resource->transformForExport($model, $dto->request, $fields);
+        $chunkSize = $this->chunkSize;
+
+        return LazyCollection::make(function () use ($dto, $fields, $chunkSize) {
+            $page = 1;
+
+            while (true) {
+                $models = (clone $dto->query)->forPage($page, $chunkSize)->get();
+
+                if ($models->isEmpty()) {
+                    break;
+                }
+
+                foreach ($models as $model) {
+                    yield $dto->resource->transformForExport($model, $dto->request, $fields);
+                }
+
+                if ($models->count() < $chunkSize) {
+                    break;
+                }
+
+                $page++;
+            }
         });
     }
 
