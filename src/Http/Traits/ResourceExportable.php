@@ -73,7 +73,7 @@ trait ResourceExportable
     public function getExportableFields(NadotaRequest $request): Collection
     {
         return $this->flattenFields($request)
-            ->filter(fn($field) => $field->isShowOnIndex())
+            ->filter(fn($field) => $field->isShowOnIndex() || $field->isExportable())
             ->filter(fn($field) => $this->isFieldExportable($field));
     }
 
@@ -97,6 +97,11 @@ trait ResourceExportable
 
             // Allow MorphTo as it's a single value
             if (method_exists($field, 'isMorphTo') && $field->isMorphTo()) {
+                return true;
+            }
+
+            // Allow HasOne as it's a single value
+            if (method_exists($field, 'isHasOne') && $field->isHasOne()) {
                 return true;
             }
 

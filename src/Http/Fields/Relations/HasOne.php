@@ -341,4 +341,37 @@ class HasOne extends Field
     {
         return 'hasOne';
     }
+
+    /**
+     * Check if this field is a HasOne relationship.
+     * Used by ResourceExportable to determine if field should be included in exports.
+     */
+    public function isHasOne(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Resolve the field value for export.
+     * Returns the display label instead of the full relation object.
+     */
+    public function resolveForExport(Request $request, Model $model, ?ResourceInterface $resource): mixed
+    {
+        $relationName = $this->getRelation();
+
+        if (!method_exists($model, $relationName)) {
+            return null;
+        }
+
+        $relatedModel = $model->{$relationName};
+
+        if (!$relatedModel instanceof Model) {
+            return null;
+        }
+
+        $relatedResourceClass = $this->getResource();
+        $relatedResource = $relatedResourceClass ? new $relatedResourceClass() : null;
+
+        return $this->resolveLabel($relatedModel, $relatedResource);
+    }
 }
