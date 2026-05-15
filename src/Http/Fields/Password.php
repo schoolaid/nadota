@@ -7,8 +7,9 @@ use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
 use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\Model;
 use SchoolAid\Nadota\Contracts\ResourceInterface;
+use SchoolAid\Nadota\Http\Fields\Contracts\FillableFieldInterface;
 
-class Password extends Field
+class Password extends Field implements FillableFieldInterface
 {
     protected bool $confirmable = false;
     protected ?int $minLength = null;
@@ -106,6 +107,10 @@ class Password extends Field
      */
     public function resolveForStore(Request $request, Model $model, ?ResourceInterface $resource, $value): mixed
     {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
         return $this->hashValue($value);
     }
 
@@ -120,7 +125,39 @@ class Password extends Field
      */
     public function resolveForUpdate(Request $request, Model $model, ?ResourceInterface $resource, $value): mixed
     {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
         return $this->hashValue($value);
+    }
+
+    /**
+     * Fill the model's password attribute.
+     *
+     * An empty or null password is treated as "do not change the password",
+     * so the attribute is left untouched (instead of being hashed or nulled out).
+     */
+    public function fill(Request $request, Model $model): void
+    {
+        if ($this->isComputed() || $this->isReadonly() || $this->isDisabled()) {
+            return;
+        }
+
+        $attribute = $this->getAttribute();
+
+        if (! $request->has($attribute)) {
+            return;
+        }
+
+        $value = $request->get($attribute);
+
+        // Empty/null means the password should not be updated.
+        if ($value === null || $value === '') {
+            return;
+        }
+
+        $model->{$attribute} = $this->hashValue($value);
     }
 
     /**
