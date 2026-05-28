@@ -49,6 +49,7 @@ Route::prefix('/{resourceKey}/resource')->group(function () {
 
     // Action events for a specific model
     Route::get('/{id}/action-events', [ActionEventController::class, 'index'])->name('resource.action-events')->where('id', '[0-9]+');
+    Route::get('/{id}/action-events/{eventId}', [ActionEventController::class, 'show'])->name('resource.action-events.show')->where(['id' => '[0-9]+', 'eventId' => '[0-9]+']);
 
     Route::get('/{id}/permissions', [ResourceController::class, 'permissions'])->name('resource.permissions')->where('id', '[0-9]+');
 

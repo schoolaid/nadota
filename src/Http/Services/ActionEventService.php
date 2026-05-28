@@ -65,11 +65,10 @@ class ActionEventService
         NadotaRequest $request,
         array $fields = []
     ): ActionEvent {
-        return $this->log(
+        return $this->persist(
             action: 'create',
             model: $model,
-            resource: $resource,
-            request: $request,
+            actionableType: get_class($resource),
             fields: $fields,
             changes: $model->getAttributes()
         );
@@ -88,11 +87,10 @@ class ActionEventService
         $original = $originalData ?? $model->getOriginal();
         $changes = $model->getChanges();
 
-        return $this->log(
+        return $this->persist(
             action: 'update',
             model: $model,
-            resource: $resource,
-            request: $request,
+            actionableType: get_class($resource),
             fields: $fields,
             original: $original,
             changes: $changes
@@ -107,11 +105,10 @@ class ActionEventService
         ResourceInterface $resource,
         NadotaRequest $request
     ): ActionEvent {
-        return $this->log(
+        return $this->persist(
             action: 'delete',
             model: $model,
-            resource: $resource,
-            request: $request,
+            actionableType: get_class($resource),
             original: $model->getAttributes()
         );
     }
@@ -124,11 +121,10 @@ class ActionEventService
         ResourceInterface $resource,
         NadotaRequest $request
     ): ActionEvent {
-        return $this->log(
+        return $this->persist(
             action: 'restore',
             model: $model,
-            resource: $resource,
-            request: $request
+            actionableType: get_class($resource)
         );
     }
 
@@ -143,11 +139,10 @@ class ActionEventService
         array $fields = [],
         array $metadata = []
     ): ActionEvent {
-        return $this->log(
+        return $this->persist(
             action: $action,
             model: $model,
-            resource: $resource,
-            request: $request,
+            actionableType: get_class($resource),
             fields: $fields,
             original: $metadata['original'] ?? null,
             changes: $metadata['changes'] ?? null
@@ -155,13 +150,39 @@ class ActionEventService
     }
 
     /**
-     * Core logging method
+     * Record an action event from any context (jobs, console commands, API,
+     * controllers outside the Nadota panel).
+     *
+     * Context-free public entry point: requires only the affected model.
+     * The user is resolved via Auth::id() or the configured system_user_id,
+     * so it works without an HTTP request.
+     *
+     * @param string      $action          Action name (e.g. 'update', 'import', 'sync:roster')
+     * @param Model       $model           The affected model
+     * @param array|null  $changes         Values after the change
+     * @param array|null  $original        Values before the change
+     * @param array       $fields          Arbitrary context payload (sanitized)
+     * @param string|null $actionableType  Origin identifier; defaults to the model class
      */
-    protected function log(
+    public function record(
         string $action,
         Model $model,
-        ResourceInterface $resource,
-        NadotaRequest $request,
+        ?array $changes = null,
+        ?array $original = null,
+        array $fields = [],
+        ?string $actionableType = null
+    ): ActionEvent {
+        return $this->persist($action, $model, $actionableType, $fields, $original, $changes);
+    }
+
+    /**
+     * Core persistence method. Context-free: no HTTP request or Nadota
+     * resource required.
+     */
+    protected function persist(
+        string $action,
+        Model $model,
+        ?string $actionableType = null,
         array $fields = [],
         ?array $original = null,
         ?array $changes = null
@@ -170,7 +191,7 @@ class ActionEventService
             'batch_id' => $this->getBatchId(),
             'user_id' => $this->resolveUserId(),
             'name' => $action,
-            'actionable_type' => get_class($resource),
+            'actionable_type' => $actionableType ?? get_class($model),
             'actionable_id' => 0, // Resource doesn't have ID, using 0
             'target_type' => get_class($model),
             'target_id' => $model->getKey() ?? 0,
@@ -204,28 +225,32 @@ class ActionEventService
 
             return $actionEvent;
         } catch (\Exception $e) {
-            // Log error but don't break the main operation
             \Log::error('Failed to log action event', [
                 'action' => $action,
                 'model' => $data['model_type'] ?? 'unknown',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
-            // Create a failed event record
-            return ActionEvent::query()->create([
-                'batch_id' => $data['batch_id'],
-                'user_id' => $data['user_id'],
-                'name' => $action,
-                'actionable_type' => $data['actionable_type'],
-                'actionable_id' => 0,
-                'target_type' => $data['target_type'],
-                'target_id' => $data['target_id'] ?? 0,
-                'model_type' => $data['model_type'],
-                'model_id' => $data['model_id'],
-                'fields' => [],
-                'status' => 'failed',
-                'exception' => $e->getMessage(),
-            ]);
+            try {
+                return ActionEvent::query()->create([
+                    'batch_id' => $data['batch_id'],
+                    'user_id' => $data['user_id'],
+                    'name' => $action,
+                    'actionable_type' => $data['actionable_type'],
+                    'actionable_id' => 0,
+                    'target_type' => $data['target_type'],
+                    'target_id' => $data['target_id'] ?? 0,
+                    'model_type' => $data['model_type'],
+                    'model_id' => $data['model_id'],
+                    'fields' => [],
+                    'status' => 'failed',
+                    'exception' => $e->getMessage(),
+                ]);
+            } catch (\Exception $inner) {
+                \Log::error('Failed to create failed action event record', ['error' => $inner->getMessage()]);
+
+                return new ActionEvent(['status' => 'failed', 'name' => $action]);
+            }
         }
     }
 

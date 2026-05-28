@@ -150,6 +150,8 @@ class HasManyAttachmentService extends AbstractAttachmentService
             $attached[] = $item->getKey();
         }
 
+        $this->trackAttachmentAction('attach', $parentModel, $request, $field, ['attached' => $attached]);
+
         return $this->successResponse('Items attached successfully', [
             'attached' => $attached,
             'count' => count($attached),
@@ -176,11 +178,20 @@ class HasManyAttachmentService extends AbstractAttachmentService
 
         // Get the foreign key
         $foreignKey = $parentModel->{$relationName}()->getForeignKeyName();
+        $relatedKeyName = $parentModel->{$relationName}()->getRelated()->getKeyName();
+
+        // Resolve the IDs that actually belong to this relation before detaching
+        $actualIds = $parentModel->{$relationName}()
+            ->whereIn($relatedKeyName, $items)
+            ->pluck($relatedKeyName)
+            ->toArray();
 
         // Find and detach items by setting FK to null
         $detached = $parentModel->{$relationName}()
-            ->whereIn($parentModel->{$relationName}()->getRelated()->getKeyName(), $items)
+            ->whereIn($relatedKeyName, $items)
             ->update([$foreignKey => null]);
+
+        $this->trackAttachmentAction('detach', $parentModel, $request, $field, ['detached' => $actualIds]);
 
         return $this->successResponse('Items detached successfully', [
             'detached' => $detached,

@@ -70,7 +70,7 @@ class ResourceServiceProvider extends ServiceProvider
 	protected function registerBuiltInResources(): void
 	{
 		// Register ActionEventResource if action tracking is enabled
-		if (config('nadota.track_actions', true)) {
+		if (config('nadota.action_events.enabled', true)) {
 			ResourceManager::registerResourceClass(\SchoolAid\Nadota\Resources\ActionEventResource::class);
 		}
 	}

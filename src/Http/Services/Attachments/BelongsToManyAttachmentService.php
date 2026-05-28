@@ -153,6 +153,8 @@ class BelongsToManyAttachmentService extends AbstractAttachmentService
             $relation->attach($toAttach);
         }
 
+        $this->trackAttachmentAction('attach', $parentModel, $request, $field, ['attached' => array_values($toAttach)]);
+
         return $this->successResponse('Items attached successfully', [
             'attached' => array_values($toAttach),
             'count' => count($toAttach),
@@ -180,6 +182,8 @@ class BelongsToManyAttachmentService extends AbstractAttachmentService
 
         // Detach items
         $detached = $relation->detach($items);
+
+        $this->trackAttachmentAction('detach', $parentModel, $request, $field, ['detached' => array_values($items)]);
 
         return $this->successResponse('Items detached successfully', [
             'detached' => $detached,
@@ -214,6 +218,13 @@ class BelongsToManyAttachmentService extends AbstractAttachmentService
 
         $relationName = $field->getRelation();
         $relation = $parentModel->{$relationName}();
+
+        // Capture currently attached IDs before sync for audit trail
+        $relatedModel = $relation->getRelated();
+        $relatedKeyName = $relatedModel->getKeyName();
+        $originalIds = $relation->pluck(
+            $relatedModel->getTable() . '.' . $relatedKeyName
+        )->toArray();
 
         // Check attachment limit for sync
         if (method_exists($field, 'getAttachableLimit')) {
@@ -252,6 +263,15 @@ class BelongsToManyAttachmentService extends AbstractAttachmentService
             // No pivot data
             $changes = $relation->sync($items, $detaching);
         }
+
+        $this->trackAttachmentAction(
+            'sync',
+            $parentModel,
+            $request,
+            $field,
+            $changes,
+            ['attached_before' => $originalIds]
+        );
 
         return $this->successResponse('Items synced successfully', [
             'attached' => $changes['attached'] ?? [],

@@ -169,6 +169,8 @@ class MorphManyAttachmentService extends AbstractAttachmentService
             $attached[] = $item->getKey();
         }
 
+        $this->trackAttachmentAction('attach', $parentModel, $request, $field, ['attached' => $attached]);
+
         return $this->successResponse('Items attached successfully', [
             'attached' => $attached,
             'count' => count($attached),
@@ -197,14 +199,23 @@ class MorphManyAttachmentService extends AbstractAttachmentService
         $relation = $parentModel->{$relationName}();
         $foreignKey = $relation->getForeignKeyName();
         $morphType = $relation->getMorphType();
+        $relatedKeyName = $relation->getRelated()->getKeyName();
+
+        // Resolve the IDs that actually belong to this relation before detaching
+        $actualIds = $parentModel->{$relationName}()
+            ->whereIn($relatedKeyName, $items)
+            ->pluck($relatedKeyName)
+            ->toArray();
 
         // Find and detach items by setting morph columns to null
-        $detached = $relation
-            ->whereIn($relation->getRelated()->getKeyName(), $items)
+        $detached = $parentModel->{$relationName}()
+            ->whereIn($relatedKeyName, $items)
             ->update([
                 $foreignKey => null,
                 $morphType => null,
             ]);
+
+        $this->trackAttachmentAction('detach', $parentModel, $request, $field, ['detached' => $actualIds]);
 
         return $this->successResponse('Items detached successfully', [
             'detached' => $detached,

@@ -116,9 +116,30 @@ class TestCase extends Orchestra
             $table->unsignedBigInteger('test_model_id');
             $table->unsignedBigInteger('tag_id');
             $table->timestamps();
-            
+
             $table->foreign('test_model_id')->references('id')->on('test_models');
             $table->foreign('tag_id')->references('id')->on('tags');
         });
+
+        if (!Schema::hasTable('action_events')) {
+            Schema::create('action_events', function (Blueprint $table) {
+                $table->id();
+                $table->char('batch_id', 36);
+                $table->unsignedBigInteger('user_id')->nullable();
+                $table->string('name');
+                $table->string('actionable_type');
+                $table->unsignedBigInteger('actionable_id')->nullable();
+                $table->string('target_type');
+                $table->unsignedBigInteger('target_id')->nullable();
+                $table->string('model_type');
+                $table->unsignedBigInteger('model_id')->nullable();
+                $table->text('fields');
+                $table->string('status', 25)->default('running');
+                $table->text('exception')->nullable();
+                $table->text('original')->nullable();
+                $table->text('changes')->nullable();
+                $table->timestamps();
+            });
+        }
     }
 }

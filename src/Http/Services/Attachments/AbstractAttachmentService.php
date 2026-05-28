@@ -9,9 +9,11 @@ use SchoolAid\Nadota\Http\Fields\Field;
 use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 use SchoolAid\Nadota\Http\Services\Attachments\Contracts\AttachmentServiceInterface;
 use SchoolAid\Nadota\Http\Services\FieldOptions\OptionsConfig;
+use SchoolAid\Nadota\Http\Traits\TracksActionEvents;
 
 abstract class AbstractAttachmentService implements AttachmentServiceInterface
 {
+    use TracksActionEvents;
     /**
      * Maximum items per page for attachable queries.
      */
@@ -170,6 +172,51 @@ abstract class AbstractAttachmentService implements AttachmentServiceInterface
         $pivot = $request->get('pivot', []);
 
         return is_array($pivot) ? $pivot : [];
+    }
+
+    /**
+     * Log an attach/detach/sync action event on the parent model.
+     *
+     * @param string        $action   e.g. 'attach', 'detach', 'sync'
+     * @param Model         $parentModel
+     * @param NadotaRequest $request
+     * @param Field         $field
+     * @param array         $changes  payload stored in the 'changes' column
+     */
+    protected function trackAttachmentAction(
+        string $action,
+        Model $parentModel,
+        NadotaRequest $request,
+        Field $field,
+        array $changes,
+        ?array $original = null
+    ): void {
+        if (!$this->shouldTrackActions()) {
+            return;
+        }
+
+        $resource = $request->getResource();
+        if ($resource === null) {
+            return;
+        }
+
+        try {
+            $relation = method_exists($field, 'getRelation') ? $field->getRelation() : $field->getAttribute();
+
+            $this->getActionEventService()->logAction(
+                action: $action,
+                model: $parentModel,
+                resource: $resource,
+                request: $request,
+                fields: ['relation' => $relation],
+                metadata: ['changes' => $changes, 'original' => $original]
+            );
+        } catch (\Throwable $e) {
+            \Log::error('Failed to track attachment action', [
+                'action' => $action,
+                'error'  => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

@@ -54,6 +54,23 @@ class ActionEventController extends Controller
     }
 
     /**
+     * Get a single action event for a specific model instance.
+     */
+    public function show(NadotaRequest $request, string $resourceKey, int $id, int $eventId): JsonResponse
+    {
+        $resource = $request->getResource();
+        $modelClass = $resource->model;
+
+        $event = ActionEvent::query()
+            ->where('model_type', $modelClass)
+            ->where('model_id', $id)
+            ->with('user')
+            ->findOrFail($eventId);
+
+        return response()->json(['data' => $this->formatEvent($event)]);
+    }
+
+    /**
      * Format a single action event for the response.
      */
     protected function formatEvent(ActionEvent $event): array

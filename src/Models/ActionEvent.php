@@ -207,15 +207,20 @@ class ActionEvent extends Model
      */
     public function getChangedFields(): array
     {
-        if (!$this->original || !$this->changes) {
+        // Use getAttribute() to avoid collision with Eloquent's internal $original/$changes
+        // dirty-tracking properties which are protected on the base Model class.
+        $original = $this->getAttribute('original');
+        $changes  = $this->getAttribute('changes');
+
+        if (!$original || !$changes) {
             return [];
         }
 
         $changed = [];
-        foreach ($this->changes as $key => $newValue) {
-            if (!isset($this->original[$key]) || $this->original[$key] !== $newValue) {
+        foreach ($changes as $key => $newValue) {
+            if (!isset($original[$key]) || $original[$key] !== $newValue) {
                 $changed[$key] = [
-                    'old' => $this->original[$key] ?? null,
+                    'old' => $original[$key] ?? null,
                     'new' => $newValue,
                 ];
             }

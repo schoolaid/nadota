@@ -118,6 +118,6 @@ trait TracksActionEvents
      */
     protected function shouldTrackActions(): bool
     {
-        return config('nadota.track_actions', true);
+        return config('nadota.action_events.enabled', true);
     }
 }
