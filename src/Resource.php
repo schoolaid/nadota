@@ -5,6 +5,7 @@ namespace SchoolAid\Nadota;
 use AllowDynamicProperties;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 use SchoolAid\Nadota\Contracts\ResourceAuthorizationInterface;
 use SchoolAid\Nadota\Http\Fields\Traits\InteractsWithFields;
@@ -31,7 +32,13 @@ abstract class Resource implements Contracts\ResourceInterface
         ResourceExportable;
 
     public string $model;
-    protected bool $usesSoftDeletes = false;
+
+    /**
+     * Whether the resource supports soft deletes.
+     * null (default) = autodetect from the model's SoftDeletes trait.
+     * true/false = explicit override that wins over autodetection.
+     */
+    protected ?bool $usesSoftDeletes = null;
     protected ?string $title;
     protected ?string $displayIcon = null;
     protected ResourceAuthorizationInterface $resourceAuthorization;
@@ -240,7 +247,17 @@ abstract class Resource implements Contracts\ResourceInterface
 
     public function getUseSoftDeletes(): bool
     {
-        return $this->usesSoftDeletes;
+        // Explicit override on the resource wins over autodetection.
+        if ($this->usesSoftDeletes !== null) {
+            return $this->usesSoftDeletes;
+        }
+
+        // Otherwise, infer it from the model's SoftDeletes trait.
+        if (!isset($this->model)) {
+            return false;
+        }
+
+        return in_array(SoftDeletes::class, class_uses_recursive($this->model), true);
     }
 
     abstract public function fields(NadotaRequest $request);
@@ -349,7 +366,7 @@ abstract class Resource implements Contracts\ResourceInterface
 
     public function usesSoftDeletes(): bool
     {
-        return $this->usesSoftDeletes;
+        return $this->getUseSoftDeletes();
     }
 
     public function actions(NadotaRequest $request): array
