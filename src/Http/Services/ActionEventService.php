@@ -163,6 +163,7 @@ class ActionEventService
      * @param array|null  $original        Values before the change
      * @param array       $fields          Arbitrary context payload (sanitized)
      * @param string|null $actionableType  Origin identifier; defaults to the model class
+     * @param int|null    $actionableId    Origin record id (e.g. the parent route id); defaults to 0
      */
     public function record(
         string $action,
@@ -170,9 +171,10 @@ class ActionEventService
         ?array $changes = null,
         ?array $original = null,
         array $fields = [],
-        ?string $actionableType = null
+        ?string $actionableType = null,
+        ?int $actionableId = null
     ): ActionEvent {
-        return $this->persist($action, $model, $actionableType, $fields, $original, $changes);
+        return $this->persist($action, $model, $actionableType, $fields, $original, $changes, $actionableId);
     }
 
     /**
@@ -185,14 +187,15 @@ class ActionEventService
         ?string $actionableType = null,
         array $fields = [],
         ?array $original = null,
-        ?array $changes = null
+        ?array $changes = null,
+        ?int $actionableId = null
     ): ActionEvent {
         $data = [
             'batch_id' => $this->getBatchId(),
             'user_id' => $this->resolveUserId(),
             'name' => $action,
             'actionable_type' => $actionableType ?? get_class($model),
-            'actionable_id' => 0, // Resource doesn't have ID, using 0
+            'actionable_id' => $actionableId ?? 0,
             'target_type' => get_class($model),
             'target_id' => $model->getKey() ?? 0,
             'model_type' => get_class($model),
