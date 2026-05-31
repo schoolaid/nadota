@@ -5,11 +5,11 @@ namespace SchoolAid\Nadota\Http\Services;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
-use SchoolAid\Nadota\Models\ActionEvent;
-use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 use SchoolAid\Nadota\Contracts\ResourceInterface;
 use SchoolAid\Nadota\Events\ActionLogged;
+use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 use SchoolAid\Nadota\Jobs\LogActionEvent;
+use SchoolAid\Nadota\Models\ActionEvent;
 
 class ActionEventService
 {
@@ -25,9 +25,10 @@ class ActionEventService
      */
     public function getBatchId(): string
     {
-        if (!$this->batchId) {
+        if (! $this->batchId) {
             $this->batchId = (string) Str::uuid();
         }
+
         return $this->batchId;
     }
 
@@ -157,13 +158,13 @@ class ActionEventService
      * The user is resolved via Auth::id() or the configured system_user_id,
      * so it works without an HTTP request.
      *
-     * @param string      $action          Action name (e.g. 'update', 'import', 'sync:roster')
-     * @param Model       $model           The affected model
-     * @param array|null  $changes         Values after the change
-     * @param array|null  $original        Values before the change
-     * @param array       $fields          Arbitrary context payload (sanitized)
-     * @param string|null $actionableType  Origin identifier; defaults to the model class
-     * @param int|null    $actionableId    Origin record id (e.g. the parent route id); defaults to 0
+     * @param  string  $action  Action name (e.g. 'update', 'import', 'sync:roster')
+     * @param  Model  $model  The affected model
+     * @param  array|null  $changes  Values after the change
+     * @param  array|null  $original  Values before the change
+     * @param  array  $fields  Arbitrary context payload (sanitized)
+     * @param  string|null  $actionableType  Origin identifier; defaults to the model class
+     * @param  int|null  $actionableId  Origin record id (e.g. the parent route id); defaults to 0
      */
     public function record(
         string $action,
@@ -240,7 +241,7 @@ class ActionEventService
                     'user_id' => $data['user_id'],
                     'name' => $action,
                     'actionable_type' => $data['actionable_type'],
-                    'actionable_id' => 0,
+                    'actionable_id' => $data['actionable_id'] ?? 0,
                     'target_type' => $data['target_type'],
                     'target_id' => $data['target_id'] ?? 0,
                     'model_type' => $data['model_type'],

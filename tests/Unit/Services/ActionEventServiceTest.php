@@ -9,14 +9,13 @@ use SchoolAid\Nadota\Events\ActionLogged;
 use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 use SchoolAid\Nadota\Http\Services\ActionEventService;
 use SchoolAid\Nadota\Jobs\LogActionEvent;
-use SchoolAid\Nadota\Models\ActionEvent;
 use SchoolAid\Nadota\Tests\Models\TestModel;
 use SchoolAid\Nadota\Tests\Resources\TestResource;
 
 beforeEach(function () {
-    $this->service  = new ActionEventService();
-    $this->resource = new TestResource();
-    $this->request  = new NadotaRequest();
+    $this->service = new ActionEventService;
+    $this->resource = new TestResource;
+    $this->request = new NadotaRequest;
     $this->request->setResource($this->resource);
 
     config()->set('nadota.action_events.enabled', true);
@@ -50,10 +49,10 @@ it('logCreate persists a finished record with name=create', function () {
         ->and($event->fields)->toMatchArray(['name' => 'John']);
 
     $this->assertDatabaseHas('action_events', [
-        'name'       => 'create',
-        'status'     => 'finished',
+        'name' => 'create',
+        'status' => 'finished',
         'model_type' => TestModel::class,
-        'model_id'   => $model->id,
+        'model_id' => $model->id,
     ]);
 });
 
@@ -69,7 +68,7 @@ it('logCreate stores all model attributes as changes', function () {
 // ── logUpdate ───────────────────────────────────────────────────────────────
 
 it('logUpdate persists original and changes correctly', function () {
-    $model        = TestModel::create(['name' => 'Original', 'email' => 'old@test.com']);
+    $model = TestModel::create(['name' => 'Original', 'email' => 'old@test.com']);
     $originalData = $model->getAttributes();
 
     $model->name = 'Updated';
@@ -127,7 +126,7 @@ it('logAction persists a custom action record', function () {
 
     $event = $this->service->logAction('forceDelete', $model, $this->resource, $this->request, [], [
         'original' => ['name' => 'Test'],
-        'changes'  => ['permanently_deleted' => true],
+        'changes' => ['permanently_deleted' => true],
     ]);
 
     expect($event->name)->toBe('forceDelete')
@@ -142,11 +141,11 @@ it('redacts sensitive keys from the fields array', function () {
     $model = TestModel::create(['name' => 'Secure']);
 
     $event = $this->service->logCreate($model, $this->resource, $this->request, [
-        'name'           => 'Secure',
-        'password'       => 'secret123',
-        'api_token'      => 'tok_abc',
+        'name' => 'Secure',
+        'password' => 'secret123',
+        'api_token' => 'tok_abc',
         'remember_token' => 'rem_xyz',
-        'api_key'        => 'key_123',
+        'api_key' => 'key_123',
     ]);
 
     expect($event->fields['name'])->toBe('Secure')
@@ -157,7 +156,7 @@ it('redacts sensitive keys from the fields array', function () {
 });
 
 it('redacts sensitive keys from original and changes data', function () {
-    $model        = TestModel::create(['name' => 'Test']);
+    $model = TestModel::create(['name' => 'Test']);
     $originalData = ['name' => 'Test', 'password' => 'old_password', 'token' => 'abc'];
 
     $model->name = 'Updated';
@@ -174,8 +173,8 @@ it('redaction is case-insensitive on key names', function () {
     $model = TestModel::create(['name' => 'Test']);
 
     $event = $this->service->logCreate($model, $this->resource, $this->request, [
-        'Password'    => 'abc',
-        'API_KEY'     => 'xyz',
+        'Password' => 'abc',
+        'API_KEY' => 'xyz',
         'user_secret' => 'shhh',
     ]);
 
@@ -214,7 +213,7 @@ it('multiple logged actions share the same batch_id within one service instance'
 // ── User resolution ──────────────────────────────────────────────────────────
 
 it('resolves user_id from the authenticated user', function () {
-    $user     = new User();
+    $user = new User;
     $user->id = 42;
     $this->actingAs($user);
 
@@ -316,7 +315,7 @@ it('does not throw when the action_events table is unavailable', function () {
     $model = TestModel::create(['name' => 'Resilient']);
 
     expect(fn () => $this->service->logCreate($model, $this->resource, $this->request))
-        ->not->toThrow(\Exception::class);
+        ->not->toThrow(Exception::class);
 });
 
 // ── record() context-free entry point ────────────────────────────────────────
@@ -356,6 +355,28 @@ it('record uses the explicit actionable_type when provided', function () {
     $event = $this->service->record('update', $model, actionableType: 'App\\Console\\Commands\\SyncRoster');
 
     expect($event->actionable_type)->toBe('App\\Console\\Commands\\SyncRoster');
+});
+
+it('record defaults actionable_id to 0 when none is given', function () {
+    $model = TestModel::create(['name' => 'NoActionableId']);
+
+    $event = $this->service->record('update', $model);
+
+    expect($event->actionable_id)->toBe(0);
+});
+
+it('record stores the explicit actionable_id when provided', function () {
+    $model = TestModel::create(['name' => 'WithActionableId']);
+
+    $event = $this->service->record(
+        'create',
+        $model,
+        actionableType: 'App\\Models\\Route',
+        actionableId: 10066
+    );
+
+    expect($event->actionable_type)->toBe('App\\Models\\Route')
+        ->and($event->actionable_id)->toBe(10066);
 });
 
 it('record resolves user from system_user_id when no user is authenticated', function () {
