@@ -36,15 +36,15 @@ Nadota can publish a starter `App\Providers\NadotaServiceProvider` where you can
 php artisan vendor:publish --provider="SchoolAid\Nadota\NadotaServiceProvider" --tag="nadota-provider"
 ```
 
-## 4. Action Events migrations (optional)
+## 4. Run migrations
 
-If you use [Action Events](../guides/action-events.md) (enabled by default), an `action_events` table is required. The package ships the migrations under its own `database/migrations` directory, but in `1.1.4` they are **not** auto-loaded or published. Copy them into your application's `database/migrations` (or load them from a service provider) and run:
+[Action Events](../guides/action-events.md) (enabled by default) require an `action_events` table. The package registers its migrations automatically, so you only need to run:
 
 ```bash
 php artisan migrate
 ```
 
-To disable Action Events entirely and skip the table, set `NADOTA_TRACK_ACTIONS=false` in your `.env`.
+To disable Action Events entirely and skip the table, set `NADOTA_TRACK_ACTIONS=false` in your `.env` **before** migrating — the migrations are only registered while tracking is enabled.
 
 ## 5. Verify
 

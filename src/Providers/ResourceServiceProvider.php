@@ -24,7 +24,26 @@ class ResourceServiceProvider extends ServiceProvider
 			$this->mergeConfigFrom(__DIR__ . '/../../config/nadota.php', 'nadota');
 		}
 
+		$this->registerMigrations();
+
 		$this->registerResources();
+	}
+
+	/**
+	 * Register the package migrations (action events audit table).
+	 *
+	 * Loaded automatically so `php artisan migrate` creates the
+	 * `action_events` table out of the box. Skipped when action event
+	 * tracking is disabled, so applications that don't use it don't get
+	 * the table.
+	 */
+	protected function registerMigrations(): void
+	{
+		if (!config('nadota.action_events.enabled', true)) {
+			return;
+		}
+
+		$this->loadMigrationsFrom(__DIR__ . '/../../database/migrations');
 	}
 
 	protected function registerPublishing(): void
