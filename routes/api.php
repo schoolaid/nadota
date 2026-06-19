@@ -38,28 +38,30 @@ Route::prefix('/{resourceKey}/resource')->group(function () {
     Route::get('/create', [ResourceController::class, 'create'])->name('resource.create');
     Route::post('/', [ResourceController::class, 'store'])->name('resource.store');
 
-    // Attachment endpoints - defined before generic {id} routes to avoid conflicts
-    Route::get('/{id}/attachable/{field}', [AttachmentController::class, 'attachable'])->name('resource.attachable')->where('id', '[0-9]+');
-    Route::post('/{id}/attach/{field}', [AttachmentController::class, 'attach'])->name('resource.attach')->where('id', '[0-9]+');
-    Route::post('/{id}/detach/{field}', [AttachmentController::class, 'detach'])->name('resource.detach')->where('id', '[0-9]+');
-    Route::post('/{id}/sync/{field}', [AttachmentController::class, 'sync'])->name('resource.sync')->where('id', '[0-9]+');
+    // Attachment endpoints - their distinct literal segment (and being declared
+    // before the generic /{id} route) is what avoids conflicts, so {id} is left
+    // unconstrained to support string/UUID-keyed resources, not just integers.
+    Route::get('/{id}/attachable/{field}', [AttachmentController::class, 'attachable'])->name('resource.attachable');
+    Route::post('/{id}/attach/{field}', [AttachmentController::class, 'attach'])->name('resource.attach');
+    Route::post('/{id}/detach/{field}', [AttachmentController::class, 'detach'])->name('resource.detach');
+    Route::post('/{id}/sync/{field}', [AttachmentController::class, 'sync'])->name('resource.sync');
 
     // Relation pagination endpoint
-    Route::get('/{id}/relation/{field}', [RelationController::class, 'index'])->name('resource.relation.index')->where('id', '[0-9]+');
+    Route::get('/{id}/relation/{field}', [RelationController::class, 'index'])->name('resource.relation.index');
 
     // Action events for a specific model
-    Route::get('/{id}/action-events', [ActionEventController::class, 'index'])->name('resource.action-events')->where('id', '[0-9]+');
-    Route::get('/{id}/action-events/{eventId}', [ActionEventController::class, 'show'])->name('resource.action-events.show')->where(['id' => '[0-9]+', 'eventId' => '[0-9]+']);
+    Route::get('/{id}/action-events', [ActionEventController::class, 'index'])->name('resource.action-events');
+    Route::get('/{id}/action-events/{eventId}', [ActionEventController::class, 'show'])->name('resource.action-events.show')->where('eventId', '[0-9]+');
 
-    Route::get('/{id}/permissions', [ResourceController::class, 'permissions'])->name('resource.permissions')->where('id', '[0-9]+');
+    Route::get('/{id}/permissions', [ResourceController::class, 'permissions'])->name('resource.permissions');
 
     Route::get('/{id}', [ResourceController::class, 'show'])->name('resource.show');
     Route::get('/{id}/edit', [ResourceController::class, 'edit'])->name('resource.edit');
     Route::put('/{id}', [ResourceController::class, 'update'])->name('resource.update');
     Route::patch('/{id}', [ResourceController::class, 'update'])->name('resource.patch');
     Route::delete('/{id}', [ResourceController::class, 'destroy'])->name('resource.destroy');
-    Route::delete('/{id}/force', [ResourceController::class, 'forceDelete'])->name('resource.forceDelete')->where('id', '[0-9]+');
-    Route::post('/{id}/restore', [ResourceController::class, 'restore'])->name('resource.restore')->where('id', '[0-9]+');
+    Route::delete('/{id}/force', [ResourceController::class, 'forceDelete'])->name('resource.forceDelete');
+    Route::post('/{id}/restore', [ResourceController::class, 'restore'])->name('resource.restore');
 
     // Field options endpoints
     Route::get('/field/{fieldName}/options', [FieldOptionsController::class, 'index'])->name('resource.field.options');

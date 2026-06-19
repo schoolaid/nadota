@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Internal `ActionEventService::log()` refactored into a context-free `persist()` core (the vestigial, unused `NadotaRequest` dependency was removed). All existing public methods (`logCreate`, `logUpdate`, `logDelete`, `logRestore`, `logAction`) keep their signatures — fully backward compatible.
 
 ### Fixed
+- Relation/action routes (`attach`, `detach`, `sync`, `attachable`, `relation`, `action-events`, `permissions`, `restore`, `force`) no longer constrain the resource `{id}` to `[0-9]+`. That constraint made every request to these endpoints 404 for resources keyed by a string/UUID (e.g. a tenant id like `antiguainternationalschool`), even though the controllers resolve the model via `findOrFail($id)` and handle any key type. Disambiguation is provided by each route's distinct literal segment and declaration order, not by a numeric constraint. The action-event record id (`{eventId}`) remains integer-constrained.
 - `AbstractResourcePersistService::handle()` now re-throws `Illuminate\Validation\ValidationException` instead of swallowing it into a generic 500 response. This lets resources throw `ValidationException::withMessages([...])` from `beforeStore`/`beforeUpdate` hooks and have Laravel render the standard 422 response with field-level errors. The transaction is still rolled back before the exception propagates.
 
 ## [1.0.0] - 2025-08-22
