@@ -27,8 +27,8 @@ trait ProcessesFields
     protected function filterFieldsForStore(ResourceInterface $resource, NadotaRequest $request): Collection
     {
         return $resource->flattenFields($request)
-            ->filter(function ($field) {
-                return $field->isShowOnCreation()
+            ->filter(function ($field) use ($request) {
+                return $field->isShowOnCreation($request)
                     && !$field->isReadonly()
                     && !$field->isComputed();
             });
@@ -45,8 +45,8 @@ trait ProcessesFields
     protected function filterFieldsForUpdate(ResourceInterface $resource, NadotaRequest $request): Collection
     {
         return $resource->flattenFields($request)
-            ->filter(function ($field) {
-                return $field->isShowOnUpdate()
+            ->filter(function ($field) use ($request) {
+                return $field->isShowOnUpdate($request)
                     && !$field->isReadonly()
                     && !$field->isComputed();
             });
