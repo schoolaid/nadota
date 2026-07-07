@@ -335,9 +335,7 @@ class File extends Field
 
         // If caching is enabled
         if ($this->cacheUrl && $model) {
-//            $cacheKey = $this->getCacheKey($model, $path);
-
-            return Cache::remember($path, now()->addMinutes($this->cacheMinutes * 60), function () use ($disk, $path) {
+            return Cache::remember($this->getCacheKey($model, $path), now()->addMinutes($this->getUrlCacheMinutes()), function () use ($disk, $path) {
                 return $this->generateFileUrl($disk, $path);
             });
         }
@@ -367,6 +365,19 @@ class File extends Field
         } catch (\Exception $e) {
             return null;
         }
+    }
+
+    /**
+     * Get the cache TTL in minutes, capped below the signed URL validity
+     * so an expired signature is never served from cache.
+     */
+    protected function getUrlCacheMinutes(): int
+    {
+        if ($this->signUrl && $this->useTemporaryUrl) {
+            return max(1, min($this->cacheMinutes, $this->temporaryUrlMinutes - 5));
+        }
+
+        return $this->cacheMinutes;
     }
 
     /**
