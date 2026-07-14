@@ -1,6 +1,6 @@
 {
   "name": "schoolaid/nadota",
-  "version": "1.1",
+  "version": "1.2.0",
   "type": "library",
   "description": "Laravel admin panel package for resource-based CRUD interfaces similar to Laravel Nova",
   "keywords": [
@@ -16,7 +16,7 @@
   "authors": [
     {
       "name": "SchoolAid Development Team",
-      "email": "dev@schoolaid.com"
+      "email": "hsingli@schoolaid.com"
     }
   ],
   "require": {
