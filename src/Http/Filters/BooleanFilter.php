@@ -40,12 +40,29 @@ class BooleanFilter extends Filter
         return $query;
     }
 
+    /**
+     * The option labels shown for true/false.
+     *
+     * Apps whose frontend translates option labels can point these at i18n keys
+     * (`nadota.filters.boolean.true_label` => 'nadota.yes'), the same way Status and
+     * Select fields already hand translation keys to the frontend. Without config the
+     * literal Sí/No labels are kept, so apps that render the label as-is are unaffected.
+     */
     public function resources(NadotaRequest $request): array
     {
         return [
-            'Sí' => true,
-            'No' => false,
+            $this->optionLabel('true_label', 'Sí') => true,
+            $this->optionLabel('false_label', 'No') => false,
         ];
+    }
+
+    protected function optionLabel(string $key, string $default): string
+    {
+        try {
+            return (string) config("nadota.filters.boolean.{$key}", $default);
+        } catch (\Throwable $e) {
+            return $default;
+        }
     }
 
     public function props(): array

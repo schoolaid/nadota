@@ -8,6 +8,15 @@ return [
     'middlewares' => [
         'api',
     ],
+    'filters' => [
+        // Labels for the true/false options of a boolean/checkbox filter.
+        // Point these at i18n keys (e.g. 'nadota.yes') if your frontend translates
+        // option labels; leave them as literals if it renders them as-is.
+        'boolean' => [
+            'true_label' => 'Sí',
+            'false_label' => 'No',
+        ],
+    ],
     'fields' => [
         // Basic Input Fields
         'text' => [

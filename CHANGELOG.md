@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `nadota.filters.boolean.true_label` / `false_label` config — the option labels a `BooleanFilter` (i.e. any filterable `Checkbox`/`Boolean` field) hands to the frontend. Apps whose frontend translates option labels can point them at i18n keys (`'common.yes'`), the same contract the `Status` and `Select` fields already use via `translateLabels()`. Previously the labels were hardcoded to `Sí`/`No`, so an English UI showed Spanish. Defaults keep `Sí`/`No`, so apps that render labels as-is are unaffected.
 - `ActionEventService::record()` — public, context-free entry point to log action events from jobs, console commands, API endpoints, or controllers outside the Nadota panel. Requires only the affected model; resolves the user via `Auth::id()` or the configured `system_user_id`, so no HTTP request or Nadota resource is needed. Respects queue mode and sensitive-field redaction.
 - `ActionEventService::record()` now accepts an optional `?int $actionableId` parameter (appended last, fully backward compatible). It is stored in the `action_events.actionable_id` column, letting callers link an event to the originating record (e.g. the parent route a stop was created from). Defaults to `0` when omitted, preserving previous behavior. The degraded "failed" fallback row also preserves the provided id.
 
