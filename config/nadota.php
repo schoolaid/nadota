@@ -102,7 +102,12 @@ return [
             'type' => 'image',
             'component' => 'FieldImage'
         ],
-        
+        'multi_image' => [
+            'type' => 'multiImage',
+            'component' => 'FieldMultiImage',
+            'max_size' => 5 * 1024 * 1024,
+        ],
+
         // Relationship Fields
         'belongsTo' => [
             'type' => 'belongsTo',

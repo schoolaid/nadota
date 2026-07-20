@@ -24,6 +24,7 @@ enum FieldType: string
     case BELONGS_TO_MANY = 'belongsToMany';
     case FILE = 'file';
     case IMAGE = 'image';
+    case MULTI_IMAGE = 'multiImage';
     case MORPH_TO = 'morphTo';
     case MORPH_MANY = 'morphMany';
     case MORPH_ONE = 'morphOne';
