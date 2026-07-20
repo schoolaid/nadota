@@ -47,7 +47,29 @@ class MultiImage extends File
             fn ($rule) => $rule !== 'string'
         ));
 
-        return array_merge($rules, ['array', 'max:'.$this->maxFiles]);
+        $isNullable = in_array('nullable', $rules, true);
+
+        // The frontend serializer (useObjectToFormData) submits the literal
+        // string '[]' as its empty-array indicator on multipart requests.
+        // Mirror KeyValue's convention: accept it as "no images" when the
+        // field is nullable, accept real arrays, reject anything else.
+        $rules[] = function (string $attribute, mixed $value, \Closure $fail) use ($isNullable): void {
+            if ($value === null) {
+                return;
+            }
+
+            if ($isNullable && in_array($value, ['', '[]'], true)) {
+                return;
+            }
+
+            if (is_array($value)) {
+                return;
+            }
+
+            $fail(__('validation.array', ['attribute' => $attribute]));
+        };
+
+        return array_merge($rules, ['max:'.$this->maxFiles]);
     }
 
     /**

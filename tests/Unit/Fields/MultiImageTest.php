@@ -20,9 +20,14 @@ it('has correct type, component and defaults', function () {
 it('builds array rules with max files and nested per-image rules', function () {
     $field = MultiImage::make('Images', 'images')->maxFiles(3)->maxSize(2 * 1024 * 1024);
 
-    expect($field->getRules())->toContain('array')
-        ->and($field->getRules())->toContain('max:3')
-        ->and($field->getRules())->not->toContain('string');
+    $rules = $field->getRules();
+
+    // The plain 'array' rule was replaced by a closure that also accepts the
+    // frontend serializer's '[]' empty indicator (see the indicator tests).
+    expect(collect($rules)->contains(fn ($rule) => $rule instanceof \Closure))->toBeTrue()
+        ->and($rules)->toContain('max:3')
+        ->and($rules)->not->toContain('array')
+        ->and($rules)->not->toContain('string');
 
     $nested = $field->getNestedRules();
 
@@ -129,4 +134,54 @@ it('exposes maxFiles in props', function () {
     $array = $field->toArray(createNadotaRequest(), null, null);
 
     expect($array['props']['maxFiles'])->toBe(4);
+});
+
+it('accepts the frontend empty-array indicator when nullable', function () {
+    $field = MultiImage::make('Images', 'images')->nullable();
+
+    $validator = \Illuminate\Support\Facades\Validator::make(
+        ['images' => '[]'],
+        ['images' => $field->getRules()]
+    );
+
+    expect($validator->passes())->toBeTrue();
+});
+
+it('rejects non-array garbage even when nullable', function () {
+    $field = MultiImage::make('Images', 'images')->nullable();
+
+    $validator = \Illuminate\Support\Facades\Validator::make(
+        ['images' => 'not-an-array'],
+        ['images' => $field->getRules()]
+    );
+
+    expect($validator->fails())->toBeTrue();
+});
+
+it('rejects the empty indicator when the field is required', function () {
+    $field = MultiImage::make('Images', 'images')->required();
+
+    $validator = \Illuminate\Support\Facades\Validator::make(
+        ['images' => '[]'],
+        ['images' => $field->getRulesFor(false)]
+    );
+
+    expect($validator->fails())->toBeTrue();
+});
+
+it('still validates real arrays and the max files cap', function () {
+    $field = MultiImage::make('Images', 'images')->nullable()->maxFiles(2);
+
+    $ok = \Illuminate\Support\Facades\Validator::make(
+        ['images' => [UploadedFile::fake()->image('a.jpg')]],
+        ['images' => $field->getRules()]
+    );
+
+    $tooMany = \Illuminate\Support\Facades\Validator::make(
+        ['images' => [UploadedFile::fake()->image('a.jpg'), UploadedFile::fake()->image('b.jpg'), UploadedFile::fake()->image('c.jpg')]],
+        ['images' => $field->getRules()]
+    );
+
+    expect($ok->passes())->toBeTrue()
+        ->and($tooMany->fails())->toBeTrue();
 });
