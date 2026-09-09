@@ -77,6 +77,10 @@ return [
             'type' => 'select',
             'component' => 'FieldSelect'
         ],
+        'lookup' => [
+            'type' => 'lookup',
+            'component' => 'FieldLookup'
+        ],
         'radio' => [
             'type' => 'radio',
             'component' => 'FieldRadio'
