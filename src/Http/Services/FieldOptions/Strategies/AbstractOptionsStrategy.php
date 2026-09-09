@@ -8,6 +8,7 @@ use SchoolAid\Nadota\Contracts\ResourceInterface;
 use SchoolAid\Nadota\Http\Fields\Field;
 use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 use SchoolAid\Nadota\Http\Services\FieldOptions\Contracts\FieldOptionsStrategy;
+use SchoolAid\Nadota\Http\Services\FieldOptions\OptionScopeResolver;
 use SchoolAid\Nadota\Http\Services\FieldOptions\OptionsConfig;
 use SchoolAid\Nadota\Http\Services\FieldOptions\Traits\SearchesOptions;
 
@@ -139,6 +140,17 @@ abstract class AbstractOptionsStrategy implements FieldOptionsStrategy
         if (method_exists($field, 'hasOptionsScope') && $field->hasOptionsScope()) {
             $query = call_user_func($field->getOptionsScope(), $query);
         }
+
+        // Apply declared option scopes. Values arrive as scope[...] in the request;
+        // the columns come from the field's own declaration.
+        $scoped = (new OptionScopeResolver())->apply($query, $field, $commonParams['scope'] ?? []);
+
+        if ($scoped === null) {
+            // A strict scope has no value: no options, and no trip to the database.
+            return collect();
+        }
+
+        $query = $scoped;
 
         // Apply custom filters
         if (!empty($filters)) {

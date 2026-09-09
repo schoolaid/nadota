@@ -132,6 +132,7 @@ class FieldOptionsService
             'orderBy' => $request->get('orderBy'),
             'orderDirection' => $request->get('orderDirection', OptionsConfig::DEFAULT_ORDER_DIRECTION),
             'filters' => $request->get('filters', []),
+            'scope' => $request->get('scope', []),
         ], $additionalParams);
 
         $options = $strategy->fetchOptions($request, $resource, $field, $params);

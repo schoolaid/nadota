@@ -17,6 +17,9 @@
         <testsuite name="Nadota Feature Tests">
             <directory>tests/Feature</directory>
         </testsuite>
+        <testsuite name="Nadota Service Integration Tests">
+            <directory>tests/ServiceIntegration</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>

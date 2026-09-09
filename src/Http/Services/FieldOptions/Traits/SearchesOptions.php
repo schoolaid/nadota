@@ -267,6 +267,7 @@ trait SearchesOptions
             'orderBy' => $params['orderBy'] ?? $request->get('orderBy'),
             'orderDirection' => $params['orderDirection'] ?? $request->get('orderDirection', OptionsConfig::DEFAULT_ORDER_DIRECTION),
             'filters' => $params['filters'] ?? $request->get('filters', []),
+            'scope' => $params['scope'] ?? $request->get('scope', []),
         ];
     }
 
