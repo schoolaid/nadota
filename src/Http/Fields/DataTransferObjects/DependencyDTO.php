@@ -42,6 +42,13 @@ class DependencyDTO
     public ?array $options = null;
 
     /**
+     * Option scopes declared via ScopesOptions::scopedBy(), keyed by observed field.
+     *
+     * @var array<string, array{field: string, optional: bool}>
+     */
+    public array $optionScopes = [];
+
+    /**
      * Computed value formula (evaluated in frontend).
      */
     public ?string $compute = null;
@@ -144,6 +151,19 @@ class DependencyDTO
     }
 
     /**
+     * Register an option scope. Re-declaring the same field replaces it.
+     */
+    public function addOptionScope(string $field, bool $optional = false): static
+    {
+        $this->optionScopes[$field] = [
+            'field' => $field,
+            'optional' => $optional,
+        ];
+
+        return $this;
+    }
+
+    /**
      * Set computed formula.
      */
     public function setCompute(string $formula): static
@@ -163,7 +183,8 @@ class DependencyDTO
             || !empty($this->disabled)
             || !empty($this->required)
             || $this->options !== null
-            || $this->compute !== null;
+            || $this->compute !== null
+            || $this->optionScopes !== [];
     }
 
     /**
@@ -195,6 +216,13 @@ class DependencyDTO
 
         if ($this->options !== null) {
             $data['options'] = $this->options;
+        }
+
+        if ($this->optionScopes !== []) {
+            $data['options'] = array_merge(
+                $data['options'] ?? [],
+                ['scope' => array_values($this->optionScopes)]
+            );
         }
 
         if ($this->compute !== null) {

@@ -76,3 +76,56 @@ it('is chainable', function () {
 
     expect($field->scopedBy('grade'))->toBe($field);
 });
+
+it('registers the observed field as a dependency', function () {
+    $field = Input::make('Student', 'student_id')->scopedBy('grade');
+
+    expect($field->hasDependencies())->toBeTrue()
+        ->and($field->getDependsOnFields())->toBe(['grade']);
+});
+
+it('clears its value when a dependency changes', function () {
+    $field = Input::make('Student', 'student_id')->scopedBy('grade');
+
+    expect($field->getDependencyConfig()['clearOnChange'])->toBeTrue();
+});
+
+it('serializes scopes under options.scope', function () {
+    $field = Input::make('Student', 'student_id')
+        ->scopedBy('grade')
+        ->scopedBy('campus', 'campus_id', optional: true);
+
+    expect($field->getDependencyConfig()['options']['scope'])->toBe([
+        ['field' => 'grade', 'optional' => false],
+        ['field' => 'campus', 'optional' => true],
+    ]);
+});
+
+it('does not leak the column name to the frontend', function () {
+    $field = Input::make('Student', 'student_id')->scopedBy('grade', 'secret_column');
+
+    expect(json_encode($field->getDependencyConfig()))->not->toContain('secret_column');
+});
+
+it('serializes a replaced scope only once', function () {
+    $field = Input::make('Student', 'student_id')
+        ->scopedBy('grade', 'grade_id')
+        ->scopedBy('grade', 'other_grade_id', optional: true);
+
+    expect($field->getDependencyConfig()['options']['scope'])->toBe([
+        ['field' => 'grade', 'optional' => true],
+    ]);
+});
+
+it('keeps cascadeFrom and scopes side by side under options', function () {
+    $field = Input::make('Student', 'student_id')
+        ->cascadeFrom('country_id')
+        ->scopedBy('grade');
+
+    $options = $field->getDependencyConfig()['options'];
+
+    expect($options['cascadeFrom'])->toBe('country_id')
+        ->and($options['scope'])->toBe([
+            ['field' => 'grade', 'optional' => false],
+        ]);
+});

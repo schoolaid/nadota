@@ -12,6 +12,10 @@ use SchoolAid\Nadota\Http\Fields\DataTransferObjects\OptionScopeDTO;
  *
  * The observed field does not need to be persisted: a Lookup field, or any
  * field marked ->virtual(), works as the source of the value.
+ *
+ * Requires DependsOnTrait on the same class: declaring a scope registers the
+ * observed field as a dependency so the frontend re-fetches options when it
+ * changes, and clears this field's value so a stale selection is not submitted.
  */
 trait ScopesOptions
 {
@@ -41,6 +45,10 @@ trait ScopesOptions
             callback: $target instanceof Closure ? $target : null,
             optional: $optional,
         );
+
+        $this->dependsOn($field);
+        $this->clearOnDependencyChange();
+        $this->getDependencyDTO()->addOptionScope($field, $optional);
 
         return $this;
     }
