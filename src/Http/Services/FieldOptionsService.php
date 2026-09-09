@@ -7,6 +7,7 @@ use SchoolAid\Nadota\Contracts\ResourceInterface;
 use SchoolAid\Nadota\Http\Fields\Field;
 use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 use SchoolAid\Nadota\Http\Services\FieldOptions\Contracts\FieldOptionsStrategy;
+use SchoolAid\Nadota\Http\Services\FieldOptions\OptionScopeResolver;
 use SchoolAid\Nadota\Http\Services\FieldOptions\OptionsConfig;
 use SchoolAid\Nadota\Http\Services\FieldOptions\Strategies\BelongsToManyOptionsStrategy;
 use SchoolAid\Nadota\Http\Services\FieldOptions\Strategies\BelongsToOptionsStrategy;
@@ -256,6 +257,17 @@ class FieldOptionsService
                 'orderDirection' => $orderDirection,
                 'filters' => $filters,
             ]);
+        }
+
+        // Apply declared option scopes. When a strict scope has no value the query is
+        // made unsatisfiable rather than short-circuited, so the paginator still builds
+        // the meta block the frontend expects.
+        $scoped = (new OptionScopeResolver())->apply($query, $field, $request->get('scope', []));
+
+        if ($scoped === null) {
+            $query->whereRaw('1 = 0');
+        } else {
+            $query = $scoped;
         }
 
         // Apply custom filters
