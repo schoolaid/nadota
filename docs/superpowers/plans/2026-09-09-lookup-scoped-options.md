@@ -18,6 +18,7 @@
 - La columna a filtrar sale **siempre** de la declaración en el resource; el request solo aporta el valor.
 - Sin cambios en `store`/`update` ni en la validación de persistencia: fuera de alcance.
 - Ejecutar tests con `./vendor/bin/pest <ruta>`; la suite completa con `composer test`.
+- **La suite tiene 92 fallos preexistentes** (541 pasando) en `tests/Unit/Fields/*`, ajenos a este trabajo: son tests desactualizados respecto al código (esperan `fieldData->type` como enum y nombres de componente antiguos como `field-hidden`). El criterio de verificación NO es "`composer test` pasa", sino: **los archivos de test de la tarea pasan al 100% y el número de fallos de la suite sigue siendo 92**. No arreglar esos tests: está fuera de alcance.
 - Cada tarea termina con commit propio.
 
 ---
@@ -260,7 +261,7 @@ Expected: PASS, 9 tests
 - [ ] **Step 7: Ejecutar la suite completa para verificar que no se rompió nada**
 
 Run: `composer test`
-Expected: PASS
+Expected: la línea final sigue diciendo `92 failed`; los tests nuevos aparecen entre los que pasan. Cualquier fallo nuevo es tuyo.
 
 - [ ] **Step 8: Commit**
 
@@ -425,7 +426,7 @@ Expected: PASS, 15 tests
 - [ ] **Step 6: Ejecutar la suite completa**
 
 Run: `composer test`
-Expected: PASS. Prestar atención a los tests existentes de `dependsOn`, que comparten el `DependencyDTO`.
+Expected: la línea final sigue diciendo `92 failed`; los tests nuevos aparecen entre los que pasan. Cualquier fallo nuevo es tuyo.. Prestar atención a los tests existentes de `dependsOn`, que comparten el `DependencyDTO`.
 
 - [ ] **Step 7: Commit**
 
@@ -715,6 +716,13 @@ class RelatedModelResource extends Resource
 {
     public string $model = RelatedModel::class;
 
+    /**
+     * Options search reads this resource property, not the fields' ->searchable()
+     * flags: SearchesOptions::applyResourceSearch() only consults
+     * getSearchableAttributes(). Leaving it empty makes every search match.
+     */
+    protected array $searchableAttributes = ['title'];
+
     public function fields(NadotaRequest $request): array
     {
         return [
@@ -903,7 +911,7 @@ Expected: PASS, 7 tests
 - [ ] **Step 8: Ejecutar la suite completa**
 
 Run: `composer test`
-Expected: PASS
+Expected: la línea final sigue diciendo `92 failed`; los tests nuevos aparecen entre los que pasan. Cualquier fallo nuevo es tuyo.
 
 - [ ] **Step 9: Commit**
 
@@ -1073,7 +1081,7 @@ Expected: PASS, 3 tests
 - [ ] **Step 6: Ejecutar la suite completa**
 
 Run: `composer test`
-Expected: PASS
+Expected: la línea final sigue diciendo `92 failed`; los tests nuevos aparecen entre los que pasan. Cualquier fallo nuevo es tuyo.
 
 - [ ] **Step 7: Commit**
 
@@ -1343,7 +1351,7 @@ Expected: PASS, 3 tests
 - [ ] **Step 9: Ejecutar la suite completa**
 
 Run: `composer test`
-Expected: PASS
+Expected: la línea final sigue diciendo `92 failed`; los tests nuevos aparecen entre los que pasan. Cualquier fallo nuevo es tuyo.
 
 - [ ] **Step 10: Commit**
 
@@ -1564,7 +1572,7 @@ Expected: los cuatro archivos existen
 - [ ] **Step 6: Ejecutar la suite completa una última vez**
 
 Run: `composer test`
-Expected: PASS
+Expected: la línea final sigue diciendo `92 failed`; los tests nuevos aparecen entre los que pasan. Cualquier fallo nuevo es tuyo.
 
 - [ ] **Step 7: Commit**
 
