@@ -115,13 +115,15 @@ it('applies a closure scope', function () {
 it('ignores request keys that were not declared as scopes', function () {
     seedOwnersAndItems();
 
+    $field = Input::make('Item', 'item_id')->scopedBy('owner', 'test_model_id');
+
     $result = (new OptionScopeResolver())->apply(
         RelatedModel::query(),
-        Input::make('Item', 'item_id'),
-        ['title' => 'Item for owner 5', 'test_model_id' => 5]
+        $field,
+        ['owner' => 5, 'title' => 'Item for owner 51']
     );
 
-    expect($result->count())->toBe(3);
+    expect($result->pluck('title')->all())->toBe(['Item for owner 5']);
 });
 
 it('applies several scopes as AND', function () {
