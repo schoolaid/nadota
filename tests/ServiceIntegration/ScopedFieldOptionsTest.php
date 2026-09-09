@@ -80,11 +80,12 @@ it('ignores scope keys the field did not declare', function () {
     seedScopedOptions();
 
     $options = fetchScopedOptions(
-        BelongsTo::make('Item', 'item', RelatedModelResource::class),
-        ['scope' => ['title' => 'Item for owner 5']]
+        scopedItemField(),
+        ['scope' => ['owner' => 5, 'title' => 'Item for owner 51']]
     );
 
-    expect($options)->toHaveCount(3);
+    expect($options)->toHaveCount(1)
+        ->and($options[0]['label'])->toBe('Item for owner 5');
 });
 
 it('combines a scope with a search term', function () {
@@ -93,6 +94,11 @@ it('combines a scope with a search term', function () {
     RelatedModel::query()->create([
         'title' => 'Another item for owner 5',
         'test_model_id' => 5,
+    ]);
+
+    RelatedModel::query()->create([
+        'title' => 'Another item for owner 15',
+        'test_model_id' => 15,
     ]);
 
     $options = fetchScopedOptions(scopedItemField(), [
