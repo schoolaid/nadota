@@ -15,6 +15,7 @@ use SchoolAid\Nadota\Http\Fields\Traits\{
     FieldResolveTrait,
     FilterableTrait,
     RelationshipTrait,
+    ScopesOptions,
     SearchableTrait,
     SortableTrait,
     ValidationTrait,
@@ -32,6 +33,7 @@ abstract class Field implements FieldInterface
     use FilterableTrait;
     use Makeable;
     use RelationshipTrait;
+    use ScopesOptions;
     use SearchableTrait;
     use SortableTrait;
     use ValidationTrait;
