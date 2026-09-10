@@ -63,7 +63,21 @@ BelongsTo::make('Student', 'student', StudentResource::class)
     ));
 ```
 
-### 4. Decide about validation
+### 4. Seed the lookup on edit forms
+
+A `Lookup` is never persisted, so on an edit form it comes back empty — which, under a strict scope, leaves the dependent field disabled until the user re-picks a value they never chose in the first place. Give it a default derived from the record:
+
+```php
+Lookup::make('Grade', 'grade')
+    ->resource(GradeResource::class)
+    ->defaultFromAttribute('student.grade_id'),
+```
+
+`defaultFromAttribute()` supports dot notation; `defaultUsing(fn ($request, $model) => ...)` covers anything richer. The value is emitted as `default` in the field payload whenever a model is present, so the edit form opens with the grade already filled, the dependent field enabled and correctly scoped, and nothing cleared.
+
+Do the same for a create form that arrives with the dependent value prefilled from context: seed the lookup too, rather than expecting the backend to resolve a label for a record outside the scope.
+
+### 5. Decide about validation
 
 Scopes constrain the options list; they are **not** enforced when the form is submitted. A request that posts a student from another grade is saved. If you need a hard guarantee, add your own rule on the relation field — the package deliberately does not:
 
