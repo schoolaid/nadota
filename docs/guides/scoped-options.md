@@ -75,6 +75,8 @@ Lookup::make('Grade', 'grade')
 
 `defaultFromAttribute()` supports dot notation; `defaultUsing(fn ($request, $model) => ...)` covers anything richer. The value is emitted as `default` in the field payload whenever a model is present, so the edit form opens with the grade already filled, the dependent field enabled and correctly scoped, and nothing cleared.
 
+This only works if the client maps `default` to the control's initial value. Do not assume it already does — in the School Aid frontend it did not for any field, and `default` is now honoured for `Lookup` specifically. See step 1 of the frontend section.
+
 Do the same for a create form that arrives with the dependent value prefilled from context: seed the lookup too, rather than expecting the backend to resolve a label for a record outside the scope.
 
 ### 5. Decide about validation
@@ -102,6 +104,8 @@ This is where the real work is. The backend serializes a contract; nothing rende
 Register a control under the name in `nadota.fields.lookup.component` (default `FieldLookup`). Behaviourally it is a remote-options select: it fetches from `optionsUrl`, supports search, and holds a value that is submitted with the form but that the backend will not persist.
 
 It needs no special rendering — an existing remote select can be reused. What is new is the scope wiring below, which applies to **every** field, not just `Lookup`.
+
+Map the payload's `default` to the control's initial value. This is what makes edit forms work (see step 4 of the backend section), and a client that ignores `default` will open every edit form with the lookup empty and the dependent field disabled.
 
 ### 2. Read the scope declaration from the field payload
 
@@ -184,6 +188,14 @@ The two sides are independent and the backend is backward compatible, so ship in
 4. Roll out to the remaining resources.
 
 Reversing steps 2 and 3 leaves a window where a strict scope is declared but the client sends no value — and the backend correctly returns an empty list, which users will read as a broken dropdown.
+
+## Limitations
+
+**Action and attach dialogs do not support scopes.** Declare `scopedBy()` only on fields returned by a resource's `fields()`.
+
+Action fields come from `$action->fields($request)` and are serialized by `ActionController::fields()` with `toArray($request)` — no resource argument — so they never receive an `optionsUrl` at all. `FieldOptionsService::findField()` also searches only the resource's own flattened fields, so an action field is unreachable from the options endpoint by construction. A scope declared there would serialize into the payload and then have nothing to act on.
+
+If you need this, it is a backend change (giving action fields a resolvable options route) plus frontend work to run those dialogs through the same dependency machinery as the main form.
 
 ## Verifying it works
 
