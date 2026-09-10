@@ -40,6 +40,13 @@ grade itself never reaches the model.
 Any field can play the same role: `Select::make('Grade', 'grade')->virtual()->options([...])`
 works as a scope source with static options. `Lookup` is the Resource-backed variant.
 
+> **`optionsUrl` is null without a resource argument.** `getOptionsUrl()` needs the owning
+> resource to build the route, so serializing a field with `toArray($request)` and no third
+> argument yields `"optionsUrl": null` — for `Lookup` and for relation fields alike. This is a
+> property of how the field was serialized, not a sign that the field exposes no endpoint. It is
+> also why action and attach dialogs cannot use scoped options at all; see
+> [Integrating Scoped Options](../guides/scoped-options.md#limitations).
+
 ## Scoping options with `scopedBy()`
 
 ```php
