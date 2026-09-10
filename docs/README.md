@@ -27,6 +27,7 @@ This documentation is organized by audience and domain. Start with **Getting Sta
 | [Exports](guides/exports.md) | CSV/Excel export |
 | [Soft Deletes](guides/soft-deletes.md) | Trashed listing, restore, force delete |
 | [Menu](guides/menu.md) | Navigation tree |
+| [Scoped Options](guides/scoped-options.md) | Rolling out `Lookup` fields and `scopedBy()` across the API and frontend apps |
 
 ## Fields
 
