@@ -183,6 +183,10 @@ trait RelationshipTrait
     /**
      * Check if a custom options scope is set.
      *
+     * Not to be confused with ScopesOptions::hasOptionScopes() (plural "Scopes"):
+     * this one reports whether a single closure was set via optionsScope(callable),
+     * while hasOptionScopes() reports whether any scopedBy() declarations exist.
+     *
      * @return bool
      */
     public function hasOptionsScope(): bool

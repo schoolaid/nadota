@@ -60,7 +60,9 @@ it('uses whereIn for array values', function () {
         ['owner' => [5, 51]]
     );
 
-    expect($result->pluck('title')->all())
+    // No orderBy is applied by the resolver, so sort before comparing instead
+    // of relying on the database's incidental row order.
+    expect($result->pluck('title')->sort()->values()->all())
         ->toBe(['Item for owner 5', 'Item for owner 51']);
 });
 
@@ -140,4 +142,72 @@ it('applies several scopes as AND', function () {
     );
 
     expect($result->count())->toBe(0);
+});
+
+it('coerces a non-array scope value to empty instead of throwing', function () {
+    seedOwnersAndItems();
+
+    // A plain `?scope=abc` query string arrives here as a string, not an
+    // array. Every options endpoint calls apply() unconditionally, so this
+    // must not TypeError for fields with no declared scopes...
+    $result = (new OptionScopeResolver())->apply(
+        RelatedModel::query(),
+        Input::make('Item', 'item_id'),
+        'abc'
+    );
+
+    expect($result)->not->toBeNull()
+        ->and($result->count())->toBe(3);
+});
+
+it('treats a non-array scope value as missing for a strict scope', function () {
+    // ...nor for fields that do declare scopes: a strict scope with an
+    // unusable value must still fall back to the null/unsatisfiable contract.
+    $result = (new OptionScopeResolver())->apply(
+        RelatedModel::query(),
+        scopedField(),
+        'abc'
+    );
+
+    expect($result)->toBeNull();
+});
+
+it('drops non-scalar members of an array scope value before whereIn', function () {
+    seedOwnersAndItems();
+
+    // scope[owner][a][b]=1 style input reaches here as an array containing
+    // arrays. whereIn() would fail at the driver if given those as-is, so
+    // non-scalar members are dropped; the remaining scalar members still
+    // narrow the query.
+    $result = (new OptionScopeResolver())->apply(
+        RelatedModel::query(),
+        scopedField(),
+        ['owner' => [5, ['a' => ['b' => 1]], 51]]
+    );
+
+    expect($result->pluck('title')->sort()->values()->all())
+        ->toBe(['Item for owner 5', 'Item for owner 51']);
+});
+
+it('treats an array scope value of only non-scalars as missing for a strict scope', function () {
+    $result = (new OptionScopeResolver())->apply(
+        RelatedModel::query(),
+        scopedField(),
+        ['owner' => [['a' => 1], ['b' => 2]]]
+    );
+
+    expect($result)->toBeNull();
+});
+
+it('skips an optional scope whose array value is only non-scalars', function () {
+    seedOwnersAndItems();
+
+    $result = (new OptionScopeResolver())->apply(
+        RelatedModel::query(),
+        scopedField('test_model_id', optional: true),
+        ['owner' => [['a' => 1]]]
+    );
+
+    expect($result)->not->toBeNull()
+        ->and($result->count())->toBe(3);
 });

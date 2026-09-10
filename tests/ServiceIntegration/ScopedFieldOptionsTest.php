@@ -124,3 +124,23 @@ it('reads the scope from the request when it is not passed in params', function 
     expect($options)->toHaveCount(1)
         ->and($options[0]['label'])->toBe('Item for owner 51');
 });
+
+it('does not throw when scope arrives as a non-array string, e.g. a plain ?scope=abc', function () {
+    seedScopedOptions();
+
+    // A field with no declared scopes must simply ignore an unusable scope value.
+    $options = fetchScopedOptions(
+        BelongsTo::make('Item', 'item', RelatedModelResource::class),
+        ['scope' => 'abc']
+    );
+
+    expect($options)->toHaveCount(3);
+});
+
+it('treats a non-array scope as missing for a field with a strict declared scope', function () {
+    seedScopedOptions();
+
+    $options = fetchScopedOptions(scopedItemField(), ['scope' => 'abc']);
+
+    expect($options)->toBe([]);
+});

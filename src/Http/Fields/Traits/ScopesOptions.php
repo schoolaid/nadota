@@ -39,16 +39,18 @@ trait ScopesOptions
      */
     public function scopedBy(string $field, string|Closure|null $target = null, bool $optional = false): static
     {
-        $this->optionScopes[$field] = new OptionScopeDTO(
+        $scope = new OptionScopeDTO(
             field: $field,
             column: $target instanceof Closure ? null : ($target ?? Str::snake($field) . '_id'),
             callback: $target instanceof Closure ? $target : null,
             optional: $optional,
         );
 
+        $this->optionScopes[$field] = $scope;
+
         $this->dependsOn($field);
         $this->clearOnDependencyChange();
-        $this->getDependencyDTO()->addOptionScope($field, $optional);
+        $this->getDependencyDTO()->addOptionScope($scope);
 
         return $this;
     }
@@ -61,6 +63,12 @@ trait ScopesOptions
         return $this->optionScopes;
     }
 
+    /**
+     * Not to be confused with RelationshipTrait::hasOptionsScope() (singular "Scope"):
+     * this one reports whether any scopedBy() declarations exist, while
+     * hasOptionsScope() reports whether a single closure was set via
+     * optionsScope(callable).
+     */
     public function hasOptionScopes(): bool
     {
         return $this->optionScopes !== [];

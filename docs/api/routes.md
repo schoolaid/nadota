@@ -221,6 +221,7 @@ For select / relation fields. The `{fieldName}` is the field name.
 | `orderBy` | string | — | Column to order by. |
 | `orderDirection` | string | `asc` | `asc` or `desc`. |
 | `filters` | object | — | Additional filters (used for dependent/morph options). |
+| `scope` | object | — | Values for the field's declared `scopedBy()` scopes, keyed by observed field name (`scope[owner]=5`). See [Lookup Fields and Scoped Options](../fields/lookup.md). |
 | `page` / `perPage` | int | 1 / 15 | For the paginated endpoint. |
 
 Authorization for field/resource options checks `viewAny`, falling back to `viewOptions`.

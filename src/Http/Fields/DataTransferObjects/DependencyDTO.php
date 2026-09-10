@@ -37,7 +37,7 @@ class DependencyDTO
     /**
      * Dynamic options configuration.
      *
-     * @var array{endpoint?: string, paramField?: string, paramName?: string, cascadeFrom?: string}|null
+     * @var array{endpoint?: string, paramField?: string, paramName?: string, cascadeFrom?: string, scope?: list<array{field: string, optional: bool}>}|null
      */
     public ?array $options = null;
 
@@ -152,13 +152,13 @@ class DependencyDTO
 
     /**
      * Register an option scope. Re-declaring the same field replaces it.
+     *
+     * Stores OptionScopeDTO::toArray() as the single definition of the
+     * frontend-facing scope shape, so it is not duplicated here.
      */
-    public function addOptionScope(string $field, bool $optional = false): static
+    public function addOptionScope(OptionScopeDTO $scope): static
     {
-        $this->optionScopes[$field] = [
-            'field' => $field,
-            'optional' => $optional,
-        ];
+        $this->optionScopes[$scope->field] = $scope->toArray();
 
         return $this;
     }

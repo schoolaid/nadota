@@ -129,11 +129,13 @@ The conditions map to `SchoolAid\Nadota\Http\Fields\Enums\DependencyOperator`:
   "visibility": [{ "field": "type", "operator": "equals", "value": "company" }],
   "disabled":   [{ "field": "locked", "operator": "isTruthy" }],
   "required":   [{ "field": "type", "operator": "equals", "value": "company" }],
-  "options":    { "endpoint": "/api/cities", "paramField": "country_id", "paramName": "country" },
+  "options":    { "endpoint": "/api/cities", "paramField": "country_id", "paramName": "country", "scope": [{ "field": "grade", "optional": false }] },
   "compute":    "quantity * price",
   "clearOnChange": true,
   "debounce": 300
 }
 ```
+
+The `options.scope` entries are added by `ScopesOptions::scopedBy()`; each declares which observed field the frontend must send as `scope[<field>]` when fetching options, and whether it is optional. The scope's target column is never serialized. See [Lookup Fields and Scoped Options](lookup.md).
 
 This block appears under the field's `dependencies` key in the API response — see [../api/responses.md](../api/responses.md).

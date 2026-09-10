@@ -178,6 +178,7 @@ When a model context is present (detail/edit views) the field appends `?resource
 | `resourceId` | – | Parent model id; enables auto-exclusion of already-attached records. |
 | `orderBy` / `orderDirection` | – / `asc` | Ordering; falls back to the field's `orderBy()` config. |
 | `filters` | `[]` | Column filters (`whereIn` for arrays, `like` for scalars, `{value,operator}` objects, `null`). Restricted by the resource's `getAllowedOptionsFilters()` if defined. |
+| `scope` | `[]` | Values for the field's declared `scopedBy()` scopes, keyed by observed field name (`scope[owner]=5`). See [Lookup Fields and Scoped Options](lookup.md). |
 
 ### `options` response
 
@@ -499,15 +500,15 @@ Same as above but without `foreignKey`; instead `morphType`, `morphId`, `morphCl
 
 `HasManyThrough`, `HasOneThrough`, and `MorphToMany`/`MorphedByMany` do not emit a `createContext`.
 
+## Narrowing options from another form field
+
+A relation field's options can be constrained by the value of another field in the
+same form, without that field being persisted. See
+[Lookup Fields and Scoped Options](lookup.md).
+
 ## See Also
 
 - [Fields overview](./README.md)
 - [Attachments guide](../guides/attachments.md) — attach / detach / sync behavior
 - [API routes](../api/routes.md)
 - [Morph filters](../filters/morph-filters.md)
-
-## Narrowing options from another form field
-
-A relation field's options can be constrained by the value of another field in the
-same form, without that field being persisted. See
-[Lookup Fields and Scoped Options](lookup.md).

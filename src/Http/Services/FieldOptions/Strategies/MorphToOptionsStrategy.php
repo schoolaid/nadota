@@ -8,6 +8,7 @@ use SchoolAid\Nadota\Http\Fields\Field;
 use SchoolAid\Nadota\Http\Fields\Relations\MorphTo;
 use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 use SchoolAid\Nadota\Http\Services\FieldOptions\Contracts\FieldOptionsStrategy;
+use SchoolAid\Nadota\Http\Services\FieldOptions\OptionScopeResolver;
 use SchoolAid\Nadota\Http\Services\FieldOptions\Traits\SearchesOptions;
 
 /**
@@ -87,6 +88,17 @@ class MorphToOptionsStrategy implements FieldOptionsStrategy
 
         // Apply resource's optionsQuery customization
         $query = $this->applyResourceOptionsQuery($query, $resourceInstance, $request, $params);
+
+        // Apply declared option scopes. Values arrive as scope[...] in the request;
+        // the columns come from the field's own declaration.
+        $scoped = (new OptionScopeResolver())->apply($query, $field, $commonParams['scope'] ?? []);
+
+        if ($scoped === null) {
+            // A strict scope has no value: no options, and no trip to the database.
+            return [];
+        }
+
+        $query = $scoped;
 
         // Apply custom filters
         if (!empty($filters)) {

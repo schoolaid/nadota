@@ -11,6 +11,11 @@ beforeEach(function () {
     // for the test namespace, so the registry is seeded directly.
     $property = new ReflectionProperty(ResourceManager::class, 'resources');
     $property->setAccessible(true);
+
+    // phpunit.xml runs tests in random order, so leaving the static registry
+    // seeded here would leak into whichever test runs next in the process.
+    $this->originalResources = $property->getValue();
+
     $property->setValue(null, collect([
         'scoped-options' => [
             'class' => ScopedOptionsResource::class,
@@ -28,6 +33,14 @@ beforeEach(function () {
             'test_model_id' => $ownerId,
         ]);
     }
+});
+
+afterEach(function () {
+    // Restore the static registry seeded in beforeEach() so it does not leak
+    // into whichever test phpunit.xml's random order runs next.
+    $property = new ReflectionProperty(ResourceManager::class, 'resources');
+    $property->setAccessible(true);
+    $property->setValue(null, $this->originalResources);
 });
 
 function paginatedOptions(array $query = []): array
@@ -65,4 +78,15 @@ it('matches the scope value exactly', function () {
 
     expect(collect($response['data'])->pluck('label')->all())
         ->toBe(['Item for owner 5']);
+});
+
+it('does not throw when scope arrives as a non-array string, e.g. a plain ?scope=abc', function () {
+    // Before the fix, OptionScopeResolver::apply() declared `array $values` while
+    // the request value is untyped; a plain query string like `?scope=abc` made
+    // this an uncaught TypeError for every options endpoint, scoped or not.
+    $response = paginatedOptions(['scope' => 'abc']);
+
+    expect($response['success'])->toBeTrue()
+        ->and($response['data'])->toBe([])
+        ->and($response['meta']['total'])->toBe(0);
 });

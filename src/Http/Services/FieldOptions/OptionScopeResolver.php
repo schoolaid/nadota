@@ -14,14 +14,27 @@ use SchoolAid\Nadota\Http\Fields\Field;
 class OptionScopeResolver
 {
     /**
-     * @param array<string, mixed> $values Raw scope values from the request (scope[...]).
+     * @param mixed $values Raw scope values from the request (scope[...]). Request input is
+     *                      not guaranteed to be an array (e.g. a plain `?scope=abc` query
+     *                      string arrives as a string), so this is intentionally untyped and
+     *                      coerced below rather than declared as array.
      * @return Builder|null Null when a strict scope has no value, meaning the query is
-     *                      unsatisfiable and must not be executed as it stands.
+     *                      unsatisfiable and must not be executed as it stands. When null is
+     *                      returned, the passed-in $query builder has still been mutated in
+     *                      place by any scopes applied before the missing one was reached; it
+     *                      is not restored to its pre-call state.
      */
-    public function apply(Builder $query, Field $field, array $values): ?Builder
+    public function apply(Builder $query, Field $field, mixed $values): ?Builder
     {
         if (! $field->hasOptionScopes()) {
             return $query;
+        }
+
+        // Request input is not guaranteed to be an array (e.g. `?scope=abc`). Treat
+        // anything else as "no scope values supplied" instead of letting it reach
+        // whereIn()/isset() below, which would throw a TypeError for a non-array.
+        if (! is_array($values)) {
+            $values = [];
         }
 
         foreach ($field->getOptionScopes() as $key => $scope) {
@@ -40,9 +53,26 @@ class OptionScopeResolver
                 continue;
             }
 
-            is_array($value)
-                ? $query->whereIn($scope->column, $value)
-                : $query->where($scope->column, '=', $value);
+            if (is_array($value)) {
+                // Only scalar members are safe to pass to whereIn(); a nested array
+                // (e.g. scope[grade][a][b]=1) would otherwise reach the query builder
+                // and fail at the driver. Drop non-scalar members rather than the
+                // whole value, so a partially-valid list still narrows the query.
+                $scalarValues = array_filter($value, 'is_scalar');
+
+                if ($scalarValues === []) {
+                    if ($scope->optional) {
+                        continue;
+                    }
+
+                    return null;
+                }
+
+                $query->whereIn($scope->column, $scalarValues);
+                continue;
+            }
+
+            $query->where($scope->column, '=', $value);
         }
 
         return $query;
