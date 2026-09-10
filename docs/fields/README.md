@@ -96,6 +96,7 @@ public function fields(NadotaRequest $request): array
 | ----- | ----------- | --------- |
 | `DynamicField` | Renders a different field type based on another attribute. | [dynamic-fields.md](dynamic-fields.md) |
 | `CustomComponent` | Mounts a custom frontend component (no DB column). | [custom-fields.md](custom-fields.md) |
+| `Lookup` | Form-only value that narrows another field's options (no DB column). | [lookup.md](lookup.md) |
 
 ### Relations
 

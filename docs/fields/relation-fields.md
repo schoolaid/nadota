@@ -505,3 +505,9 @@ Same as above but without `foreignKey`; instead `morphType`, `morphId`, `morphCl
 - [Attachments guide](../guides/attachments.md) — attach / detach / sync behavior
 - [API routes](../api/routes.md)
 - [Morph filters](../filters/morph-filters.md)
+
+## Narrowing options from another form field
+
+A relation field's options can be constrained by the value of another field in the
+same form, without that field being persisted. See
+[Lookup Fields and Scoped Options](lookup.md).

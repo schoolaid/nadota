@@ -79,6 +79,11 @@ Select::make('Manager', 'manager_id')
     ->optionsFromEndpoint('/api/managers', 'department_id', 'department');
 ```
 
+`cascadeFrom()` and `optionsFromEndpoint()` are frontend-only contracts: the backend
+serializes them and the client does the rest. When you want the **server** to narrow
+the options query — with the column fixed server-side and the request supplying only
+the value — use `scopedBy()` instead. See [Lookup Fields and Scoped Options](lookup.md).
+
 ## Computed values
 
 ```php
