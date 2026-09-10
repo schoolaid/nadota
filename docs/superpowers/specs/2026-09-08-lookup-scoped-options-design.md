@@ -52,7 +52,7 @@ public function fields(NadotaRequest $request): array
         Lookup::make('Grado', 'grade')
             ->resource(GradeResource::class)
             ->searchable()
-            ->helpText('Filtra los alumnos disponibles'),
+            ->help('Filtra los alumnos disponibles'),
 
         BelongsTo::make('Alumno', 'student', StudentResource::class)
             ->scopedBy('grade', 'grade_id'),

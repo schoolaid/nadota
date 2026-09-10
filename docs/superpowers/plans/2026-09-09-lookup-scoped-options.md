@@ -1402,7 +1402,7 @@ public function fields(NadotaRequest $request): array
         Lookup::make('Grade', 'grade')
             ->resource(GradeResource::class)
             ->searchable()
-            ->helpText('Narrows the students you can pick'),
+            ->help('Narrows the students you can pick'),
 
         BelongsTo::make('Student', 'student', StudentResource::class)
             ->scopedBy('grade', 'grade_id'),
