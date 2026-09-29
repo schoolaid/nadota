@@ -2,6 +2,8 @@
 
 namespace SchoolAid\Nadota\Http\Controllers;
 
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 use SchoolAid\Nadota\Http\Requests\NadotaRequest;
@@ -15,17 +17,15 @@ class ActionEventController extends Controller
      */
     public function index(NadotaRequest $request, string $resourceKey, int $id): JsonResponse
     {
-        $resource = $request->getResource();
-        $modelClass = $resource->model;
+        $model = $this->resolveAuthorizedModel($request, $id);
 
         $perPage = min($request->input('per_page', 15), 100);
         $page = $request->input('page', 1);
 
-        $query = ActionEvent::query()
-            ->where('model_type', $modelClass)
-            ->where('model_id', $id)
+        $query = $this->eventsOf($model)
             ->with('user')
-            ->orderBy('created_at', 'desc');
+            ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc');
 
         // Optional filters
         if ($request->filled('name')) {
@@ -58,16 +58,43 @@ class ActionEventController extends Controller
      */
     public function show(NadotaRequest $request, string $resourceKey, int $id, int $eventId): JsonResponse
     {
-        $resource = $request->getResource();
-        $modelClass = $resource->model;
+        $model = $this->resolveAuthorizedModel($request, $id);
 
-        $event = ActionEvent::query()
-            ->where('model_type', $modelClass)
-            ->where('model_id', $id)
+        $event = $this->eventsOf($model)
             ->with('user')
             ->findOrFail($eventId);
 
         return response()->json(['data' => $this->formatEvent($event)]);
+    }
+
+    /**
+     * Resolve the record through the resource's own query and require `view` on it,
+     * exactly like the show endpoint does. The audit trail carries attribute snapshots
+     * of the record, so it must not be reachable by anyone who cannot open the record.
+     */
+    protected function resolveAuthorizedModel(NadotaRequest $request, int $id): Model
+    {
+        $model = $request->getResource()->getQuery($request)->findOrFail($id);
+
+        $request->authorized('view', $model);
+
+        return $model;
+    }
+
+    /**
+     * Events of a record, whoever wrote them. Host apps (and Nova before) store
+     * `getMorphClass()`, which is the alias for a model in a morph map, while this
+     * package stores the class name: both spellings belong to the same record.
+     *
+     * The id is compared as a string on purpose. Apps that widened `model_id` to a
+     * string column only get an index lookup that way; an integer column converts
+     * the constant once and is unaffected.
+     */
+    protected function eventsOf(Model $model): Builder
+    {
+        return ActionEvent::query()
+            ->whereIn('model_type', array_values(array_unique([$model::class, $model->getMorphClass()])))
+            ->where('model_id', (string) $model->getKey());
     }
 
     /**

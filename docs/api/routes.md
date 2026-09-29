@@ -134,6 +134,8 @@ The response `meta` includes `relation_type`, `has_pivot`, available `filters` a
 
 Per-record audit history (when action tracking is enabled). Numeric `{id}` / `{eventId}`.
 
+Both routes require `view` on the record, resolved through the resource's `getQuery()`: `403` when the user cannot view it, `404` when it does not exist or the resource query does not expose it.
+
 | Method | Path | Route name | Purpose |
 |--------|------|-----------|---------|
 | GET | `/{resourceKey}/resource/{id}/action-events` | `resource.action-events` | Paginated audit events for a record. |

@@ -162,13 +162,17 @@ Because it is a normal resource, it is reachable through the standard resource e
 
 A dedicated, lightweight controller exposes per-model history for frontend timelines. Routes live under the `{resourceKey}/resource` group (API prefix `nadota-api` by default).
 
+Both endpoints are protected like the record's own show endpoint: the record is resolved through the resource's `getQuery()` and the user must be authorized to `view` it. A record that does not exist, or that the resource query does not expose (scopes), answers `404`; a record the user cannot view answers `403`. The audit trail carries attribute snapshots of the record, so it is never served to someone who cannot open the record itself.
+
+Events are matched by the model's class name **and** by its morph alias (`getMorphClass()`), so rows written by the host app or by Nova for a model registered in a morph map show up in the same history.
+
 ### List a model's events
 
 ```http
 GET /nadota-api/{resourceKey}/resource/{id}/action-events
 ```
 
-Query parameters: `per_page` (default 15, max 100), `page` (default 1), and optional `name`, `status`, `user_id` filters. Ordered newest first.
+Query parameters: `per_page` (default 15, max 100), `page` (default 1), and optional `name`, `status`, `user_id` filters. Ordered newest first. Events written in the same second are ordered by `id`, newest first.
 
 ```json
 {
@@ -202,7 +206,7 @@ Query parameters: `per_page` (default 15, max 100), `page` (default 1), and opti
 GET /nadota-api/{resourceKey}/resource/{id}/action-events/{eventId}
 ```
 
-Returns `{ "data": { ...same shape as above... } }`, or `404` if the event does not belong to that model. See [API responses](../api/responses.md).
+Returns `{ "data": { ...same shape as above... } }`, or `404` if the event does not belong to that model. Same `403`/`404` rules as the list. See [API responses](../api/responses.md).
 
 ## Roadmap items not implemented
 
