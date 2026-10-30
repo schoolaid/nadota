@@ -205,28 +205,28 @@ class Image extends File
         return $this;
     }
 
-    public function getRules(): array
+    protected function getUploadRules(): array
     {
-        $rules = parent::getRules();
+        $rules = parent::getUploadRules();
 
-//        // Add image validation rule
-//        $rules[] = 'image';
-//
-//        // Add dimension validation if specified
-//        if ($this->maxImageWidth !== null || $this->maxImageHeight !== null) {
-//            $dimensions = 'dimensions:';
-//            $constraints = [];
-//
-//            if ($this->maxImageWidth !== null) {
-//                $constraints[] = "max_width={$this->maxImageWidth}";
-//            }
-//
-//            if ($this->maxImageHeight !== null) {
-//                $constraints[] = "max_height={$this->maxImageHeight}";
-//            }
-//
-//            $rules[] = $dimensions . implode(',', $constraints);
-//        }
+        // Laravel's image rule rejects svg, so leave svg to the accepted types rule
+        if (!in_array('svg', array_map(fn ($type) => strtolower(ltrim($type, '.')), $this->acceptedTypes), true)) {
+            $rules[] = 'image';
+        }
+
+        $constraints = [];
+
+        if ($this->maxImageWidth !== null) {
+            $constraints[] = "max_width={$this->maxImageWidth}";
+        }
+
+        if ($this->maxImageHeight !== null) {
+            $constraints[] = "max_height={$this->maxImageHeight}";
+        }
+
+        if (!empty($constraints)) {
+            $rules[] = 'dimensions:' . implode(',', $constraints);
+        }
 
         return $rules;
     }

@@ -9,6 +9,13 @@ Versions not listed below shipped without changelog entries; see the git tags fo
 
 ## [Unreleased]
 
+### Security
+- `File` and `Image` uploads are validated on the server again. Since 3228915 both `getRules()` bodies were commented out, so `accept()`, `maxSize()` and `maxImageDimensions()` only reached the frontend: any file of any type and size was stored — including a `.php` on a field that accepted only `pdf`. `File` now emits `file`, `max:<KB>` and a type rule; `Image` adds `image` and `dimensions:`. `MultiImage` is unchanged (it validates each item through its nested rules). **Behavior change:** clients that send anything other than an uploaded file or `null`/`''` for a file field (e.g. the stored path on edit) now get a 422.
+
+### Fixed
+- Accepted extensions are passed to `mimes:` as-is. The old (commented-out) conversion turned `docx`, `xlsx`, `xls` and `txt` into MIME subtypes that `mimes:` never matches, which would have rejected those files. A list that mixes extensions and MIME types becomes one `mimetypes:` rule, because `mimes` and `mimetypes` together would require a file to pass both.
+- Non-required `File`/`Image` fields get `nullable`, so an edit that leaves the file untouched (the form sends `null`) passes validation and keeps the stored file.
+
 ### Changed
 - The 105 tests that had been failing since the field refactors of late 2025 now pass. They called APIs that had since been renamed or removed (`relatedModel()` → `model()`, `relationAttribute()` → `displayAttribute()`, `maxDimensions()` → `maxImageDimensions()`, `field-x` → `FieldX` component names, string `type`). Tests covering removed behavior (`HasMany::collapsible()`, HasOne options and validation) were deleted. The 16 tests that expose real bugs are marked `skip('BUG: …')` instead of being bent to match the current behavior.
 - `storage/framework/testing/` is no longer tracked; test runs wrote upload fixtures there.

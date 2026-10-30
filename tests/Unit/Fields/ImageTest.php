@@ -86,7 +86,7 @@ it('adds image validation rule by default', function () {
     
     $rules = $field->getRules();
     expect($rules)->toContain('image');
-})->skip('BUG: Image::getRules() (src/Http/Fields/Image.php:208-232) and File::getRules() (src/Http/Fields/File.php:224-242) have image/dimensions/file/max/mimes rule generation commented out since 3228915, so uploads are not validated server-side');
+});
 
 it('adds dimension validation when max dimensions are set', function () {
     $field = Image::make('Avatar', 'avatar')
@@ -94,7 +94,7 @@ it('adds dimension validation when max dimensions are set', function () {
     
     $rules = $field->getRules();
     expect($rules)->toContain('dimensions:max_width=800,max_height=600');
-})->skip('BUG: Image::getRules() (src/Http/Fields/Image.php:208-232) and File::getRules() (src/Http/Fields/File.php:224-242) have image/dimensions/file/max/mimes rule generation commented out since 3228915, so uploads are not validated server-side');
+});
 
 it('adds only width dimension validation when only max width is set', function () {
     $field = Image::make('Avatar', 'avatar')
@@ -102,7 +102,7 @@ it('adds only width dimension validation when only max width is set', function (
     
     $rules = $field->getRules();
     expect($rules)->toContain('dimensions:max_width=1200');
-})->skip('BUG: Image::getRules() (src/Http/Fields/Image.php:208-232) and File::getRules() (src/Http/Fields/File.php:224-242) have image/dimensions/file/max/mimes rule generation commented out since 3228915, so uploads are not validated server-side');
+});
 
 it('adds only height dimension validation when only max height is set', function () {
     $field = Image::make('Avatar', 'avatar')
@@ -110,7 +110,7 @@ it('adds only height dimension validation when only max height is set', function
     
     $rules = $field->getRules();
     expect($rules)->toContain('dimensions:max_height=800');
-})->skip('BUG: Image::getRules() (src/Http/Fields/Image.php:208-232) and File::getRules() (src/Http/Fields/File.php:224-242) have image/dimensions/file/max/mimes rule generation commented out since 3228915, so uploads are not validated server-side');
+});
 
 it('inherits file validation rules', function () {
     $field = Image::make('Avatar', 'avatar')
@@ -122,7 +122,7 @@ it('inherits file validation rules', function () {
         ->and($rules)->toContain('image')
         ->and($rules)->toContain('required')
         ->and($rules)->toContain('max:2048'); // 2MB in KB
-})->skip('BUG: Image::getRules() (src/Http/Fields/Image.php:208-232) and File::getRules() (src/Http/Fields/File.php:224-242) have image/dimensions/file/max/mimes rule generation commented out since 3228915, so uploads are not validated server-side');
+});
 
 it('resolves image value with additional properties', function () {
     $model = TestModel::factory()->make(['name' => 'images/avatar.jpg']);
@@ -255,6 +255,13 @@ it('handles all validation rules together', function () {
         ->and($rules)->toContain('image')
         ->and($rules)->toContain('required')
         ->and($rules)->toContain('max:3072')
-        ->and($rules)->toContain('mimes:jpeg,png')
+        ->and($rules)->toContain('mimes:jpg,png')
         ->and($rules)->toContain('dimensions:max_width=1200,max_height=800');
-})->skip('BUG: Image::getRules() (src/Http/Fields/Image.php:208-232) and File::getRules() (src/Http/Fields/File.php:224-242) have image/dimensions/file/max/mimes rule generation commented out since 3228915, so uploads are not validated server-side');
+});
+it('skips the image rule when svg is accepted', function () {
+    // Laravel's image rule rejects svg
+    $rules = Image::make('Logo', 'logo')->accept(['png', 'svg'])->getRules();
+
+    expect($rules)->not->toContain('image')
+        ->and($rules)->toContain('mimes:png,svg');
+});

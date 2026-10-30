@@ -81,7 +81,7 @@ it('adds file validation rule by default', function () {
     
     $rules = $field->getRules();
     expect($rules)->toContain('file');
-})->skip('BUG: File::getRules() (src/Http/Fields/File.php:224-242) has its file/max/mimes rule generation commented out since 3228915, so uploads are not validated server-side');
+});
 
 it('adds max size validation rule when set', function () {
     $field = File::make('Document', 'document')
@@ -89,7 +89,7 @@ it('adds max size validation rule when set', function () {
     
     $rules = $field->getRules();
     expect($rules)->toContain('max:5120'); // 5MB in KB
-})->skip('BUG: File::getRules() (src/Http/Fields/File.php:224-242) has its file/max/mimes rule generation commented out since 3228915, so uploads are not validated server-side');
+});
 
 it('adds mime type validation when accepted types are set', function () {
     $field = File::make('Document', 'document')
@@ -97,25 +97,38 @@ it('adds mime type validation when accepted types are set', function () {
     
     $rules = $field->getRules();
     expect($rules)->toContain('mimes:pdf,doc');
-})->skip('BUG: File::getRules() (src/Http/Fields/File.php:224-242) has its file/max/mimes rule generation commented out since 3228915, so uploads are not validated server-side');
+});
 
-it('converts file extensions to mime types correctly', function () {
+it('passes accepted extensions to the mimes rule unchanged', function () {
+    // `mimes` takes extensions; mapping docx/xlsx/txt to MIME subtypes made those uploads always fail
     $field = File::make('Document', 'document')
-        ->accept(['jpg', 'png', 'pdf']);
-    
+        ->accept(['.jpg', 'PNG', 'docx', 'xlsx', 'txt']);
+
+    expect($field->getRules())->toContain('mimes:jpg,png,docx,xlsx,txt');
+});
+
+it('uses a single mimetypes rule when MIME types are accepted', function () {
+    $field = File::make('Document', 'document')
+        ->accept(['image/*', 'application/pdf']);
+
     $rules = $field->getRules();
-    expect($rules)->toContain('mimes:jpeg,png,pdf');
-})->skip('BUG: File::getRules() (src/Http/Fields/File.php:224-242) has its file/max/mimes rule generation commented out since 3228915, so uploads are not validated server-side');
+    expect($rules)->toContain('mimetypes:image/*,application/pdf')
+        ->and(collect($rules)->contains(fn ($rule) => is_string($rule) && str_starts_with($rule, 'mimes:')))->toBeFalse();
+});
 
 it('handles mixed mime types and extensions', function () {
     $field = File::make('Document', 'document')
         ->accept(['image/jpeg', 'png', 'application/pdf']);
     
+    // mimes + mimetypes would both have to pass, so a mixed list collapses into one mimetypes rule
     $rules = $field->getRules();
-    $mimesRule = collect($rules)->first(fn ($rule) => is_string($rule) && str_starts_with($rule, 'mimes:'));
+    $typeRules = collect($rules)->filter(fn ($rule) => is_string($rule) && preg_match('/^mime(s|types):/', $rule))->values();
 
-    expect($mimesRule)->toBe('mimes:jpeg,png,pdf');
-})->skip('BUG: File::getRules() (src/Http/Fields/File.php:224-242) has its file/max/mimes rule generation commented out since 3228915, so uploads are not validated server-side');
+    expect($typeRules)->toHaveCount(1)
+        ->and($typeRules[0])->toStartWith('mimetypes:')
+        ->and(explode(',', substr($typeRules[0], strlen('mimetypes:'))))
+        ->toContain('image/jpeg', 'image/png', 'application/pdf');
+});
 
 it('resolves file value from model correctly', function () {
     $model = TestModel::factory()->make(['name' => 'documents/test.pdf']);
@@ -216,4 +229,20 @@ it('handles all validation rules together', function () {
         ->and($rules)->toContain('required')
         ->and($rules)->toContain('max:5120')
         ->and($rules)->toContain('mimes:pdf,doc');
-})->skip('BUG: File::getRules() (src/Http/Fields/File.php:224-242) has its file/max/mimes rule generation commented out since 3228915, so uploads are not validated server-side');
+});
+it('makes the upload rules nullable unless the field is required', function () {
+    // The form sends null for a file input the user left untouched on edit
+    expect(File::make('Document', 'document')->getRules())->toContain('nullable')
+        ->and(File::make('Document', 'document')->required()->getRules())->not->toContain('nullable')
+        ->and(File::make('Document', 'document')->creationRules(['required'])->getRulesFor(false))
+        ->toContain('required')->not->toContain('nullable')
+        ->and(File::make('Document', 'document')->creationRules(['required'])->getRulesFor(true))
+        ->toContain('nullable');
+});
+
+it('reports a required file as required on creation only when using creationRules', function () {
+    $field = File::make('Document', 'document')->creationRules(['required']);
+
+    expect($field->isRequired(false))->toBeTrue()
+        ->and($field->isRequired(true))->toBeFalse();
+});
