@@ -91,8 +91,8 @@ Available on `HasMany`, `BelongsToMany`, `MorphMany`, `MorphToMany`, `MorphedByM
 
 | Method | Description |
 |--------|-------------|
-| `limit(?int $limit)` | Max items rendered inline (default `10`). Drives the `hasMore` meta flag. |
-| `orderBy(string $field, string $direction = 'desc')` | Default ordering for inline rendering, options, and pagination. |
+| `limit(?int $limit)` | Max items rendered inline (default `null`: all of them). Applied per parent when the relation is eager-loaded. Drives the `hasMore` meta flag. |
+| `orderBy(string $field, string $direction = 'desc')` | Default ordering for inline rendering, options, and pagination. An unqualified column is qualified with the related table; pass `table.column` to order by a pivot column. |
 | `paginated(bool $paginated = true)` | Load the collection lazily via the pagination endpoint instead of inline. See [Pagination](#pagination). |
 | `exceptFields(array $keys)` | Exclude related field keys from the rendered output. |
 
@@ -147,7 +147,8 @@ When no related resource is configured, `resource` is `null` and the label falls
 }
 ```
 
-- `hasMore` is `true` when the rendered count reaches the configured `limit`.
+- `hasMore` is `true` when more related rows exist than the configured `limit` (one extra row is loaded to tell). It is always `false` without a `limit`.
+- `total` is the number of rows rendered, not the number of related rows in the database.
 - Pivot fields (`BelongsToMany`, `MorphToMany`, `MorphedByMany`) add a per-item `pivot` object and a `meta.pivotColumns` array.
 - Polymorphic collections add `meta.isPolymorphic: true`; `MorphedByMany` items also carry `morphType` (the related model class).
 - When `paginated()` is set, the inline `value` is an empty stub (`data: []`, `meta.paginated: true`) and the real data is loaded from `paginationUrl`.

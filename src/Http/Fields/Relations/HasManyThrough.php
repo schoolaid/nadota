@@ -10,13 +10,16 @@ use SchoolAid\Nadota\Contracts\ResourceInterface;
 use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
 use SchoolAid\Nadota\Http\Fields\Field;
 use SchoolAid\Nadota\Http\Resources\RelationResource;
+use SchoolAid\Nadota\Http\Fields\Traits\LimitsInlineRelation;
 
 class HasManyThrough extends Field
 {
+    use LimitsInlineRelation;
+
     /**
-     * Maximum number of related items to show (when not paginated).
+     * Maximum number of related items to show (when not paginated); null shows all.
      */
-    protected ?int $limit = 10;
+    protected ?int $limit = null;
 
     /**
      * Whether to show as paginated list.
@@ -158,8 +161,8 @@ class HasManyThrough extends Field
             return [];
         }
 
-        // Use already loaded relation to avoid N+1 queries
-        $relatedItems = $model->{$relationName};
+        // Eager-loaded relation when available (avoids N+1), trimmed to limit()
+        $relatedItems = $this->resolveInlineItems($model, $relationName);
 
         // Ensure we have a collection
         if (!$relatedItems instanceof Collection) {
@@ -219,7 +222,7 @@ class HasManyThrough extends Field
         }
 
         return $relationResource->formatCollection($items, $request, [
-            'hasMore' => $this->limit !== null && $items->count() >= $this->limit,
+            'hasMore' => $this->hasMoreItems,
         ]);
     }
 
@@ -259,7 +262,7 @@ class HasManyThrough extends Field
             })->toArray(),
             'meta' => [
                 'total' => $items->count(),
-                'hasMore' => $this->limit !== null && $items->count() >= $this->limit,
+                'hasMore' => $this->hasMoreItems,
             ]
         ];
     }

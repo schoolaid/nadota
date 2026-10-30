@@ -101,7 +101,7 @@ it('respects display limit', function () {
 
     expect($value['data'])->toHaveCount(3)
         ->and($value['meta'])->toHaveKey('hasMore', true);
-})->skip('BUG: HasMany::limit() is never applied. Since 4acdfd4 resolve() reads the already-loaded relation without a limit, and ManagesRelationLoading::buildRelationConstraint() does not apply getLimit()/getOrderBy() either, so every related row is loaded and returned.');
+});
 
 it('returns an empty collection when no relationships exist', function () {
     $testModel = TestModel::factory()->create();
@@ -218,8 +218,9 @@ it('falls back to common attributes for the label when no display attribute is s
         ->and($value['data'][0])->toHaveKey('label', 'Fallback Title');
 });
 
-it('has default limit of 10', function () {
+it('has no default limit', function () {
+    // Renders every related row unless limit() is set
     $field = HasMany::make('Related Models', 'relatedModels');
 
-    expect($field->getLimit())->toBe(10);
+    expect($field->getLimit())->toBeNull();
 });
