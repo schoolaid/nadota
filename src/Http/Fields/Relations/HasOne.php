@@ -32,7 +32,7 @@ class HasOne extends Field
      */
     public function __construct(string $name, string $relation, ?string $resource = null)
     {
-        parent::__construct($name, '', FieldType::HAS_ONE->value, static::safeConfig('nadota.fields.hasOne.component', 'field-has-one'));
+        parent::__construct($name, '', FieldType::HAS_ONE->value, static::safeConfig('nadota.fields.hasOne.component', 'FieldHasOne'));
         $this->relation($relation);
         $this->isRelationship = true;
 

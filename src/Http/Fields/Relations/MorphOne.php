@@ -32,7 +32,7 @@ class MorphOne extends Field
      */
     public function __construct(string $name, string $relation, ?string $resource = null)
     {
-        parent::__construct($name, '', FieldType::MORPH_ONE->value, static::safeConfig('nadota.fields.morphOne.component', 'field-morph-one'));
+        parent::__construct($name, '', FieldType::MORPH_ONE->value, static::safeConfig('nadota.fields.morphOne.component', 'FieldMorphOne'));
         $this->relation($relation);
         $this->isRelationship = true;
 

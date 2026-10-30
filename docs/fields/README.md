@@ -167,9 +167,21 @@ public function updateRules(array $rules): static   // applied only on update
 public function sometimes(callable $callback): static
 public function requiredIf(string $field, mixed $value): static
 public function requiredUnless(string $field, mixed $value): static
+public function validationMessages(array $messages): static
 ```
 
 `getRulesFor(bool $isUpdate)` merges base rules with the matching context rules; a context `nullable` cancels a base `required` (and vice versa). Some fields append their own rules (e.g. `Email` adds `email`, `Number` adds `numeric`).
+
+`validationMessages()` sets custom error messages for store and update. A key that is a rule name applies to the field's attribute; a key containing a dot is used as the full validator key (for nested or `MorphTo` attributes). Each message goes through `__()`, so a translation key or a string listed in the JSON translation files is translated, and the usual placeholders (`:attribute`, `:max`) work:
+
+```php
+Input::make('Name', 'name')
+    ->required()
+    ->validationMessages(['required' => 'Every student needs a name.']);
+
+MultiImage::make('Photos', 'photos')
+    ->validationMessages(['photos.*.image' => 'validation.custom.photos.image']);
+```
 
 ### Default value
 

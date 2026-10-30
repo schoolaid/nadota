@@ -9,6 +9,7 @@ trait ValidationTrait
     protected array $conditionalRules = [];
     protected array $creationRules = [];
     protected array $updateRules = [];
+    protected array $validationMessages = [];
 
     public function rules($rules): static
     {
@@ -19,6 +20,40 @@ trait ValidationTrait
 
         $this->rules = array_merge($this->rules, (array) $rules);
         return $this;
+    }
+
+    /**
+     * Set custom validation messages for this field.
+     *
+     * Keys are rule names ('required', 'max'), which apply to this field's
+     * attribute, or full validator keys containing a dot ('photos.*.image',
+     * 'commentable_id.required'). Messages pass through __(), so a translation
+     * key or a string from the JSON translation files is translated.
+     *
+     * @param array $messages
+     * @return static
+     */
+    public function validationMessages(array $messages): static
+    {
+        $this->validationMessages = array_merge($this->validationMessages, $messages);
+        return $this;
+    }
+
+    /**
+     * Get the custom validation messages keyed as the validator expects them.
+     *
+     * @return array
+     */
+    public function getValidationMessages(): array
+    {
+        $messages = [];
+
+        foreach ($this->validationMessages as $key => $message) {
+            $key = str_contains($key, '.') ? $key : $this->getAttribute() . '.' . $key;
+            $messages[$key] = __($message);
+        }
+
+        return $messages;
     }
 
     public function required(): static

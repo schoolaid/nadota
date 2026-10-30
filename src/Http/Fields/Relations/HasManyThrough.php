@@ -53,7 +53,7 @@ class HasManyThrough extends Field
      */
     public function __construct(string $name, string $relation, ?string $resource = null)
     {
-        parent::__construct($name, '', FieldType::HAS_MANY->value, static::safeConfig('nadota.fields.hasManyThrough.component', 'field-has-many-through'));
+        parent::__construct($name, '', FieldType::HAS_MANY->value, static::safeConfig('nadota.fields.hasManyThrough.component', 'FieldHasManyThrough'));
         $this->relation($relation);
         $this->isRelationship = true;
 

@@ -56,7 +56,7 @@ class MorphMany extends Field
      */
     public function __construct(string $name, string $relation, ?string $resource = null)
     {
-        parent::__construct($name, '', FieldType::MORPH_MANY->value, static::safeConfig('nadota.fields.morphMany.component', 'field-morph-many'));
+        parent::__construct($name, '', FieldType::MORPH_MANY->value, static::safeConfig('nadota.fields.morphMany.component', 'FieldMorphMany'));
         $this->relation($relation);
         $this->isRelationship = true;
 

@@ -1,17 +1,16 @@
 # Roadmap: Store/Update System Improvement
 
-> **Status (v1.1.4): Mostly implemented.** Based on the current code in
+> **Status (v1.2.6+): Implemented; the remaining items are optional refactors.** Based on
 > [`src/Http/Services/AbstractResourcePersistService.php`](../../src/Http/Services/AbstractResourcePersistService.php),
 > [`src/Http/Services/ResourceStoreService.php`](../../src/Http/Services/ResourceStoreService.php) and
-> [`src/Http/Services/ResourceUpdateService.php`](../../src/Http/Services/ResourceUpdateService.php),
-> phases 1–4 are fully delivered: the shared `ProcessesFields` trait, the
-> `AbstractResourcePersistService` Template Method base class, `afterSave()` support in
-> store (so `BelongsToMany` / `MorphToMany` work on create), and the `beforeStore` /
-> `afterStore` / `beforeUpdate` / `afterUpdate` resource hooks. Phases 5–8 remain
-> **optional / pending**: there is no dedicated `FieldProcessor`, `ValidationRulesBuilder`
-> or `TransactionManager` class (that logic lives inline in the abstract service), file
-> rollback is not implemented, and the dedicated test suite for these services is not yet
-> in place.
+> [`src/Http/Services/ResourceUpdateService.php`](../../src/Http/Services/ResourceUpdateService.php).
+> Phases 1–4 are delivered (shared `ProcessesFields` trait, the `AbstractResourcePersistService`
+> Template Method base class, `afterSave()` in store, the `before*/after*` resource hooks).
+> Custom validation messages (6.2), file rollback (7.1) and the tests and docs of Phase 8 are
+> delivered too. Not done, on purpose: the `FieldProcessor`, `ValidationRulesBuilder` and
+> `TransactionManager` classes (5, 6.1, 7.3) — the logic stays inline in the abstract service,
+> and moving it would collide with the security audit's M1/M4 fixes to the same code — and
+> relation rollback (7.2), which the database transaction already covers.
 
 This document describes the implementation plan to improve the `ResourceStoreService` and
 `ResourceUpdateService` services.
@@ -215,7 +214,7 @@ class FieldProcessor
 
 ---
 
-## Phase 6: Improved Validation — Pending (optional)
+## Phase 6: Improved Validation — Partial (6.2 done)
 
 > Validation rules are still built inline via `ProcessesFields::buildValidationRules()`.
 > No standalone `ValidationRulesBuilder` class exists.
@@ -226,10 +225,10 @@ class FieldProcessor
 - [ ] Placeholder replacement (`:id`, `:model`, etc.)
 - [ ] Conditional rules per operation
 
-### 6.2 Custom Error Messages
-- [ ] Allow custom messages per field
-- [ ] `getValidationMessages()` method on Field
-- [ ] Translation support
+### 6.2 Custom Error Messages — Done
+- [x] Allow custom messages per field (`validationMessages()`)
+- [x] `getValidationMessages()` method on Field
+- [x] Translation support (each message goes through `__()`)
 
 **Files:**
 - `src/Http/Services/ValidationRulesBuilder.php`
@@ -237,19 +236,22 @@ class FieldProcessor
 
 ---
 
-## Phase 7: Improved Transactions and Rollback — Pending (optional)
+## Phase 7: Improved Transactions and Rollback — Partial (7.1 done)
 
 > The flow already wraps everything in a DB transaction with rollback on exception,
 > but uploaded files are not cleaned up on rollback and there is no `TransactionManager`.
 
-### 7.1 File Rollback
-- [ ] Register files uploaded during the transaction
-- [ ] Delete files on rollback
-- [ ] `cleanup` method on the File field
+### 7.1 File Rollback — Done
+- [x] Register files uploaded during the transaction
+- [x] Delete files on rollback
+- [x] `cleanup` method on the File field (`discardPendingFiles()`, plus `commitPendingFiles()`)
 
-### 7.2 Relation Rollback
-- [ ] Register relation changes
-- [ ] Revert on error
+> `File::fill()` used to delete the old file before the save, so a rollback lost it. The
+> old file is now deleted after the commit, and new uploads are deleted on rollback.
+
+### 7.2 Relation Rollback — Not needed
+- Relation writes (`afterSave` syncs) run inside the persist transaction, so a rollback
+  already reverts them.
 
 ### 7.3 TransactionManager (optional)
 - [ ] Create a transaction wrapper
@@ -262,30 +264,23 @@ class FieldProcessor
 
 ---
 
-## Phase 8: Testing and Documentation — Pending
+## Phase 8: Testing and Documentation — Done
 
 ### 8.1 Unit Tests
-- [ ] Tests for `AbstractResourcePersistService`
-- [ ] Tests for `FieldProcessor`
-- [ ] Tests for `ValidationRulesBuilder`
-- [ ] Tests for resource hooks
+- [x] Tests for `AbstractResourcePersistService` (`tests/ServiceIntegration/ValidationExceptionPropagationTest.php`, `VisibilityCallbackPersistTest.php`, `FileUploadValidationTest.php`, `FileUploadRollbackTest.php`, `ValidationMessagesTest.php`)
+- n/a Tests for `FieldProcessor` / `ValidationRulesBuilder` (classes not created)
+- [x] Tests for resource hooks
 
 ### 8.2 Integration Tests
-- [ ] Store test with `BelongsToMany`
-- [ ] Update test with `MorphTo`
-- [ ] Store test with `File` + rollback
+- [x] Store test with `BelongsToMany` (`tests/ServiceIntegration/StoreUpdateFlowTest.php`, including rollback)
+- [x] Update test with `MorphTo` (same file)
+- [x] Store test with `File` + rollback (`tests/ServiceIntegration/FileUploadRollbackTest.php`)
 
 ### 8.3 Documentation
-- [ ] Document resource hooks
-- [ ] Document how to create custom fields with `fill`
-- [ ] Document the full store/update flow
-- [ ] Update `docs/fields/README.md`
-
-**Files:**
-- `tests/Unit/Services/AbstractResourcePersistServiceTest.php`
-- `tests/Unit/Services/FieldProcessorTest.php`
-- `tests/Integration/StoreUpdateFlowTest.php`
-- `docs/fields/CUSTOM_FIELDS.md`
+- [x] Document resource hooks (`docs/guides/lifecycle-hooks.md`)
+- [x] Document how to create custom fields with `fill` (`docs/fields/custom-fields.md`)
+- [x] Document the full store/update flow (`docs/guides/lifecycle-hooks.md`, "Execution order" and "Transaction behavior")
+- [x] Update `docs/fields/README.md` (`validationMessages()`)
 
 ---
 

@@ -32,7 +32,7 @@ class HasOneThrough extends Field
      */
     public function __construct(string $name, string $relation, ?string $resource = null)
     {
-        parent::__construct($name, '', FieldType::HAS_ONE->value, static::safeConfig('nadota.fields.hasOneThrough.component', 'field-has-one-through'));
+        parent::__construct($name, '', FieldType::HAS_ONE->value, static::safeConfig('nadota.fields.hasOneThrough.component', 'FieldHasOneThrough'));
         $this->relation($relation);
         $this->isRelationship = true;
 

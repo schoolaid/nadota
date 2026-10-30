@@ -76,7 +76,7 @@ class MorphToMany extends Field
      */
     public function __construct(string $name, string $relation, ?string $resource = null)
     {
-        parent::__construct($name, '', FieldType::BELONGS_TO_MANY->value, static::safeConfig('nadota.fields.morphToMany.component', 'field-morph-to-many'));
+        parent::__construct($name, '', FieldType::BELONGS_TO_MANY->value, static::safeConfig('nadota.fields.morphToMany.component', 'FieldMorphToMany'));
         $this->relation($relation);
         $this->isRelationship = true;
 

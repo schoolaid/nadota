@@ -48,7 +48,7 @@ abstract class AbstractResourcePersistService
 
         $rules = $this->buildValidationRules($fields, $this->isUpdate() ? $model : null);
 
-        $validator = Validator::make($request->all(), $rules);
+        $validator = Validator::make($request->all(), $rules, $this->buildValidationMessages($fields));
 
         if ($validator->fails()) {
             return response()->json([
