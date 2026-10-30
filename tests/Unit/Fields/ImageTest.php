@@ -17,7 +17,7 @@ it('has correct type and component', function () {
     
     expect($field->fieldData->type)->toBe('image')
         ->and($field->fieldData->component)->toBe('FieldImage');
-})->skip('BUG: Image::__construct (src/Http/Fields/Image.php:28) passes type/component to File::__construct, which only accepts (name, attribute), so they are silently dropped and Image reports type "file" / component "FieldFile" (config nadota.fields.image.component is never used)');
+});
 
 it('has default image accepted types', function () {
     $field = Image::make('Avatar', 'avatar');

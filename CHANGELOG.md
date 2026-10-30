@@ -14,6 +14,7 @@ Versions not listed below shipped without changelog entries; see the git tags fo
 
 ### Fixed
 - Accepted extensions are passed to `mimes:` as-is. The old (commented-out) conversion turned `docx`, `xlsx`, `xls` and `txt` into MIME subtypes that `mimes:` never matches, which would have rejected those files. A list that mixes extensions and MIME types becomes one `mimetypes:` rule, because `mimes` and `mimetypes` together would require a file to pass both.
+- `Image` reports type `image` and component `FieldImage` (or `nadota.fields.image.component`), as documented. Its constructor passed both to `File::__construct()`, which takes only `(name, attribute)`, so PHP dropped them and every `Image` reported `file` / `FieldFile`. **Behavior change:** frontends that pick the component by type now render `Image` fields with their `FieldImage` components instead of `FieldFile`; the SchoolAid frontend needs the matching `show/FieldImage.vue` fix (preview `src` was bound to the `thumbnails` array/object).
 - Non-required `File`/`Image` fields get `nullable`, so an edit that leaves the file untouched (the form sends `null`) passes validation and keeps the stored file.
 
 ### Changed
