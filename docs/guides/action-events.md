@@ -15,7 +15,7 @@ The panel logs the following automatically (when enabled):
 | `delete` | Destroy service | model attributes | — |
 | `restore` | Restore (soft deletes) | — | — |
 | `attach` / `detach` / `sync` | [Attachment](attachments.md) services | (sync: prior IDs) | attach/detach payload |
-| `action:<key>` | Custom action execution | optional | optional |
+| `action:<key>` | Custom action execution (`failed` when `handle()` throws) | optional | optional |
 
 Each row records the acting user, a batch UUID, the affected model (polymorphic), a sanitized `fields` payload, a `status`, and any `exception` message.
 

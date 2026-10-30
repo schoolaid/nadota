@@ -9,6 +9,10 @@ Versions not listed below shipped without changelog entries; see the git tags fo
 
 ## [Unreleased]
 
+### Added
+- Failed action runs are recorded. When an action's `handle()` throws, `ActionExecutionService` logs one `action:<key>` event per model with status `failed` and the exception message, then rethrows, so the endpoint still answers `500 { "type": "danger", ... }`. In `executeBatched()` the batches that ran before the failure stay `finished` and the remaining batches are not run. Previously a failing action left no trace in `action_events`.
+- A standalone action run with no models selected logs one event against the resource's model class, with a null `model_id`. It used to log nothing. `ActionEventService::logAction()` accepts a `null` model for this, plus `status` and `exception` metadata keys.
+
 ### Security
 - `File` and `Image` uploads are validated on the server again. Since 3228915 both `getRules()` bodies were commented out, so `accept()`, `maxSize()` and `maxImageDimensions()` only reached the frontend: any file of any type and size was stored — including a `.php` on a field that accepted only `pdf`. `File` now emits `file`, `max:<KB>` and a type rule; `Image` adds `image` and `dimensions:`. `MultiImage` is unchanged (it validates each item through its nested rules). **Behavior change:** clients that send anything other than an uploaded file or `null`/`''` for a file field (e.g. the stored path on edit) now get a 422.
 
