@@ -27,6 +27,12 @@ class TestExportableResource
     {
         return true;
     }
+
+    // Provided by SchoolAid\Nadota\Resource in real resources; used to build the export URL.
+    public static function getKey(): string
+    {
+        return 'test-exportable-resource';
+    }
 }
 
 it('has export enabled by default', function () {
@@ -91,6 +97,7 @@ it('returns export config for frontend', function () {
 
     expect($config)
         ->toHaveKey('enabled', true)
+        ->toHaveKey('url', '/nadota-api/test-exportable-resource/resource/export')
         ->toHaveKey('formats', [
             ['format' => 'excel', 'extension' => 'xlsx'],
             ['format' => 'csv', 'extension' => 'csv'],

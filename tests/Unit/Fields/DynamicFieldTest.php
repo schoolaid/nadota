@@ -48,7 +48,8 @@ it('can define type mappings', function () {
             1 => Input::make('Text', 'value'),
             2 => Number::make('Number', 'value'),
             3 => Toggle::make('Boolean', 'value'),
-        ]);
+        ])
+        ->withAllTypes();
 
     $request = createNadotaRequest();
     $array = $field->toArray($request, null, null);
@@ -63,7 +64,8 @@ it('can add single type mapping with when()', function () {
     $field = DynamicField::make('Value', 'value')
         ->basedOn('type')
         ->when(1, Input::make('Text', 'value'))
-        ->when(2, Number::make('Number', 'value'));
+        ->when(2, Number::make('Number', 'value'))
+        ->withAllTypes();
 
     $request = createNadotaRequest();
     $array = $field->toArray($request, null, null);
@@ -96,7 +98,8 @@ it('supports closure for dynamic field creation', function () {
         ->types([
             'select' => fn($model) => Select::make('Options', 'value')
                 ->options(['a' => 'A', 'b' => 'B']),
-        ]);
+        ])
+        ->withAllTypes();
 
     $request = createNadotaRequest();
     $array = $field->toArray($request, null, null);
@@ -140,6 +143,35 @@ it('includes isDynamic flag in props', function () {
     expect($array['props']['isDynamic'])->toBeTrue();
 });
 
+it('does not include all types by default', function () {
+    $field = DynamicField::make('Value', 'value')
+        ->basedOn('type')
+        ->types([
+            1 => Input::make('Text', 'value'),
+            2 => Number::make('Number', 'value'),
+        ]);
+
+    $request = createNadotaRequest();
+    $array = $field->toArray($request, null, null);
+
+    expect($array['props'])->not->toHaveKey('types');
+});
+
+it('includes matched field config for the current type value', function () {
+    $field = DynamicField::make('Value', 'value')
+        ->basedOn('type')
+        ->types([
+            1 => Input::make('Text', 'value'),
+            2 => Number::make('Number', 'value'),
+        ]);
+
+    $request = createNadotaRequest(['type' => 2]);
+    $array = $field->toArray($request, null, null);
+
+    expect($array['props']['matchedType'])->toBe(2)
+        ->and($array['props']['matchedField']['type'])->toBe('number');
+});
+
 it('can exclude all types from response', function () {
     $field = DynamicField::make('Value', 'value')
         ->basedOn('type')
@@ -171,7 +203,8 @@ it('works with form builder item types', function () {
             // 6 => CustomComponent for SIGNATURE
             7 => File::make('File', 'value'),            // FILE
         ])
-        ->defaultType(Input::make('Default', 'value'));
+        ->defaultType(Input::make('Default', 'value'))
+        ->withAllTypes();
 
     $request = createNadotaRequest();
     $array = $field->toArray($request, null, null);
@@ -197,7 +230,8 @@ it('works with string type keys', function () {
             'number' => Number::make('Number', 'value'),
             'boolean' => Toggle::make('Boolean', 'value'),
             'date' => Date::make('Date', 'value'),
-        ]);
+        ])
+        ->withAllTypes();
 
     $request = createNadotaRequest();
     $array = $field->toArray($request, null, null);

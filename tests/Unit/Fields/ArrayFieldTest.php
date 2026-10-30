@@ -187,8 +187,10 @@ it('can set add button text', function () {
     expect($array['props']['addButtonText'])->toBe('Add New Item');
 });
 
+// 'numbers' is not fillable on TestModel (and not cast), so set it with forceFill()
+// to get the raw value onto the model without mass-assignment silently dropping it.
 it('resolves array value from model', function () {
-    $model = createTestModel(['numbers' => [1, 3, 5, 4]]);
+    $model = createTestModel()->forceFill(['numbers' => [1, 3, 5, 4]]);
     $field = ArrayField::make('Numbers', 'numbers');
     $request = createNadotaRequest();
 
@@ -198,7 +200,7 @@ it('resolves array value from model', function () {
 });
 
 it('resolves JSON string value from model', function () {
-    $model = createTestModel(['numbers' => '[1,3,5,4]']);
+    $model = createTestModel()->forceFill(['numbers' => '[1,3,5,4]']);
     $field = ArrayField::make('Numbers', 'numbers');
     $request = createNadotaRequest();
 
@@ -208,7 +210,7 @@ it('resolves JSON string value from model', function () {
 });
 
 it('handles null value as empty array', function () {
-    $model = createTestModel(['numbers' => null]);
+    $model = createTestModel()->forceFill(['numbers' => null]);
     $field = ArrayField::make('Numbers', 'numbers');
     $request = createNadotaRequest();
 
@@ -218,7 +220,7 @@ it('handles null value as empty array', function () {
 });
 
 it('applies default values when empty', function () {
-    $model = createTestModel(['numbers' => null]);
+    $model = createTestModel()->forceFill(['numbers' => null]);
     $field = ArrayField::make('Numbers', 'numbers')
         ->defaultValues([1, 2, 3]);
     $request = createNadotaRequest();
@@ -229,7 +231,7 @@ it('applies default values when empty', function () {
 });
 
 it('casts values to integer type', function () {
-    $model = createTestModel(['numbers' => ['1', '3', '5', '4']]);
+    $model = createTestModel()->forceFill(['numbers' => ['1', '3', '5', '4']]);
     $field = ArrayField::make('Numbers', 'numbers')->integers();
     $request = createNadotaRequest();
 
@@ -252,7 +254,7 @@ it('casts values to string type', function () {
 });
 
 it('removes duplicates when unique is set', function () {
-    $model = createTestModel(['numbers' => [1, 2, 2, 3, 3, 3]]);
+    $model = createTestModel()->forceFill(['numbers' => [1, 2, 2, 3, 3, 3]]);
     $field = ArrayField::make('Numbers', 'numbers')->unique();
     $request = createNadotaRequest();
 
@@ -341,7 +343,7 @@ it('is hidden from index by default', function () {
 });
 
 it('serializes to array correctly', function () {
-    $model = createTestModel(['numbers' => [1, 3, 5, 4]]);
+    $model = createTestModel()->forceFill(['numbers' => [1, 3, 5, 4]]);
     $field = ArrayField::make('Numbers', 'numbers')
         ->integers()
         ->unique()

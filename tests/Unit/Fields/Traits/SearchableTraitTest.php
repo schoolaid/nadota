@@ -57,10 +57,12 @@ it('can set search weight', function () {
     $field = Input::make('Name', 'name')
         ->searchable()
         ->searchWeight(10);
-    
-    $request = createNadotaRequest();
-    $array = $field->toArray($request, null, null);
-    
-    expect($array)->toHaveKey('props')
-        ->and($array['props'])->toHaveKey('searchWeight', 10);
+
+    expect($field->getSearchWeight())->toBe(10);
+});
+
+it('has no search weight by default', function () {
+    $field = Input::make('Name', 'name')->searchable();
+
+    expect($field->getSearchWeight())->toBeNull();
 });

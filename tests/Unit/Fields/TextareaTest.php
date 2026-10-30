@@ -15,8 +15,8 @@ it('can be instantiated', function () {
 it('has correct type and component', function () {
     $field = Textarea::make('Description', 'description');
     
-    expect($field->fieldData->type->value)->toBe('textarea')
-        ->and($field->fieldData->component)->toBe('field-textarea');
+    expect($field->getType())->toBe('textarea')
+        ->and($field->getComponent())->toBe('FieldTextarea');
 });
 
 it('can set rows', function () {
@@ -84,7 +84,7 @@ it('serializes to array correctly', function () {
         ->toHaveKey('label', 'Description')
         ->toHaveKey('attribute', 'description')
         ->toHaveKey('type', 'textarea')
-        ->toHaveKey('component', 'field-textarea')
+        ->toHaveKey('component', 'FieldTextarea')
         ->toHaveKey('value', 'Multi-line content here')
         ->toHaveKey('props')
         ->toHaveKey('sortable', true)

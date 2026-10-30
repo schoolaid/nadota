@@ -3,7 +3,7 @@
 use SchoolAid\Nadota\Http\Fields\Code;
 use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
 use SchoolAid\Nadota\Http\Requests\NadotaRequest;
-use SchoolAid\Nadota\Tests\Models\User;
+use SchoolAid\Nadota\Tests\Models\TestModel;
 
 it('can create a code field', function () {
     $field = new Code('Script', 'script');
@@ -178,11 +178,11 @@ it('defaults to javascript language', function () {
 it('resolves field value from model', function () {
     $field = Code::make('Script', 'script');
 
-    $user = new User();
-    $user->script = 'console.log("Hello World");';
+    $model = new TestModel();
+    $model->script = 'console.log("Hello World");';
 
     $request = NadotaRequest::create('/');
-    $resolved = $field->resolve($request, $user, null);
+    $resolved = $field->resolve($request, $model, null);
 
     expect($resolved)->toBe('console.log("Hello World");');
 });

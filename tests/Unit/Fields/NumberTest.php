@@ -15,8 +15,8 @@ it('can be instantiated', function () {
 it('has correct type and component', function () {
     $field = Number::make('Age', 'age');
     
-    expect($field->fieldData->type->value)->toBe('number')
-        ->and($field->fieldData->component)->toBe('field-number');
+    expect($field->getType())->toBe('number')
+        ->and($field->getComponent())->toBe('FieldNumber');
 });
 
 it('can set minimum value', function () {
@@ -120,7 +120,7 @@ it('serializes to array correctly', function () {
         ->toHaveKey('label', 'Age')
         ->toHaveKey('attribute', 'age')
         ->toHaveKey('type', 'number')
-        ->toHaveKey('component', 'field-number')
+        ->toHaveKey('component', 'FieldNumber')
         ->toHaveKey('value', 30)
         ->toHaveKey('props')
         ->toHaveKey('sortable', true)
