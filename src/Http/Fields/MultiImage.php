@@ -129,6 +129,7 @@ class MultiImage extends File
 
             $upload->store($storagePath, $options);
             $paths[] = $storagePath.'/'.$upload->hashName();
+            $this->pendingStoredFiles[] = [$disk, end($paths)];
         }
 
         $model->{$attribute} = $paths;
