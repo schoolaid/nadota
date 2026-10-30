@@ -47,7 +47,7 @@ class BelongsTo extends Field
         // Infer the foreign key attribute from the relation name (e.g., 'user' -> 'user_id')
         $attribute = Str::snake($relation) . '_id';
 
-        parent::__construct($name, $attribute, FieldType::BELONGS_TO->value, static::safeConfig('nadota.fields.belongsTo.component', 'field'));
+        parent::__construct($name, $attribute, FieldType::BELONGS_TO->value, static::safeConfig('nadota.fields.belongsTo.component', 'FieldBelongsTo'));
         $this->relation($relation);
 
         $this->isRelationship = true;

@@ -11,6 +11,7 @@ use SchoolAid\Nadota\Http\Services\FieldOptions\Contracts\FieldOptionsStrategy;
 use SchoolAid\Nadota\Http\Services\FieldOptions\OptionScopeResolver;
 use SchoolAid\Nadota\Http\Services\FieldOptions\OptionsConfig;
 use SchoolAid\Nadota\Http\Services\FieldOptions\Traits\SearchesOptions;
+use SchoolAid\Nadota\Http\Services\FieldOptions\Traits\SelectsDisplayAttribute;
 
 /**
  * Abstract base class for options strategies.
@@ -19,6 +20,7 @@ use SchoolAid\Nadota\Http\Services\FieldOptions\Traits\SearchesOptions;
 abstract class AbstractOptionsStrategy implements FieldOptionsStrategy
 {
     use SearchesOptions;
+    use SelectsDisplayAttribute;
 
     /**
      * Fetch options for a field.
@@ -177,7 +179,11 @@ abstract class AbstractOptionsStrategy implements FieldOptionsStrategy
         }
 
         // Get select columns
-        $selectColumns = $this->buildSelectColumns($fieldResourceInstance, $request, $keyAttribute);
+        $selectColumns = $this->withDisplayAttribute(
+            $this->buildSelectColumns($fieldResourceInstance, $request, $keyAttribute),
+            $field,
+            $query
+        );
 
         return $query->select($selectColumns)->get();
     }

@@ -14,10 +14,13 @@ use SchoolAid\Nadota\Http\Services\FieldOptions\Strategies\BelongsToOptionsStrat
 use SchoolAid\Nadota\Http\Services\FieldOptions\Strategies\DefaultOptionsStrategy;
 use SchoolAid\Nadota\Http\Services\FieldOptions\Strategies\MorphToManyOptionsStrategy;
 use SchoolAid\Nadota\Http\Services\FieldOptions\Strategies\MorphToOptionsStrategy;
+use SchoolAid\Nadota\Http\Services\FieldOptions\Traits\SelectsDisplayAttribute;
 use SchoolAid\Nadota\ResourceManager;
 
 class FieldOptionsService
 {
+    use SelectsDisplayAttribute;
+
     /**
      * @var array<FieldOptionsStrategy>
      */
@@ -291,7 +294,11 @@ class FieldOptionsService
         }
 
         // Get select columns
-        $selectColumns = $this->getSelectColumns($fieldResourceInstance, $request, $keyAttribute);
+        $selectColumns = $this->withDisplayAttribute(
+            $this->getSelectColumns($fieldResourceInstance, $request, $keyAttribute),
+            $field,
+            $query
+        );
 
         // Paginate
         $paginator = $query->select($selectColumns)->paginate($perPage, ['*'], 'page', $page);

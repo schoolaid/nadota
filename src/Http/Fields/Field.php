@@ -137,7 +137,7 @@ abstract class Field implements FieldInterface
             key: $attribute,
             placeholder: $label,
             type: $type,
-            component: $component ?? static::safeConfig('nadota.fields.input.component', 'field')
+            component: $component ?? static::safeConfig('nadota.fields.input.component', 'FieldText')
         );
     }
 
