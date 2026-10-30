@@ -18,10 +18,14 @@ Versions not listed below shipped without changelog entries; see the git tags fo
 - Non-required `File`/`Image` fields get `nullable`, so an edit that leaves the file untouched (the form sends `null`) passes validation and keeps the stored file.
 - Relation options are labeled with the field's `displayAttribute` even when the related resource has no field for that column. The options query selected only the related resource's field columns plus the key, so `->displayAttribute('name')` on a resource without a `name` field labeled every option with its primary key. The column is now added to the select on all three options code paths (strategy pipeline, paginated endpoint, morph options). An accessor (`getXAttribute()` or an `Attribute` cast) is not a column and is not added.
 - `Input` (and any field built directly on `Field`) falls back to component `FieldText`, and `BelongsTo` to `FieldBelongsTo`, when `nadota.fields.input.component` / `nadota.fields.belongsTo.component` is missing from the published config. Both fell back to `field`, a component no frontend registers.
+- Attachment action events: a `sync` stored `changes.detached` as a JSON object (`{"1": 2}`) whenever an item other than the first was detached, because Laravel's `sync()` keeps `array_diff()` keys. All three lists are re-indexed before they are logged and returned, so the sync response's `detached` is a JSON list too.
+- Attachment action events: a `BelongsToMany`/`MorphToMany` `detach` recorded every requested ID in `changes.detached`, including IDs that were never attached. It now records only the IDs that were attached, as `HasMany`/`MorphMany` already did.
+- The attachment services no longer fail when called with a request that has no resource set. `trackAttachmentAction()` guarded against `getResource()` returning `null`, but it never does: it resolves the resource from the route and aborts with a 404. The 404 escaped after the attach had already been written; the call now runs inside the `try`, so the attach succeeds and nothing is logged.
 
 ### Changed
 - The 105 tests that had been failing since the field refactors of late 2025 now pass. They called APIs that had since been renamed or removed (`relatedModel()` → `model()`, `relationAttribute()` → `displayAttribute()`, `maxDimensions()` → `maxImageDimensions()`, `field-x` → `FieldX` component names, string `type`). Tests covering removed behavior (`HasMany::collapsible()`, HasOne options and validation) were deleted. The 16 tests that expose real bugs are marked `skip('BUG: …')` instead of being bent to match the current behavior.
 - `storage/framework/testing/` is no longer tracked; test runs wrote upload fixtures there.
+- `tests/ServiceIntegration/AttachmentEventIntegrationTest.php` covers the attach/detach/sync action events on `BelongsToMany`, `MorphToMany` and `HasMany`, closing the last item of the attachment-events roadmap.
 
 ## [1.2.6] - 2026-09-28
 

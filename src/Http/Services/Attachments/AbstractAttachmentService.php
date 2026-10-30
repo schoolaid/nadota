@@ -195,12 +195,10 @@ abstract class AbstractAttachmentService implements AttachmentServiceInterface
             return;
         }
 
-        $resource = $request->getResource();
-        if ($resource === null) {
-            return;
-        }
-
         try {
+            // getResource() never returns null: without a resource set it resolves one
+            // from the route and aborts with a 404, so it must run inside the try.
+            $resource = $request->getResource();
             $relation = method_exists($field, 'getRelation') ? $field->getRelation() : $field->getAttribute();
 
             $this->getActionEventService()->logAction(

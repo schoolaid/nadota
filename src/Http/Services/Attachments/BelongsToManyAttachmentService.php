@@ -180,10 +180,18 @@ class BelongsToManyAttachmentService extends AbstractAttachmentService
         $relationName = $field->getRelation();
         $relation = $parentModel->{$relationName}();
 
+        // Resolve the IDs that are actually attached before detaching
+        $relatedModel = $relation->getRelated();
+        $qualifiedKey = $relatedModel->getTable() . '.' . $relatedModel->getKeyName();
+        $actualIds = $parentModel->{$relationName}()
+            ->whereIn($qualifiedKey, $items)
+            ->pluck($qualifiedKey)
+            ->toArray();
+
         // Detach items
         $detached = $relation->detach($items);
 
-        $this->trackAttachmentAction('detach', $parentModel, $request, $field, ['detached' => array_values($items)]);
+        $this->trackAttachmentAction('detach', $parentModel, $request, $field, ['detached' => $actualIds]);
 
         return $this->successResponse('Items detached successfully', [
             'detached' => $detached,
@@ -263,6 +271,9 @@ class BelongsToManyAttachmentService extends AbstractAttachmentService
             // No pivot data
             $changes = $relation->sync($items, $detaching);
         }
+
+        // sync() keeps array_diff() keys on 'detached', which JSON-encode as an object
+        $changes = array_map('array_values', $changes);
 
         $this->trackAttachmentAction(
             'sync',
