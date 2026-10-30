@@ -1,3 +1,3 @@
 # Memory Index
 
-- [Action Events system status](project_action_events.md) — ~85% implementado, tests pendientes, bugs menores corregidos el 2026-05-17
+- [Action Events system status](project_action_events.md) — implementado y con tests; endpoints protegidos por `view` desde v1.2.6
