@@ -2,14 +2,18 @@
 
 namespace SchoolAid\Nadota\Http\Services\Attachments;
 
+use Closure;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 use SchoolAid\Nadota\Contracts\ResourceInterface;
 use SchoolAid\Nadota\Http\Fields\Field;
 use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 use SchoolAid\Nadota\Http\Services\Attachments\Contracts\AttachmentServiceInterface;
 use SchoolAid\Nadota\Http\Services\FieldOptions\OptionsConfig;
 use SchoolAid\Nadota\Http\Traits\TracksActionEvents;
+use SchoolAid\Nadota\Resource;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 abstract class AbstractAttachmentService implements AttachmentServiceInterface
 {
@@ -172,6 +176,58 @@ abstract class AbstractAttachmentService implements AttachmentServiceInterface
         $pivot = $request->get('pivot', []);
 
         return is_array($pivot) ? $pivot : [];
+    }
+
+    /**
+     * Run a write between the resource's before/after hooks, in one transaction.
+     *
+     * $operation is 'Attach', 'Detach' or 'Sync'. The write returns what the after
+     * hook receives (the attached/detached IDs, or the sync changes), which is
+     * also returned here. An exception from either hook rolls the write back.
+     *
+     * @param NadotaRequest $request
+     * @param string $operation
+     * @param Model $parentModel
+     * @param Field $field
+     * @param array $ids
+     * @param Closure $write
+     * @return array
+     */
+    protected function withHooks(
+        NadotaRequest $request,
+        string $operation,
+        Model $parentModel,
+        Field $field,
+        array $ids,
+        Closure $write
+    ): array {
+        $resource = $this->resolveResource($request);
+
+        return DB::transaction(function () use ($resource, $request, $operation, $parentModel, $field, $ids, $write) {
+            $resource?->{'before' . $operation}($parentModel, $field, $ids, $request);
+
+            $result = $write();
+
+            $resource?->{'after' . $operation}($parentModel, $field, $result, $request);
+
+            return $result;
+        });
+    }
+
+    /**
+     * The request's resource, or null when the service is used without one.
+     *
+     * @param NadotaRequest $request
+     * @return Resource|null
+     */
+    protected function resolveResource(NadotaRequest $request): ?Resource
+    {
+        try {
+            return $request->getResource();
+        } catch (HttpExceptionInterface) {
+            // getResource() aborts with a 404 when no resource is set and the route has none
+            return null;
+        }
     }
 
     /**

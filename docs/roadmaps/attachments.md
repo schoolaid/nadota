@@ -1,6 +1,6 @@
 # Roadmap: Attachment System for Relations
 
-> **Status (v1.1.4): Delivered.** The core attach / detach / sync system is implemented
+> **Status (v1.2.6+): Delivered except Phase 5.** The core attach / detach / sync system is implemented
 > across [`src/Http/Services/Attachments/`](../../src/Http/Services/Attachments/)
 > (`AbstractAttachmentService`, `BelongsToManyAttachmentService`,
 > `MorphToManyAttachmentService`, `HasManyAttachmentService`, `MorphManyAttachmentService`),
@@ -8,12 +8,11 @@
 > `attach` / `detach` / `sync` / `attachable` routes in `routes/api.php`. For day-to-day
 > usage see the feature guide: [../guides/attachments.md](../guides/attachments.md).
 >
-> **Remaining / optional:** there is no dedicated `AttachmentRequest` class (Phase 5 pivot
-> validation is handled inline within the services rather than a standalone request), and
-> the relation-level `beforeAttach` / `afterAttach` / `beforeDetach` / `afterDetach` /
-> `beforeSync` / `afterSync` resource hooks (Phase 6.1) are **not** implemented. The
-> action-event side of Phase 6.2 *is* delivered — see
-> [attachment-events.md](./attachment-events.md).
+> **Remaining:** Phase 5 — there is no dedicated `AttachmentRequest` and pivot values are
+> not validated against the pivot fields' rules; pivot data is only filtered to the declared
+> pivot columns, and that filter has gaps. This overlaps item A6/A7 of the security audit
+> (`security-audit.md`), so it is left to that work. The resource hooks (Phase 6.1) and the
+> action events (Phase 6.2, see [attachment-events.md](./attachment-events.md)) are delivered.
 
 This document describes the implementation plan for the full attach/detach/sync system
 across all relations.
@@ -127,15 +126,19 @@ across all relations.
 
 ---
 
-## Phase 6: Hooks and Events — Partial
+## Phase 6: Hooks and Events — Done
 
-### 6.1 Resource Hooks — Pending
-- [ ] `beforeAttach($model, $field, $ids)`
-- [ ] `afterAttach($model, $field, $ids)`
-- [ ] `beforeDetach($model, $field, $ids)`
-- [ ] `afterDetach($model, $field, $ids)`
-- [ ] `beforeSync($model, $field, $ids)`
-- [ ] `afterSync($model, $field, $changes)`
+### 6.1 Resource Hooks — Done
+- [x] `beforeAttach($model, $field, $ids, $request)`
+- [x] `afterAttach($model, $field, $ids, $request)`
+- [x] `beforeDetach($model, $field, $ids, $request)`
+- [x] `afterDetach($model, $field, $ids, $request)`
+- [x] `beforeSync($model, $field, $ids, $request)`
+- [x] `afterSync($model, $field, $changes, $request)`
+
+> Called through `AbstractAttachmentService::withHooks()`, which runs before hook → write →
+> after hook in one `DB::transaction()`. Documented in
+> [../guides/lifecycle-hooks.md](../guides/lifecycle-hooks.md#attachment-hooks).
 
 ### 6.2 Action Events — Done
 - [x] Log attach/detach/sync events in `action_events`
@@ -144,7 +147,8 @@ across all relations.
 > action-event implementation details.
 
 **Files:**
-- `src/Resource.php` (hooks not added)
+- `src/Resource.php` (attachment hooks added)
+- `src/Http/Services/Attachments/*AttachmentService.php` (writes wrapped in `withHooks()`)
 - `src/Http/Services/Attachments/AbstractAttachmentService.php` (action-event tracking added)
 
 ---
@@ -237,7 +241,7 @@ POST /{resource}/resource/{id}/sync/{field}
   - [x] `AttachmentController` updated
   - [x] sync route added
 - [ ] Phase 5: Validation and pivot (partial — no dedicated request class)
-- [~] Phase 6: Hooks and events (action events done; resource hooks pending)
+- [x] Phase 6: Hooks and events
 - [x] Phase 7: Documentation
 
 ---

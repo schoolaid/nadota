@@ -136,27 +136,33 @@ class BelongsToManyAttachmentService extends AbstractAttachmentService
             ]);
         }
 
-        // Attach with pivot data
-        if (!empty($validatedPivot)) {
-            // If pivot data is keyed by item ID, use that structure
-            if ($this->isPivotKeyedById($pivotData)) {
-                $attachData = [];
-                foreach ($toAttach as $id) {
-                    $attachData[$id] = $pivotData[$id] ?? $validatedPivot;
-                }
-                $relation->attach($attachData);
-            } else {
-                // Same pivot data for all items
-                $relation->attach($toAttach, $validatedPivot);
-            }
-        } else {
-            $relation->attach($toAttach);
-        }
+        $toAttach = array_values($toAttach);
 
-        $this->trackAttachmentAction('attach', $parentModel, $request, $field, ['attached' => array_values($toAttach)]);
+        $this->withHooks($request, 'Attach', $parentModel, $field, $toAttach, function () use ($relation, $toAttach, $validatedPivot, $pivotData) {
+            // Attach with pivot data
+            if (!empty($validatedPivot)) {
+                // If pivot data is keyed by item ID, use that structure
+                if ($this->isPivotKeyedById($pivotData)) {
+                    $attachData = [];
+                    foreach ($toAttach as $id) {
+                        $attachData[$id] = $pivotData[$id] ?? $validatedPivot;
+                    }
+                    $relation->attach($attachData);
+                } else {
+                    // Same pivot data for all items
+                    $relation->attach($toAttach, $validatedPivot);
+                }
+            } else {
+                $relation->attach($toAttach);
+            }
+
+            return $toAttach;
+        });
+
+        $this->trackAttachmentAction('attach', $parentModel, $request, $field, ['attached' => $toAttach]);
 
         return $this->successResponse('Items attached successfully', [
-            'attached' => array_values($toAttach),
+            'attached' => $toAttach,
             'count' => count($toAttach),
         ]);
     }
@@ -189,7 +195,12 @@ class BelongsToManyAttachmentService extends AbstractAttachmentService
             ->toArray();
 
         // Detach items
-        $detached = $relation->detach($items);
+        $detached = 0;
+        $this->withHooks($request, 'Detach', $parentModel, $field, $actualIds, function () use ($relation, $items, $actualIds, &$detached) {
+            $detached = $relation->detach($items);
+
+            return $actualIds;
+        });
 
         $this->trackAttachmentAction('detach', $parentModel, $request, $field, ['detached' => $actualIds]);
 
@@ -252,28 +263,30 @@ class BelongsToManyAttachmentService extends AbstractAttachmentService
         // Check if detaching is enabled (default true for sync)
         $detaching = $request->get('detaching', true);
 
-        // Build sync data
-        if (!empty($pivotData) && $this->isPivotKeyedById($pivotData)) {
-            // Pivot data keyed by ID
-            $syncData = [];
-            foreach ($items as $id) {
-                $syncData[$id] = $pivotData[$id] ?? [];
+        $changes = $this->withHooks($request, 'Sync', $parentModel, $field, array_values($items), function () use ($relation, $items, $pivotData, $detaching) {
+            // Build sync data
+            if (!empty($pivotData) && $this->isPivotKeyedById($pivotData)) {
+                // Pivot data keyed by ID
+                $syncData = [];
+                foreach ($items as $id) {
+                    $syncData[$id] = $pivotData[$id] ?? [];
+                }
+                $changes = $relation->sync($syncData, $detaching);
+            } elseif (!empty($pivotData)) {
+                // Same pivot data for all
+                $syncData = [];
+                foreach ($items as $id) {
+                    $syncData[$id] = $pivotData;
+                }
+                $changes = $relation->sync($syncData, $detaching);
+            } else {
+                // No pivot data
+                $changes = $relation->sync($items, $detaching);
             }
-            $changes = $relation->sync($syncData, $detaching);
-        } elseif (!empty($pivotData)) {
-            // Same pivot data for all
-            $syncData = [];
-            foreach ($items as $id) {
-                $syncData[$id] = $pivotData;
-            }
-            $changes = $relation->sync($syncData, $detaching);
-        } else {
-            // No pivot data
-            $changes = $relation->sync($items, $detaching);
-        }
 
-        // sync() keeps array_diff() keys on 'detached', which JSON-encode as an object
-        $changes = array_map('array_values', $changes);
+            // sync() keeps array_diff() keys on 'detached', which JSON-encode as an object
+            return array_map('array_values', $changes);
+        });
 
         $this->trackAttachmentAction(
             'sync',

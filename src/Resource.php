@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 use SchoolAid\Nadota\Contracts\ResourceAuthorizationInterface;
+use SchoolAid\Nadota\Http\Fields\Field;
 use SchoolAid\Nadota\Http\Fields\Traits\InteractsWithFields;
 use SchoolAid\Nadota\Http\Fields\Traits\ResourceFrontUtils;
 use SchoolAid\Nadota\Http\Helpers\Helpers;
@@ -883,6 +884,96 @@ abstract class Resource implements Contracts\ResourceInterface
      * @return void
      */
     public function afterUpdate(Model $model, NadotaRequest $request, array $originalData): void
+    {
+        // Override in child resource if needed
+    }
+
+    /**
+     * Hook called before attaching items to a relation field.
+     * Throw a ValidationException to abort the attach with a 422.
+     *
+     * @param Model $model The parent model
+     * @param Field $field The relation field
+     * @param array $ids The IDs about to be attached (already-attached ones excluded)
+     * @param NadotaRequest $request The current request
+     * @return void
+     */
+    public function beforeAttach(Model $model, Field $field, array $ids, NadotaRequest $request): void
+    {
+        // Override in child resource if needed
+    }
+
+    /**
+     * Hook called after attaching items to a relation field.
+     * Runs in the same transaction as the attach: an exception rolls it back.
+     *
+     * @param Model $model The parent model
+     * @param Field $field The relation field
+     * @param array $ids The IDs that were attached
+     * @param NadotaRequest $request The current request
+     * @return void
+     */
+    public function afterAttach(Model $model, Field $field, array $ids, NadotaRequest $request): void
+    {
+        // Override in child resource if needed
+    }
+
+    /**
+     * Hook called before detaching items from a relation field.
+     * Throw a ValidationException to abort the detach with a 422.
+     *
+     * @param Model $model The parent model
+     * @param Field $field The relation field
+     * @param array $ids The requested IDs that are currently attached
+     * @param NadotaRequest $request The current request
+     * @return void
+     */
+    public function beforeDetach(Model $model, Field $field, array $ids, NadotaRequest $request): void
+    {
+        // Override in child resource if needed
+    }
+
+    /**
+     * Hook called after detaching items from a relation field.
+     * Runs in the same transaction as the detach: an exception rolls it back.
+     *
+     * @param Model $model The parent model
+     * @param Field $field The relation field
+     * @param array $ids The IDs that were detached
+     * @param NadotaRequest $request The current request
+     * @return void
+     */
+    public function afterDetach(Model $model, Field $field, array $ids, NadotaRequest $request): void
+    {
+        // Override in child resource if needed
+    }
+
+    /**
+     * Hook called before syncing a relation field.
+     * Throw a ValidationException to abort the sync with a 422.
+     *
+     * @param Model $model The parent model
+     * @param Field $field The relation field
+     * @param array $ids The IDs the relation will hold after the sync
+     * @param NadotaRequest $request The current request
+     * @return void
+     */
+    public function beforeSync(Model $model, Field $field, array $ids, NadotaRequest $request): void
+    {
+        // Override in child resource if needed
+    }
+
+    /**
+     * Hook called after syncing a relation field.
+     * Runs in the same transaction as the sync: an exception rolls it back.
+     *
+     * @param Model $model The parent model
+     * @param Field $field The relation field
+     * @param array $changes ['attached' => [...], 'detached' => [...], 'updated' => [...]]
+     * @param NadotaRequest $request The current request
+     * @return void
+     */
+    public function afterSync(Model $model, Field $field, array $changes, NadotaRequest $request): void
     {
         // Override in child resource if needed
     }

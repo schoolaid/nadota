@@ -252,6 +252,10 @@ For `HasMany` and `MorphMany`, the field may also provide an `attachableQuery()`
 | 422 | Attachment limit body (above) | Limit exceeded |
 | 403 | `{ "success": false, "message": "Unauthorized" }` | Ability denied |
 
+## Hooks
+
+Resources can run code around every attach, detach and sync with `beforeAttach` / `afterAttach`, `beforeDetach` / `afterDetach` and `beforeSync` / `afterSync`. They share a transaction with the write, so a `before*` hook can veto the operation and an `after*` hook that throws rolls it back. See [Lifecycle hooks](lifecycle-hooks.md#attachment-hooks).
+
 ## Action events
 
 Successful attach/detach/sync operations are logged as [action events](action-events.md) (`attach`, `detach`, `sync`) against the parent model, recording the relation name and the changed IDs.

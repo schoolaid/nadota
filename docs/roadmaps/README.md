@@ -17,7 +17,7 @@ For day-to-day, "how do I use this" reference material, see the feature guides u
 |---------|--------|---------|
 | [store-update.md](./store-update.md) | **Partial** | Store/Update refactor. Phases 1–4 delivered (shared trait, abstract persist service, `afterSave` on create, resource hooks); phases 5–8 (FieldProcessor, ValidationRulesBuilder, file rollback, dedicated tests) pending/optional. |
 | [edit-service.md](./edit-service.md) | **Implemented** | `ResourceEditService` rework. All four phases delivered — transformed fields, eager loading, column selection, metadata/permissions, custom response resource. |
-| [attachments.md](./attachments.md) | **Partial** | Attach/detach/sync across relations. Core services, controller and routes delivered for all relation types; resource-level `before*/after*` hooks and a dedicated `AttachmentRequest` are still pending. |
+| [attachments.md](./attachments.md) | **Partial** | Attach/detach/sync across relations. Core services, controller, routes and resource-level `before*/after*` hooks delivered; Phase 5 (pivot validation, `AttachmentRequest`) pending and overlaps the security audit's A6/A7. |
 | [attachment-events.md](./attachment-events.md) | **Implemented** | Action-event logging for attach/detach/sync. Tracking infrastructure (P2/P3/P4) and the integration test suite (P1) delivered. |
 
 ## Delivered (now documented as features)

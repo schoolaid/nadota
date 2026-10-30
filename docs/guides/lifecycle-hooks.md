@@ -1,6 +1,6 @@
 # Lifecycle Hooks
 
-Nadota runs your custom logic at well-defined points during every write operation — store, update, delete, restore, and force delete — all inside a database transaction. This guide covers each hook, the execution order, transaction behavior, custom delete logic, and the search/options hooks.
+Nadota runs your custom logic at well-defined points during every write operation — store, update, delete, restore, force delete, and attach / detach / sync — all inside a database transaction. This guide covers each hook, the execution order, transaction behavior, custom delete logic, and the search/options hooks.
 
 ## Overview
 
@@ -13,8 +13,11 @@ Every hook is a method on your Resource class. The base `Resource` ships empty (
 | **Delete** | `beforeDelete` | `performDelete` | `afterDelete` | `onDeleteFailed` |
 | **Restore** | `beforeRestore` | `performRestore` | `afterRestore` | — |
 | **Force delete** | `beforeForceDelete` | `performForceDelete` | `afterForceDelete` | — |
+| **Attach** | `beforeAttach` | — | `afterAttach` | — |
+| **Detach** | `beforeDetach` | — | `afterDetach` | — |
+| **Sync** | `beforeSync` | — | `afterSync` | — |
 
-All five operations wrap their hooks in `DB::beginTransaction()` / `DB::commit()`, rolling back on any exception.
+All five record operations wrap their hooks in `DB::beginTransaction()` / `DB::commit()`, rolling back on any exception; the attachment operations use `DB::transaction()` the same way.
 
 ## Store hooks
 
@@ -175,6 +178,32 @@ public function afterForceDelete(Model $model, NadotaRequest $request): void
 ```
 
 See [the soft deletes guide](soft-deletes.md) for the restore/force-delete requirements and endpoints.
+
+## Attachment hooks
+
+Called by the [attach / detach / sync endpoints](attachments.md) for every relation type. Each runs in one `DB::transaction()` with the write: throw from a `before*` hook to stop the operation (a `ValidationException` becomes a 422), and an exception from an `after*` hook rolls the write back. The [action event](action-events.md) is logged only after the transaction commits.
+
+| Hook | `$ids` / `$changes` |
+|---|---|
+| `beforeAttach(Model $model, Field $field, array $ids, NadotaRequest $request)` | IDs about to be attached; already-attached (and, for HasMany/MorphMany, missing) IDs are left out. Not called when nothing is left to attach. |
+| `afterAttach(Model $model, Field $field, array $ids, NadotaRequest $request)` | IDs that were attached |
+| `beforeDetach(Model $model, Field $field, array $ids, NadotaRequest $request)` | Requested IDs that are currently attached (may be empty) |
+| `afterDetach(Model $model, Field $field, array $ids, NadotaRequest $request)` | IDs that were detached |
+| `beforeSync(Model $model, Field $field, array $ids, NadotaRequest $request)` | IDs the relation will hold after the sync |
+| `afterSync(Model $model, Field $field, array $changes, NadotaRequest $request)` | `['attached' => [...], 'detached' => [...], 'updated' => [...]]` |
+
+`$model` is the parent record and `$field` the relation field (`$field->getRelation()` gives the relation name).
+
+```php
+public function beforeDetach(Model $model, Field $field, array $ids, NadotaRequest $request): void
+{
+    if ($field->getRelation() === 'guardians' && $model->guardians()->count() - count($ids) < 1) {
+        throw ValidationException::withMessages(['items' => 'A student needs at least one guardian.']);
+    }
+}
+```
+
+Called from the attachment services without a resource on the request (programmatic use), no hook runs.
 
 ## Transaction behavior
 
