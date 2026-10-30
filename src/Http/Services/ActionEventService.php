@@ -201,11 +201,11 @@ class ActionEventService
             'target_id' => $model->getKey() ?? 0,
             'model_type' => get_class($model),
             'model_id' => $model->getKey(),
-            'fields' => $this->sanitizeFields($fields),
+            'fields' => $this->shouldTrack('fields') ? $this->sanitizeFields($fields) : [],
             'status' => 'finished',
             'exception' => null,
-            'original' => $original ? $this->sanitizeData($original) : null,
-            'changes' => $changes ? $this->sanitizeData($changes) : null,
+            'original' => $original && $this->shouldTrack('original') ? $this->sanitizeData($original) : null,
+            'changes' => $changes && $this->shouldTrack('changes') ? $this->sanitizeData($changes) : null,
         ];
 
         // Check if we should use queue for async processing
@@ -290,6 +290,14 @@ class ActionEventService
     protected function shouldUseQueue(): bool
     {
         return config('nadota.action_events.queue', false);
+    }
+
+    /**
+     * Check whether a payload column (fields, original, changes) should be recorded
+     */
+    protected function shouldTrack(string $column): bool
+    {
+        return (bool) config("nadota.action_events.track_{$column}", true);
     }
 
     /**

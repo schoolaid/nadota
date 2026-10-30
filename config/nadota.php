@@ -162,10 +162,8 @@ return [
     ],
 
     // Action Events Tracking
-    'track_actions' => env('NADOTA_TRACK_ACTIONS', true),
     'action_events' => [
         'enabled' => env('NADOTA_TRACK_ACTIONS', true),
-        'table' => 'action_events',
 
         // System user ID for actions without authenticated user (registrations, jobs, artisan commands)
         // Set to null to allow null user_id, or set a specific user ID for system actions
@@ -182,7 +180,8 @@ return [
             'private_key',
         ],
 
-        // What data to track
+        // Which payload columns to record; a disabled one is stored empty
+        // (fields as [], original and changes as null)
         'track_fields' => true,
         'track_original' => true,
         'track_changes' => true,

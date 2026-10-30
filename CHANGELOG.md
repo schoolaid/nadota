@@ -21,11 +21,15 @@ Versions not listed below shipped without changelog entries; see the git tags fo
 - Attachment action events: a `sync` stored `changes.detached` as a JSON object (`{"1": 2}`) whenever an item other than the first was detached, because Laravel's `sync()` keeps `array_diff()` keys. All three lists are re-indexed before they are logged and returned, so the sync response's `detached` is a JSON list too.
 - Attachment action events: a `BelongsToMany`/`MorphToMany` `detach` recorded every requested ID in `changes.detached`, including IDs that were never attached. It now records only the IDs that were attached, as `HasMany`/`MorphMany` already did.
 - The attachment services no longer fail when called with a request that has no resource set. `trackAttachmentAction()` guarded against `getResource()` returning `null`, but it never does: it resolves the resource from the route and aborts with a 404. The 404 escaped after the attach had already been written; the call now runs inside the `try`, so the attach succeeds and nothing is logged.
+- `nadota.action_events.track_fields`, `track_original` and `track_changes` take effect. They were in the config and the docs but nothing read them, so every payload was always recorded. A disabled column is stored empty (`fields` as `[]`, `original` and `changes` as `null`). Defaults stay `true`, so nothing changes unless an app had set one to `false`.
 
 ### Changed
 - The 105 tests that had been failing since the field refactors of late 2025 now pass. They called APIs that had since been renamed or removed (`relatedModel()` → `model()`, `relationAttribute()` → `displayAttribute()`, `maxDimensions()` → `maxImageDimensions()`, `field-x` → `FieldX` component names, string `type`). Tests covering removed behavior (`HasMany::collapsible()`, HasOne options and validation) were deleted. The 16 tests that expose real bugs are marked `skip('BUG: …')` instead of being bent to match the current behavior.
 - `storage/framework/testing/` is no longer tracked; test runs wrote upload fixtures there.
 - `tests/ServiceIntegration/AttachmentEventIntegrationTest.php` covers the attach/detach/sync action events on `BelongsToMany`, `MorphToMany` and `HasMany`, closing the last item of the attachment-events roadmap.
+
+### Removed
+- The `nadota.track_actions` and `nadota.action_events.table` config keys. Nothing read either: tracking is switched by `action_events.enabled` (same `NADOTA_TRACK_ACTIONS` env var), and the model and migrations always use the `action_events` table. Published configs that still contain them are unaffected.
 
 ## [1.2.6] - 2026-09-28
 
