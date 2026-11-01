@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-11-01
+
+### Security
+- Relation changes now fall back to the parent's `update` ability when the policy is silent on them. `ResourceAuthorizationService::authorizedTo()` resolves `attach` and `detach` as: (1) the field-specific policy method (`attachTags`, `detachTags`, …) if it exists; (2) otherwise the generic `attach`/`detach` method if it exists; (3) otherwise the policy's `update` ability on the parent model, through the Gate so a policy `before()` hook runs — a policy without `update` still passes; (4) with no policy registered, `true` as before. Until now step 3 did not exist and the check answered `true`, so on any resource whose policy defined no `attach`/`detach` every panel session could attach, detach and sync relations — e.g. assign itself roles. `sync` keeps using the `attach` ability. All other actions (`view`, `update`, `create`, `delete`, …) are unchanged.
+- `GET {resourceKey}/resource/{id}/attachable/{field}` now requires the `attach` ability with field context, exactly like `attach`, and answers `403 {"success":false,"message":"Unauthorized"}` when it is denied. It used to list the attachable records to anyone.
+- The `permissions` payload (`attach`, `detach` and the per-field `fields.<key>.attach/detach` entries) and the relation fields' `canAttach`/`canDetach` props follow the same rule, so the frontend hides the buttons the backend now refuses.
+
+  **Behavior change:** a user without `update` on the parent can no longer attach, detach or sync, nor list attachable items, on relations whose policy defines no `attach`/`detach` method. Host apps that relied on the old permissive answer must add `attach`/`detach` (or field-specific) methods to the policy.
+
 ## [Unreleased]
 
 ### Added

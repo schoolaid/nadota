@@ -39,6 +39,10 @@ class AttachmentController extends Controller
             return response()->json(['success' => false, 'message' => 'Field not found'], 404);
         }
 
+        if (!$resource->authorizedTo($request, 'attach', $model, ['field' => $field])) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
         if (!$fieldInstance->isAttachable()) {
             return response()->json(['success' => false, 'message' => 'Field is not attachable'], 422);
         }

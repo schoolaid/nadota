@@ -15,7 +15,8 @@ That delegates to `ResourceAuthorizationService`, which resolves the Laravel pol
 1. Resolve the policy with `Gate::getPolicyFor($model)`.
 2. If a `$context['field']` is present, try a **field-specific** method first (e.g. `attachGrades`).
 3. Otherwise (or as fallback) try the **generic** ability method (e.g. `attach`).
-4. If no policy exists, or the policy has no matching method, **authorization passes** (permissive fallback).
+4. For `attach` and `detach` only: if the policy has neither method, decide with the policy's **`update`** ability on the parent model (through the Gate, so a policy `before()` hook runs). A policy without `update` either passes. *(Since 1.3.0; before that a policy without `attach`/`detach` let anyone attach, detach, sync and list attachable items.)*
+5. If no policy exists, or the policy has no matching method, **authorization passes** (permissive fallback).
 
 ```php
 // src/Http/Services/ResourceAuthorizationService.php
@@ -36,6 +37,11 @@ public function authorizedTo(NadotaRequest $request, string $action, array $cont
                 $action,
                 empty($context) ? $this->model : [$this->model, $context]
             );
+        }
+
+        // attach / detach: a relation change is an update of the parent
+        if (in_array($action, ['attach', 'detach'], true)) {
+            return $this->authorizedTo($request, 'update');
         }
     }
 
@@ -196,7 +202,8 @@ public function attachStudents(User $user, School $school, array $context = []):
 
 1. Field-specific method (`attachGrades`) — used if it exists.
 2. Generic method (`attach`) — fallback.
-3. No method / no policy — permissive (returns `true`).
+3. The policy's `update` ability on the parent (via the Gate, `before()` included) — when neither method exists.
+4. No `update` method / no policy — permissive (returns `true`).
 
 The per-field results appear in the index `permissions.fields` block:
 

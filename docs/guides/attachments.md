@@ -72,7 +72,7 @@ The query excludes already-attached items, applies the related resource's `optio
 
 Meta differs slightly by service: `BelongsToMany`/`MorphToMany` include `attached_count`; `HasMany`/`MorphMany` include `attachable_limit` and each item carries a `meta` object built from the field's select fields.
 
-The `attachable` endpoint does not check an attach/detach permission — it is read-only. (Contrast with [field options](../fields/relation-fields.md), used for simple selects.)
+The `attachable` endpoint checks the `attach` ability with field context, like `attach` itself, and answers `403 { "success": false, "message": "Unauthorized" }` when it is denied (since 1.3.0). (Contrast with [field options](../fields/relation-fields.md), used for simple selects.)
 
 ## Attach
 
@@ -198,14 +198,14 @@ If a field defines `getAttachableLimit()`, attach and sync enforce it. Exceeding
 
 ## Permissions
 
-Read operations are open; write operations check resource abilities with field context (see [Authorization](authorization.md)):
+Every attachment operation checks a resource ability with field context (see [Authorization](authorization.md)). When the policy defines neither the field-specific nor the generic method, the parent's `update` ability decides:
 
-| Operation | Ability checked |
-|-----------|-----------------|
-| attachable | none (read-only) |
-| attach | `attach` |
-| detach | `detach` |
-| sync | `attach` |
+| Operation | Ability checked | Fallback when the policy lacks it |
+|-----------|-----------------|-----------------------------------|
+| attachable | `attach` | `update` |
+| attach | `attach` | `update` |
+| detach | `detach` | `update` |
+| sync | `attach` | `update` |
 
 The authorization context passed to the policy includes `field`, the requested `items`, and (for attach/sync) `pivot`; sync also passes `detaching`. A failed check returns `403 { "success": false, "message": "Unauthorized" }`.
 

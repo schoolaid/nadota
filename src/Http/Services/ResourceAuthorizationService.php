@@ -7,6 +7,14 @@ use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 
 class ResourceAuthorizationService implements ResourceAuthorizationInterface
 {
+    /**
+     * Actions that, when the policy defines neither a field-specific nor a generic
+     * method for them, are decided by the policy's `update` ability on the parent.
+     *
+     * @var array<int, string>
+     */
+    private const PARENT_UPDATE_FALLBACK_ACTIONS = ['attach', 'detach'];
+
     public $model;
 
     public function setModel($model): self
@@ -37,6 +45,11 @@ class ResourceAuthorizationService implements ResourceAuthorizationInterface
                     $action,
                     empty($context) ? $this->model : [$this->model, $context]
                 );
+            }
+
+            // Relation changes are an update of the parent when the policy is silent on them
+            if (in_array($action, self::PARENT_UPDATE_FALLBACK_ACTIONS, true)) {
+                return $this->authorizedTo($request, 'update');
             }
         }
 
