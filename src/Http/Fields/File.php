@@ -32,6 +32,18 @@ class File extends Field
     protected ?\Closure $deleteCallback = null;
     protected ?\Closure $filenameCallback = null;
 
+    /**
+     * Files stored by fill() that are not committed yet, as [disk, path] pairs.
+     * Deleted by discardPendingFiles() when the save is rolled back.
+     */
+    protected array $pendingStoredFiles = [];
+
+    /**
+     * Files replaced by fill(), as [disk, path] pairs. They are only deleted by
+     * commitPendingFiles() once the save is committed, so a rollback keeps them.
+     */
+    protected array $pendingReplacedFiles = [];
+
     public function __construct(string $name, string $attribute)
     {
         parent::__construct($name, $attribute, FieldType::FILE->value, static::safeConfig('nadota.fields.file.component', 'FieldFile'));
@@ -495,8 +507,12 @@ class File extends Field
             // Determine a storage path
             $storagePath = $this->path ?? 'uploads';
 
-            // Delete old file if exists
-            $this->performDelete($model, $disk);
+            // The old file is deleted once the save commits (see commitPendingFiles)
+            $oldPath = $model->getOriginal($this->getAttribute());
+
+            if ($oldPath) {
+                $this->pendingReplacedFiles[] = [$disk, $oldPath];
+            }
 
             // Use custom store callback if provided
             if ($this->storeCallback) {
@@ -509,6 +525,10 @@ class File extends Field
                     $disk,
                     $storagePath
                 );
+
+                if ($result === $oldPath) {
+                    array_pop($this->pendingReplacedFiles);
+                }
 
                 $model->{$this->getAttribute()} = $result;
                 return;
@@ -532,6 +552,14 @@ class File extends Field
                 $relativePath = $storagePath . '/' . $request->file($requestAttribute)->hashName();
             }
 
+            if ($relativePath === $oldPath) {
+                // Stored over the old file: nothing to delete on commit, and deleting
+                // it on rollback would remove the only copy
+                array_pop($this->pendingReplacedFiles);
+            } else {
+                $this->pendingStoredFiles[] = [$disk, $relativePath];
+            }
+
             // Store as full URL or relative path based on configuration
             if ($this->storedAsUrl) {
                 $model->{$this->getAttribute()} = Storage::disk($disk)->url($relativePath);
@@ -542,11 +570,40 @@ class File extends Field
     }
 
     /**
+     * Delete the files replaced by fill(). Called after the save commits.
+     */
+    public function commitPendingFiles(Model $model): void
+    {
+        foreach ($this->pendingReplacedFiles as [$disk, $path]) {
+            $this->performDelete($model, $disk, $path);
+        }
+
+        $this->pendingReplacedFiles = [];
+        $this->pendingStoredFiles = [];
+    }
+
+    /**
+     * Delete the files stored by fill(). Called after the save is rolled back,
+     * so a failed save leaves no orphaned upload behind.
+     *
+     * Files written by a custom store() callback are not tracked.
+     */
+    public function discardPendingFiles(): void
+    {
+        foreach ($this->pendingStoredFiles as [$disk, $path]) {
+            $this->deleteFile($disk, $path);
+        }
+
+        $this->pendingReplacedFiles = [];
+        $this->pendingStoredFiles = [];
+    }
+
+    /**
      * Delete the existing file using custom callback or default behavior.
      */
-    protected function performDelete(Model $model, string $disk): void
+    protected function performDelete(Model $model, string $disk, ?string $oldPath = null): void
     {
-        $oldPath = $model->getOriginal($this->getAttribute());
+        $oldPath ??= $model->getOriginal($this->getAttribute());
 
         if (!$oldPath) {
             return;
@@ -557,7 +614,7 @@ class File extends Field
             return;
         }
 
-        $this->deleteOldFile($model);
+        $this->deleteFile($disk, $oldPath);
     }
 
     /**
@@ -607,14 +664,20 @@ class File extends Field
         $oldPath = $model->getOriginal($this->getAttribute());
 
         if ($oldPath) {
-            $disk = $this->disk ?? config('filesystems.default', 'local');
+            $this->deleteFile($this->disk ?? config('filesystems.default', 'local'), $oldPath);
+        }
+    }
 
-            try {
-                Storage::disk($disk)->delete($oldPath);
-            } catch (\Exception $e) {
-                // Log the error but don't fail the operation
-                Log::warning("Failed to delete old file: {$oldPath}", ['error' => $e->getMessage()]);
-            }
+    /**
+     * Delete a file from a disk, logging instead of failing.
+     */
+    protected function deleteFile(string $disk, string $path): void
+    {
+        try {
+            Storage::disk($disk)->delete($path);
+        } catch (\Exception $e) {
+            // Log the error but don't fail the operation
+            Log::warning("Failed to delete file: {$path}", ['error' => $e->getMessage()]);
         }
     }
 }

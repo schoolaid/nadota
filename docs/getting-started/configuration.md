@@ -49,10 +49,8 @@ See the [Fields reference](../fields/README.md) for the full catalog of field cl
 Controls audit logging. See the [Action Events guide](../guides/action-events.md).
 
 ```php
-'track_actions' => env('NADOTA_TRACK_ACTIONS', true),
 'action_events' => [
     'enabled'         => env('NADOTA_TRACK_ACTIONS', true),
-    'table'           => 'action_events',
     'system_user_id'  => env('NADOTA_SYSTEM_USER_ID', null), // user id for unauthenticated actions
     'exclude_fields'  => ['password', 'remember_token', 'api_token', 'token', 'secret', 'api_key', 'private_key'],
     'track_fields'    => true,
@@ -66,10 +64,12 @@ Controls audit logging. See the [Action Events guide](../guides/action-events.md
 
 | Key | Default | Description |
 |-----|---------|-------------|
-| `track_actions` / `action_events.enabled` | `true` | Master switch for audit logging. |
+| `enabled` | `true` | Master switch for audit logging. |
 | `system_user_id` | `null` | User id attributed to actions with no authenticated user (jobs, registrations, console). `null` allows a null `user_id`. |
 | `exclude_fields` | sensitive keys | Field names stripped before logging. |
-| `track_fields` / `track_original` / `track_changes` | `true` | What payload is captured per event. |
+| `track_fields` / `track_original` / `track_changes` | `true` | Which payload columns are recorded. A disabled one is stored empty: `fields` as `[]`, `original` and `changes` as `null`. |
+
+The table name is always `action_events`.
 | `dispatch_events` | `true` | Dispatch the `ActionLogged` event for external listeners. |
 | `queue` / `queue_name` | `false` / `default` | Log via a queued job instead of synchronously. |
 

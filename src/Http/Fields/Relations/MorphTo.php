@@ -70,7 +70,7 @@ class MorphTo extends Field
         $this->morphTypeAttribute = Str::snake($relation) . '_type';
         $this->morphIdAttribute = Str::snake($relation) . '_id';
 
-        parent::__construct($name, $this->morphIdAttribute, FieldType::MORPH_TO->value, static::safeConfig('nadota.fields.morphTo.component', 'field-morph-to'));
+        parent::__construct($name, $this->morphIdAttribute, FieldType::MORPH_TO->value, static::safeConfig('nadota.fields.morphTo.component', 'FieldMorphTo'));
         $this->relation($relation);
         $this->isRelationship = true;
 

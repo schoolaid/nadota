@@ -62,7 +62,7 @@ class HasMany extends Field
      */
     public function __construct(string $name, string $relation, ?string $resource = null)
     {
-        parent::__construct($name, '', FieldType::HAS_MANY->value, static::safeConfig('nadota.fields.hasMany.component', 'field-has-many'));
+        parent::__construct($name, '', FieldType::HAS_MANY->value, static::safeConfig('nadota.fields.hasMany.component', 'FieldHasMany'));
         $this->relation($relation);
         $this->isRelationship = true;
 

@@ -130,11 +130,17 @@ class ActionEventService
     }
 
     /**
-     * Log a custom action
+     * Log a custom action.
+     *
+     * Without a model (a standalone action) the event is recorded against the
+     * resource's model class with a null model_id.
+     *
+     * Supported $metadata keys: original, changes, status ('finished' by default,
+     * or 'failed') and exception (the error message of a failed run).
      */
     public function logAction(
         string $action,
-        Model $model,
+        ?Model $model,
         ResourceInterface $resource,
         NadotaRequest $request,
         array $fields = [],
@@ -142,11 +148,13 @@ class ActionEventService
     ): ActionEvent {
         return $this->persist(
             action: $action,
-            model: $model,
+            model: $model ?? new $resource->model,
             actionableType: get_class($resource),
             fields: $fields,
             original: $metadata['original'] ?? null,
-            changes: $metadata['changes'] ?? null
+            changes: $metadata['changes'] ?? null,
+            status: $metadata['status'] ?? 'finished',
+            exception: $metadata['exception'] ?? null
         );
     }
 
@@ -189,7 +197,9 @@ class ActionEventService
         array $fields = [],
         ?array $original = null,
         ?array $changes = null,
-        ?int $actionableId = null
+        ?int $actionableId = null,
+        string $status = 'finished',
+        ?string $exception = null
     ): ActionEvent {
         $data = [
             'batch_id' => $this->getBatchId(),
@@ -201,11 +211,11 @@ class ActionEventService
             'target_id' => $model->getKey() ?? 0,
             'model_type' => get_class($model),
             'model_id' => $model->getKey(),
-            'fields' => $this->sanitizeFields($fields),
-            'status' => 'finished',
-            'exception' => null,
-            'original' => $original ? $this->sanitizeData($original) : null,
-            'changes' => $changes ? $this->sanitizeData($changes) : null,
+            'fields' => $this->shouldTrack('fields') ? $this->sanitizeFields($fields) : [],
+            'status' => $status,
+            'exception' => $exception,
+            'original' => $original && $this->shouldTrack('original') ? $this->sanitizeData($original) : null,
+            'changes' => $changes && $this->shouldTrack('changes') ? $this->sanitizeData($changes) : null,
         ];
 
         // Check if we should use queue for async processing
@@ -290,6 +300,14 @@ class ActionEventService
     protected function shouldUseQueue(): bool
     {
         return config('nadota.action_events.queue', false);
+    }
+
+    /**
+     * Check whether a payload column (fields, original, changes) should be recorded
+     */
+    protected function shouldTrack(string $column): bool
+    {
+        return (bool) config("nadota.action_events.track_{$column}", true);
     }
 
     /**

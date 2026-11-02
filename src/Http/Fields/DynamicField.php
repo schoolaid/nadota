@@ -260,8 +260,27 @@ class DynamicField extends Field
     }
 
     /**
-     * Get validation rules from the resolved field.
+     * Commit the resolved field's pending files (see File::commitPendingFiles()).
      */
+    public function commitPendingFiles(Model $model): void
+    {
+        if ($this->resolvedField !== null && method_exists($this->resolvedField, 'commitPendingFiles')) {
+            $this->resolvedField->commitPendingFiles($model);
+        }
+    }
+
+    /**
+     * Discard the resolved field's pending files (see File::discardPendingFiles()).
+     */
+    public function discardPendingFiles(): void
+    {
+        if ($this->resolvedField !== null && method_exists($this->resolvedField, 'discardPendingFiles')) {
+            $this->resolvedField->discardPendingFiles();
+        }
+    }
+
+    /**
+     * Get validation rules from the resolved field.
     public function getRules(): array
     {
         // Note: During validation, we may not have the model yet

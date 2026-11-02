@@ -15,7 +15,7 @@ The panel logs the following automatically (when enabled):
 | `delete` | Destroy service | model attributes | — |
 | `restore` | Restore (soft deletes) | — | — |
 | `attach` / `detach` / `sync` | [Attachment](attachments.md) services | (sync: prior IDs) | attach/detach payload |
-| `action:<key>` | Custom action execution | optional | optional |
+| `action:<key>` | Custom action execution (`failed` when `handle()` throws) | optional | optional |
 
 Each row records the acting user, a batch UUID, the affected model (polymorphic), a sanitized `fields` payload, a `status`, and any `exception` message.
 
@@ -45,11 +45,8 @@ Helpers on the model: `markAsFinished()`, `markAsFailed($e)`, `isRunning()`, `is
 Tracking is controlled in `config/nadota.php` under `action_events` (and the `NADOTA_TRACK_ACTIONS` env toggle):
 
 ```php
-'track_actions' => env('NADOTA_TRACK_ACTIONS', true),
-
 'action_events' => [
     'enabled' => env('NADOTA_TRACK_ACTIONS', true),
-    'table'   => 'action_events',
 
     // User attributed to events with no authenticated user
     // (registrations, jobs, artisan commands). null leaves user_id null.
@@ -58,6 +55,8 @@ Tracking is controlled in `config/nadota.php` under `action_events` (and the `NA
     // Keys redacted from fields/original/changes (substring match, case-insensitive)
     'exclude_fields' => ['password', 'remember_token', 'api_token', 'token', 'secret', 'api_key', 'private_key'],
 
+    // Which payload columns to record; a disabled one is stored empty
+    // (fields as [], original and changes as null)
     'track_fields'   => true,
     'track_original' => true,
     'track_changes'  => true,

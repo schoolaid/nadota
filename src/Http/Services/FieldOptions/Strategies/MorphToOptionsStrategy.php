@@ -10,6 +10,7 @@ use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 use SchoolAid\Nadota\Http\Services\FieldOptions\Contracts\FieldOptionsStrategy;
 use SchoolAid\Nadota\Http\Services\FieldOptions\OptionScopeResolver;
 use SchoolAid\Nadota\Http\Services\FieldOptions\Traits\SearchesOptions;
+use SchoolAid\Nadota\Http\Services\FieldOptions\Traits\SelectsDisplayAttribute;
 
 /**
  * Strategy for MorphTo fields.
@@ -19,6 +20,7 @@ use SchoolAid\Nadota\Http\Services\FieldOptions\Traits\SearchesOptions;
 class MorphToOptionsStrategy implements FieldOptionsStrategy
 {
     use SearchesOptions;
+    use SelectsDisplayAttribute;
 
     /**
      * Check if this strategy can handle the given field.
@@ -125,7 +127,11 @@ class MorphToOptionsStrategy implements FieldOptionsStrategy
         }
 
         // Get select columns
-        $selectColumns = $this->buildSelectColumns($resourceInstance, $request, $keyAttribute);
+        $selectColumns = $this->withDisplayAttribute(
+            $this->buildSelectColumns($resourceInstance, $request, $keyAttribute),
+            $field,
+            $query
+        );
 
         // Get results
         $results = $query->select($selectColumns)->get();

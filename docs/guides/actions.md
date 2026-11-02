@@ -218,10 +218,10 @@ return Action::message('Done')->withData(['processed' => 42]);
 3. Filter to authorized models via `authorizedToRun()`.
 4. If nothing is authorized and the action is not standalone → `danger` response.
 5. Call `handle($authorizedModels, $request)`.
-6. Log an [action event](action-events.md) per affected model (`action:<key>`).
+6. Log an [action event](action-events.md) per affected model (`action:<key>`). A standalone action run with no models selected logs a single event against the resource's model class with a null `model_id`. If `handle()` throws, the events are logged with status `failed` and the exception message, and the exception is rethrown.
 7. Normalize the return value to an `ActionResponse`.
 
-A batched variant, `executeBatched()`, chunks the IDs (default 100) for large datasets and logs per batch. It is available on the service but is not wired to the default execute endpoint.
+A batched variant, `executeBatched()`, chunks the IDs (default 100) for large datasets and logs per batch. When a batch throws, the batches before it stay logged as `finished`, the failing one is logged as `failed`, and the rest are not run. It is available on the service but is not wired to the default execute endpoint.
 
 ## Endpoints
 
@@ -286,7 +286,7 @@ Content-Type: application/json
 - `resources` — array of record IDs. Required unless the action is standalone; otherwise responds `422 { "message": "No resources selected." }`.
 - Any action field values are sent alongside `resources`.
 
-Success returns the `ActionResponse` body (HTTP 200). Unexpected exceptions are caught and returned as `500 { "type": "danger", "message": "<exception message>" }`. An unknown key returns `404 { "message": "Action not found." }`.
+Success returns the `ActionResponse` body (HTTP 200). Unexpected exceptions are caught and returned as `500 { "type": "danger", "message": "<exception message>" }`; when the exception came from `handle()`, a `failed` action event has already been logged. An unknown key returns `404 { "message": "Action not found." }`.
 
 ## Related
 

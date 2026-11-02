@@ -92,6 +92,20 @@ trait ProcessesFields
     }
 
     /**
+     * Collect the fields' custom validation messages.
+     *
+     * @param Collection $fields
+     * @return array
+     */
+    protected function buildValidationMessages(Collection $fields): array
+    {
+        return $fields
+            ->filter(fn ($field) => method_exists($field, 'getValidationMessages'))
+            ->flatMap(fn ($field) => $field->getValidationMessages())
+            ->all();
+    }
+
+    /**
      * Add validation rules for MorphTo field.
      *
      * MorphTo fields need validation for both type and id attributes.

@@ -161,13 +161,18 @@ class MorphManyAttachmentService extends AbstractAttachmentService
         }
 
         // Attach items by setting the morph columns
-        $attached = [];
-        foreach ($itemsToAttach as $item) {
-            $item->{$foreignKey} = $parentModel->getKey();
-            $item->{$morphType} = $morphClass;
-            $item->save();
-            $attached[] = $item->getKey();
-        }
+        $ids = $itemsToAttach->modelKeys();
+        $attached = $this->withHooks($request, 'Attach', $parentModel, $field, $ids, function () use ($itemsToAttach, $foreignKey, $parentModel, $morphType, $morphClass) {
+            $attached = [];
+            foreach ($itemsToAttach as $item) {
+                $item->{$foreignKey} = $parentModel->getKey();
+                $item->{$morphType} = $morphClass;
+                $item->save();
+                $attached[] = $item->getKey();
+            }
+
+            return $attached;
+        });
 
         $this->trackAttachmentAction('attach', $parentModel, $request, $field, ['attached' => $attached]);
 
@@ -208,12 +213,17 @@ class MorphManyAttachmentService extends AbstractAttachmentService
             ->toArray();
 
         // Find and detach items by setting morph columns to null
-        $detached = $parentModel->{$relationName}()
-            ->whereIn($relatedKeyName, $items)
-            ->update([
-                $foreignKey => null,
-                $morphType => null,
-            ]);
+        $detached = 0;
+        $this->withHooks($request, 'Detach', $parentModel, $field, $actualIds, function () use ($parentModel, $relationName, $relatedKeyName, $items, $foreignKey, $morphType, $actualIds, &$detached) {
+            $detached = $parentModel->{$relationName}()
+                ->whereIn($relatedKeyName, $items)
+                ->update([
+                    $foreignKey => null,
+                    $morphType => null,
+                ]);
+
+            return $actualIds;
+        });
 
         $this->trackAttachmentAction('detach', $parentModel, $request, $field, ['detached' => $actualIds]);
 

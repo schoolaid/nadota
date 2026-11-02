@@ -71,7 +71,7 @@ class MorphedByMany extends Field
      */
     public function __construct(string $name, string $relation, ?string $resource = null)
     {
-        parent::__construct($name, '', FieldType::BELONGS_TO_MANY->value, static::safeConfig('nadota.fields.morphedByMany.component', 'field-morphed-by-many'));
+        parent::__construct($name, '', FieldType::BELONGS_TO_MANY->value, static::safeConfig('nadota.fields.morphedByMany.component', 'FieldMorphedByMany'));
         $this->relation($relation);
         $this->isRelationship = true;
 

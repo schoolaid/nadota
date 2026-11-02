@@ -1,13 +1,15 @@
 # Attachment Action Events — Implementation and Pending Work
 
-> **Status (v1.1.4): Implemented, one item pending.** Verified against
+> **Status (v1.2.6+): Implemented.** Verified against
 > [`src/Http/Services/Attachments/AbstractAttachmentService.php`](../../src/Http/Services/Attachments/AbstractAttachmentService.php),
 > `BelongsToManyAttachmentService`, `HasManyAttachmentService` and
-> `MorphManyAttachmentService`. The base tracking infrastructure (P4 — null-resource
-> guard + `try/catch` + `$original` parameter), accurate detach IDs for HasMany/MorphMany
-> (P2), and the `original` capture on sync (P3) are all in place. The only outstanding
-> item is **P1 — the integration test suite** (`tests/ServiceIntegration/AttachmentEventIntegrationTest.php`
-> does not yet exist).
+> `MorphManyAttachmentService`. The base tracking infrastructure (P4 — `try/catch` +
+> `$original` parameter), accurate detach IDs (P2), the `original` capture on sync (P3)
+> and the integration test suite (P1,
+> [`tests/ServiceIntegration/AttachmentEventIntegrationTest.php`](../../tests/ServiceIntegration/AttachmentEventIntegrationTest.php))
+> are all in place. Writing P1 surfaced three bugs, fixed alongside it: the P4 null guard
+> never fired, `BelongsToMany` detach recorded the requested IDs, and `sync` stored
+> `detached` as a JSON object.
 
 ## What It Does
 
@@ -61,8 +63,8 @@ operation-specific payload.
 | Method | Action | Stored `changes` |
 |--------|--------|------------------|
 | `attach()` | `attach` | `['attached' => [id, ...]]` |
-| `detach()` | `detach` | `['detached' => [id, ...]]` |
-| `sync()` | `sync` | `['attached' => [...], 'detached' => [...], 'updated' => [...]]` (direct from Laravel's return) |
+| `detach()` | `detach` | `['detached' => [id, ...]]` — only the IDs that were attached |
+| `sync()` | `sync` | `['attached' => [...], 'detached' => [...], 'updated' => [...]]` — Laravel's return, each re-indexed as a list |
 
 ---
 
@@ -121,19 +123,21 @@ No changes. Inherits from `BelongsToManyAttachmentService` and gets tracking aut
 
 ### Status
 
-- ✅ **P4** implemented — null-resource guard + `try/catch` + `$original` parameter
+- ✅ **P4** implemented — `try/catch` (now also around `getResource()`) + `$original` parameter
 - ✅ **P3** implemented — `sync()` captures `attached_before` in `original`
-- ✅ **P2** implemented — `HasMany` / `MorphMany` detach store the real IDs
-- ⬜ **P1** pending — integration tests (covers P2/P3/P4 in a single pass)
+- ✅ **P2** implemented — `HasMany` / `MorphMany` / `BelongsToMany` detach store the real IDs
+- ✅ **P1** implemented — integration tests (covers P2/P3/P4 in a single pass)
 
 ---
 
 ### P4 — Protect `trackAttachmentAction` (done)
 
-**Rationale:** `ActionEventService::log()` calls `get_class($resource)`. If
-`$request->getResource()` returns `null` (programmatic use that bypasses
-`AttachmentController::prepareResource()`), that would be a **fatal error** breaking the
-whole attach operation. The audit trail must never take down the main operation.
+**Rationale:** The audit trail must never take down the main operation. The original
+change guarded against `$request->getResource()` returning `null` (programmatic use that
+bypasses `AttachmentController::prepareResource()`), but `getResource()` never returns
+`null`: with no resource set it resolves one from the route and aborts with a 404. The
+guard never fired and the 404 escaped after the attach had been written. The call now
+runs inside the `try`.
 
 **Change — `AbstractAttachmentService::trackAttachmentAction()`:**
 
@@ -150,12 +154,9 @@ protected function trackAttachmentAction(
         return;
     }
 
-    $resource = $request->getResource();
-    if ($resource === null) {
-        return; // no resource means no context to record; do not break the attach
-    }
-
     try {
+        // getResource() aborts with a 404 when no resource is set
+        $resource = $request->getResource();
         $relation = method_exists($field, 'getRelation') ? $field->getRelation() : $field->getAttribute();
 
         $this->getActionEventService()->logAction(
@@ -214,8 +215,9 @@ Result: the `action_events` row ends up with `original = {attached_before: [...]
 **Rationale:** `HasManyAttachmentService::detach()` and
 `MorphManyAttachmentService::detach()` use a bulk `->update([$fk => null])`, whose return
 is a **row count**, not IDs. Storing the request IDs would record IDs that may not have
-belonged to the relation (inaccurate audit trail). `BelongsToManyAttachmentService` does
-not have this problem (`->detach()` already filters by the relation).
+belonged to the relation (inaccurate audit trail). `BelongsToManyAttachmentService` had
+the same problem: `->detach()` only deletes pivot rows of the relation, but the event
+stored the request IDs. It now plucks the attached IDs before detaching.
 
 **Change — `HasManyAttachmentService::detach()`**, query the real IDs before the update:
 
@@ -239,7 +241,7 @@ includes the morph scope, so `pluck` returns only the correct parent's records).
 
 ---
 
-### P1 — Integration Tests (pending)
+### P1 — Integration Tests (done)
 
 **Confirmed existing test infrastructure:**
 
@@ -254,7 +256,7 @@ includes the morph scope, so `pluck` returns only the correct parent's records).
 > polymorphic `RelatedModel` + a `morphMany` relation on `TestModel` + morph columns on
 > `related_models` via `TestCase`, or (b) document `MorphManyAttachmentService` as
 > covered-by-code-parity with `HasMany` (same tracking structure) and test only HasMany.
-> Recommended: option (b) to avoid inflating the test setup; note the decision.
+> Decision: option (b), to avoid inflating the test setup. The test file says so.
 
 **Invocation pattern (same as `ActionEventIntegrationTest`, direct service call):**
 
@@ -281,22 +283,14 @@ $this->assertDatabaseHas('action_events', [
 File: `tests/ServiceIntegration/AttachmentEventIntegrationTest.php`
 
 Minimum cases:
-- [ ] BelongsToMany `attach` → record `name=attach`, `changes.attached=[tagId]`
-- [ ] BelongsToMany `detach` → record `name=detach`
-- [ ] BelongsToMany `sync` → record `name=sync`, `changes` with attached/detached/updated, `original.attached_before` (covers P3)
-- [ ] HasMany `attach` → record `name=attach`
-- [ ] HasMany `detach` with a non-existent ID → `changes.detached` contains only the real IDs (covers P2)
-- [ ] MorphToMany `attach` → record `name=attach` (via inheritance from BelongsToMany)
-- [ ] `nadota.action_events.enabled = false` → `assertDatabaseCount('action_events', 0)` after attach (covers P4 happy path)
-- [ ] attach with a `$request` without a resource (`setResource` not called) → no exception, no record (covers P4)
-
----
-
-### Files to Touch per Pending Item
-
-| Item | Files |
-|------|-------|
-| P1 | `tests/ServiceIntegration/AttachmentEventIntegrationTest.php` (new) |
+- [x] BelongsToMany `attach` → record `name=attach`, `changes.attached=[tagId]`
+- [x] BelongsToMany `detach` → record `name=detach`, `changes.detached` contains only the attached IDs
+- [x] BelongsToMany `sync` → record `name=sync`, `changes` with attached/detached/updated, `original.attached_before` (covers P3)
+- [x] HasMany `attach` → record `name=attach`
+- [x] HasMany `detach` with a non-existent ID → `changes.detached` contains only the real IDs (covers P2)
+- [x] MorphToMany `attach` → record `name=attach` (via inheritance from BelongsToMany)
+- [x] `nadota.action_events.enabled = false` → `assertDatabaseCount('action_events', 0)` after attach (covers P4 happy path)
+- [x] attach with a `$request` without a resource (`setResource` not called) → no exception, no record (covers P4)
 
 ---
 
@@ -304,8 +298,9 @@ Minimum cases:
 
 | File | Change |
 |------|--------|
-| `src/Http/Services/Attachments/AbstractAttachmentService.php` | `+use TracksActionEvents`, `+trackAttachmentAction()`, null-resource guard, `try/catch`, `$original` |
-| `src/Http/Services/Attachments/BelongsToManyAttachmentService.php` | tracking on `attach`, `detach`, `sync` (+ `attached_before` original) |
+| `src/Http/Services/Attachments/AbstractAttachmentService.php` | `+use TracksActionEvents`, `+trackAttachmentAction()`, `try/catch` around `getResource()` and the log call, `$original` |
+| `src/Http/Services/Attachments/BelongsToManyAttachmentService.php` | tracking on `attach`, `detach` (real detached IDs), `sync` (+ `attached_before` original, list-indexed changes) |
 | `src/Http/Services/Attachments/HasManyAttachmentService.php` | tracking on `attach`, `detach` (real detached IDs) |
 | `src/Http/Services/Attachments/MorphManyAttachmentService.php` | tracking on `attach`, `detach` (real detached IDs) |
 | `src/Http/Services/Attachments/MorphToManyAttachmentService.php` | no change (inherits from BelongsToMany) |
+| `tests/ServiceIntegration/AttachmentEventIntegrationTest.php` | P1 integration suite (9 tests) |

@@ -1,11 +1,13 @@
 <?php
 
+use Illuminate\Support\Facades\DB;
 use SchoolAid\Nadota\Http\Fields\Input;
 use SchoolAid\Nadota\Http\Fields\Relations\BelongsToMany;
 use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 use SchoolAid\Nadota\Http\Services\FieldOptions\Strategies\BelongsToManyOptionsStrategy;
 use SchoolAid\Nadota\Resource;
 use SchoolAid\Nadota\Tests\Models\TestModel;
+use SchoolAid\Nadota\Tests\Models\LabeledTag;
 use SchoolAid\Nadota\Tests\Models\Tag;
 use SchoolAid\Nadota\Tests\Resources\TestResource;
 
@@ -170,7 +172,35 @@ it('labels options with the display attribute even when the related resource has
 
     expect(collect($options)->pluck('label', 'value')->all())
         ->toEqual($tags->pluck('name', 'id')->all());
-})->skip('BUG: AbstractOptionsStrategy::buildSelectColumns() selects only the related resource\'s field columns plus the key, never the field\'s displayAttribute, so labels fall back to the primary key.');
+});
+
+it('does not select a display attribute that is an accessor', function () {
+    $tagResource = new class extends Resource {
+        public string $model = LabeledTag::class;
+        public static function getKey(): string { return 'labeled-tags'; }
+        public function fields(NadotaRequest $request): array
+        {
+            return [Input::make('Name', 'name')];
+        }
+    };
+
+    $tags = Tag::factory()->count(2)->create();
+
+    $field = BelongsToMany::make('Tags', 'simpleTags', get_class($tagResource))
+        ->displayAttribute('label_text');
+
+    DB::enableQueryLog();
+
+    $options = (new BelongsToManyOptionsStrategy())
+        ->fetchOptions(createNadotaRequest(), new TestResource(), $field);
+
+    // MySQL rejects an unknown column; SQLite reads it as a string literal, so the
+    // SQL itself is checked. The accessor is computed from the selected columns.
+    expect(collect(DB::getQueryLog())->pluck('query')->implode(' '))
+        ->not->toContain('label_text')
+        ->and(collect($options)->pluck('label', 'value')->all())
+        ->toEqual($tags->mapWithKeys(fn ($tag) => [$tag->id => "#{$tag->id} {$tag->name}"])->all());
+});
 
 it('can be made sortable', function () {
     $field = BelongsToMany::make('Tags', 'simpleTags')

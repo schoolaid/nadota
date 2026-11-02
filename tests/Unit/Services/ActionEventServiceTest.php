@@ -9,6 +9,7 @@ use SchoolAid\Nadota\Events\ActionLogged;
 use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 use SchoolAid\Nadota\Http\Services\ActionEventService;
 use SchoolAid\Nadota\Jobs\LogActionEvent;
+use SchoolAid\Nadota\Models\ActionEvent;
 use SchoolAid\Nadota\Tests\Models\TestModel;
 use SchoolAid\Nadota\Tests\Resources\TestResource;
 
@@ -181,6 +182,53 @@ it('redaction is case-insensitive on key names', function () {
     expect($event->fields['Password'])->toBe('***REDACTED***')
         ->and($event->fields['API_KEY'])->toBe('***REDACTED***')
         ->and($event->fields['user_secret'])->toBe('***REDACTED***');
+});
+
+// ── Payload toggles ─────────────────────────────────────────────────────────
+
+function loggedUpdate($test): ActionEvent
+{
+    $model = TestModel::create(['name' => 'Original']);
+    $originalData = $model->getAttributes();
+    $model->update(['name' => 'Updated']);
+
+    return $test->service->logUpdate($model, $test->resource, $test->request, ['name' => 'Updated'], $originalData)->fresh();
+}
+
+it('records every payload column by default', function () {
+    $event = loggedUpdate($this);
+
+    expect($event->fields)->toHaveKey('name', 'Updated')
+        ->and($event->original)->toHaveKey('name', 'Original')
+        ->and($event->changes)->toHaveKey('name', 'Updated');
+});
+
+it('stores empty fields when track_fields is disabled', function () {
+    config()->set('nadota.action_events.track_fields', false);
+
+    $event = loggedUpdate($this);
+
+    expect($event->fields)->toBe([])
+        ->and($event->original)->toHaveKey('name', 'Original')
+        ->and($event->changes)->toHaveKey('name', 'Updated');
+});
+
+it('stores no original when track_original is disabled', function () {
+    config()->set('nadota.action_events.track_original', false);
+
+    $event = loggedUpdate($this);
+
+    expect($event->original)->toBeNull()
+        ->and($event->changes)->toHaveKey('name', 'Updated');
+});
+
+it('stores no changes when track_changes is disabled', function () {
+    config()->set('nadota.action_events.track_changes', false);
+
+    $event = loggedUpdate($this);
+
+    expect($event->changes)->toBeNull()
+        ->and($event->original)->toHaveKey('name', 'Original');
 });
 
 // ── Batch ID ─────────────────────────────────────────────────────────────────
