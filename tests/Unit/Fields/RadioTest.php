@@ -15,8 +15,8 @@ it('can be instantiated', function () {
 it('has correct type and component', function () {
     $field = Radio::make('Status', 'status');
     
-    expect($field->fieldData->type->value)->toBe('radio')
-        ->and($field->fieldData->component)->toBe('field-radio');
+    expect($field->getType())->toBe('radio')
+        ->and($field->getComponent())->toBe('FieldRadio');
 });
 
 it('can set options', function () {
@@ -90,7 +90,7 @@ it('serializes to array correctly', function () {
         ->toHaveKey('label', 'Status')
         ->toHaveKey('attribute', 'name')
         ->toHaveKey('type', 'radio')
-        ->toHaveKey('component', 'field-radio')
+        ->toHaveKey('component', 'FieldRadio')
         ->toHaveKey('value', 'active')
         ->toHaveKey('props')
         ->toHaveKey('sortable', true)

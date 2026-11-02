@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use SchoolAid\Nadota\Contracts\ResourceInterface;
 use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
+use Symfony\Component\Mime\MimeTypes;
 
 class File extends Field
 {
@@ -224,56 +225,64 @@ class File extends Field
     public function getRules(): array
     {
         $rules = parent::getRules();
-//        // Add file validation rule
-//        $rules[] = 'file';
-//
-//        // Add size validation if specified
-//        if ($this->maxSize !== null) {
-//            $rules[] = 'max:' . ceil($this->maxSize / 1024); // Laravel expects KB
-//        }
-//
-//        // Add MIME type validation if specified
-//        if (!empty($this->acceptedTypes)) {
-//            $mimeTypes = $this->convertToMimeTypes($this->acceptedTypes);
-//            $rules[] = 'mimes:' . implode(',', $mimeTypes);
-//        }
-//
+        $uploadRules = $this->getUploadRules();
+
+        if (empty($uploadRules)) {
+            return $rules;
+        }
+
+        // The form sends null for a file input left untouched on edit, and fill() keeps the stored file
+        if (!in_array('required', $rules, true) && !in_array('nullable', $rules, true)) {
+            $rules[] = 'nullable';
+        }
+
+        return [...$rules, ...$uploadRules];
+    }
+
+    /**
+     * Rules applied to the uploaded file itself.
+     */
+    protected function getUploadRules(): array
+    {
+        $rules = ['file'];
+
+        if ($this->maxSize !== null) {
+            $rules[] = 'max:' . ceil($this->maxSize / 1024); // Laravel expects KB
+        }
+
+        if ($typeRule = $this->getAcceptedTypesRule()) {
+            $rules[] = $typeRule;
+        }
+
         return $rules;
     }
 
     /**
-     * Convert file extensions to MIME types.
+     * Build one rule from the accepted extensions and MIME types.
+     *
+     * `mimes` takes extensions and `mimetypes` takes MIME types; declaring both would
+     * require a file to pass both, so a mixed list is collapsed into `mimetypes`.
      */
-    protected function convertToMimeTypes(array $types): array
+    protected function getAcceptedTypesRule(): ?string
     {
-        $mimeMap = [
-            'jpg' => 'jpeg',
-            'jpeg' => 'jpeg',
-            'png' => 'png',
-            'gif' => 'gif',
-            'pdf' => 'pdf',
-            'doc' => 'doc',
-            'docx' => 'vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'xls' => 'vnd.ms-excel',
-            'xlsx' => 'vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'txt' => 'plain',
-            'csv' => 'csv',
-            'zip' => 'zip',
-        ];
+        $types = array_map(fn ($type) => strtolower(ltrim(trim($type), '.')), $this->acceptedTypes);
+        $types = array_values(array_unique(array_filter($types)));
 
-        $mimeTypes = [];
-        foreach ($types as $type) {
-            if (str_contains($type, '/')) {
-                // Already a MIME type
-                $mimeTypes[] = explode('/', $type)[1];
-            } else {
-                // Convert extension to MIME type
-                $extension = ltrim($type, '.');
-                $mimeTypes[] = $mimeMap[$extension] ?? $extension;
-            }
+        if (empty($types)) {
+            return null;
         }
 
-        return array_unique($mimeTypes);
+        $mimeTypes = array_filter($types, fn ($type) => str_contains($type, '/'));
+
+        if (empty($mimeTypes)) {
+            return 'mimes:' . implode(',', $types);
+        }
+
+        foreach (array_diff($types, $mimeTypes) as $extension) {
+            array_push($mimeTypes, ...MimeTypes::getDefault()->getMimeTypes($extension));
+        }
+
+        return 'mimetypes:' . implode(',', array_unique($mimeTypes));
     }
 
     public function resolve(Request $request, Model $model, ?ResourceInterface $resource): mixed

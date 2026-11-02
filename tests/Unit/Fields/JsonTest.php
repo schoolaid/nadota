@@ -3,7 +3,7 @@
 use SchoolAid\Nadota\Http\Fields\Json;
 use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
 use SchoolAid\Nadota\Http\Requests\NadotaRequest;
-use SchoolAid\Nadota\Tests\Models\User;
+use SchoolAid\Nadota\Tests\Models\TestModel;
 use Illuminate\Http\Request;
 
 it('can create a json field', function () {
@@ -67,11 +67,11 @@ it('can set show line numbers', function () {
 it('resolves json string to array', function () {
     $field = Json::make('Settings', 'settings');
 
-    $user = new User();
-    $user->settings = '{"theme": "dark", "notifications": true}';
+    $model = new TestModel();
+    $model->settings = '{"theme": "dark", "notifications": true}';
 
     $request = NadotaRequest::create('/');
-    $resolved = $field->resolve($request, $user, null);
+    $resolved = $field->resolve($request, $model, null);
 
     expect($resolved)->toBeArray();
     expect($resolved['theme'])->toBe('dark');
@@ -81,11 +81,11 @@ it('resolves json string to array', function () {
 it('resolves array as is', function () {
     $field = Json::make('Settings', 'settings');
 
-    $user = new User();
-    $user->settings = ['theme' => 'dark', 'notifications' => true];
+    $model = new TestModel();
+    $model->settings = ['theme' => 'dark', 'notifications' => true];
 
     $request = NadotaRequest::create('/');
-    $resolved = $field->resolve($request, $user, null);
+    $resolved = $field->resolve($request, $model, null);
 
     expect($resolved)->toBeArray();
     expect($resolved['theme'])->toBe('dark');
@@ -95,25 +95,25 @@ it('resolves array as is', function () {
 it('fills model with json data', function () {
     $field = Json::make('Settings', 'settings');
 
-    $user = new User();
+    $model = new TestModel();
     $request = Request::create('/', 'POST', [
         'settings' => '{"theme": "dark", "notifications": true}'
     ]);
 
-    $field->fill($request, $user);
+    $field->fill($request, $model);
 
-    // Since User model doesn't cast settings to json, it should store as string
-    expect($user->settings)->toBe('{"theme": "dark", "notifications": true}');
+    // Since TestModel doesn't cast settings to json, it should store as string
+    expect($model->settings)->toBe('{"theme": "dark", "notifications": true}');
 });
 
 it('handles invalid json gracefully', function () {
     $field = Json::make('Settings', 'settings');
 
-    $user = new User();
-    $user->settings = 'invalid json';
+    $model = new TestModel();
+    $model->settings = 'invalid json';
 
     $request = NadotaRequest::create('/');
-    $resolved = $field->resolve($request, $user, null);
+    $resolved = $field->resolve($request, $model, null);
 
     expect($resolved)->toBe('invalid json');
 });

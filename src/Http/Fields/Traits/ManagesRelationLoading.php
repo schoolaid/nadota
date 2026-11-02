@@ -76,7 +76,7 @@ trait ManagesRelationLoading
         $pivotColumns = $this->getPivotColumnsFromField($field);
 
         if ($columns !== null) {
-            return [$relationName => function ($query) use ($columns, $pivotColumns) {
+            return [$relationName => function ($query) use ($field, $columns, $pivotColumns) {
                 // Qualify columns with table name to avoid ambiguity with pivot table columns
                 $qualifiedColumns = $this->qualifyColumnsWithTable($query, $columns);
                 $query->select($qualifiedColumns);
@@ -85,15 +85,29 @@ trait ManagesRelationLoading
                 if (!empty($pivotColumns)) {
                     $query->withPivot($pivotColumns);
                 }
+
+                $this->applyInlineConstraintsFromField($field, $query);
             }];
         }
 
         // null means select all columns, but still apply pivot if needed
-        return [$relationName => function ($query) use ($pivotColumns) {
+        return [$relationName => function ($query) use ($field, $pivotColumns) {
             if (!empty($pivotColumns)) {
                 $query->withPivot($pivotColumns);
             }
+
+            $this->applyInlineConstraintsFromField($field, $query);
         }];
+    }
+
+    /**
+     * Apply a to-many field's limit()/orderBy() to its eager-load query.
+     */
+    protected function applyInlineConstraintsFromField($field, $query): void
+    {
+        if (method_exists($field, 'applyInlineConstraints')) {
+            $field->applyInlineConstraints($query);
+        }
     }
 
     /**

@@ -503,6 +503,14 @@ File::make('Document', 'document_path')
     ->cachedTemporaryUrl();
 ```
 
+**Validation.** The upload is validated on the server with `file`, `max:<KB>` from the size limit, and a type rule built from `accept()`:
+
+- Extensions only (`['pdf', 'docx']`) become `mimes:pdf,docx`. Laravel checks the extension guessed from the file's contents, not the client's filename.
+- If any entry is a MIME type (`'application/pdf'`, `'image/*'`), the whole list becomes a single `mimetypes:` rule, with extensions translated to their MIME types. Laravel would otherwise require a file to pass both `mimes` and `mimetypes`.
+- With no `accept()`, any type is allowed. Always set `accept()` on fields stored on a public disk.
+
+Unless the field is `required()`, the rules also get `nullable`. On edit, the form sends `null` for a file input the user left alone, and the stored file is kept. To require a file only when creating, use `creationRules(['required'])`. A plain `required()` also rejects edits that don't upload a new file.
+
 ---
 
 ## Image
@@ -533,6 +541,8 @@ Image::make('Avatar', 'avatar')
     ->disk('public')->path('avatars')
     ->circle()->previewSize('small');
 ```
+
+On top of the `File` rules, uploads are validated with `image` and, when max dimensions are set, `dimensions:max_width=…,max_height=…`. The `image` rule is left out when `svg` is accepted, because Laravel's `image` rule rejects SVG.
 
 ---
 

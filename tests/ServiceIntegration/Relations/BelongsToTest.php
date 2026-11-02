@@ -42,8 +42,9 @@ it('resolves relationship value from model', function () {
     $value = $field->resolve($request, $relatedModel, null);
     
     expect($value)->toBeArray()
-        ->toHaveKey('key', $testModel->id)
-        ->toHaveKey('label', 'Parent Model');
+        ->toHaveKey('id', $testModel->id)
+        ->toHaveKey('label', 'Parent Model')
+        ->toHaveKey('resource', null);
 });
 
 it('returns null when no relationship exists', function () {

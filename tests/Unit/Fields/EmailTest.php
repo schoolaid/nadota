@@ -15,8 +15,8 @@ it('can be instantiated', function () {
 it('has correct type and component', function () {
     $field = Email::make('Email Address', 'email');
     
-    expect($field->fieldData->type->value)->toBe('email')
-        ->and($field->fieldData->component)->toBe('field-email');
+    expect($field->getType())->toBe('email')
+        ->and($field->getComponent())->toBe('FieldEmail');
 });
 
 it('adds email validation rule by default', function () {
@@ -80,7 +80,7 @@ it('serializes to array correctly', function () {
         ->toHaveKey('label', 'Email Address')
         ->toHaveKey('attribute', 'email')
         ->toHaveKey('type', 'email')
-        ->toHaveKey('component', 'field-email')
+        ->toHaveKey('component', 'FieldEmail')
         ->toHaveKey('value', 'user@example.com')
         ->toHaveKey('required', true)
         ->toHaveKey('sortable', true)

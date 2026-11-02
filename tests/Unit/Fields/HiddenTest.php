@@ -15,8 +15,8 @@ it('can be instantiated', function () {
 it('has correct type and component', function () {
     $field = Hidden::make('Secret Key', 'secret_key');
     
-    expect($field->fieldData->type->value)->toBe('hidden')
-        ->and($field->fieldData->component)->toBe('field-hidden');
+    expect($field->getType())->toBe('hidden')
+        ->and($field->getComponent())->toBe('FieldHidden');
 });
 
 it('is hidden from index by default', function () {
@@ -69,7 +69,7 @@ it('serializes to array correctly', function () {
         ->toHaveKey('label', 'Secret Key')
         ->toHaveKey('attribute', 'name')
         ->toHaveKey('type', 'hidden')
-        ->toHaveKey('component', 'field-hidden')
+        ->toHaveKey('component', 'FieldHidden')
         ->toHaveKey('value', 'hidden-value')
         ->toHaveKey('showOnIndex', false)
         ->toHaveKey('showOnDetail', false);

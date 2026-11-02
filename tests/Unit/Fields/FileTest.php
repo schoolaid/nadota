@@ -16,8 +16,8 @@ it('can be instantiated', function () {
 it('has correct type and component', function () {
     $field = File::make('Document', 'document');
     
-    expect($field->fieldData->type->value)->toBe('file')
-        ->and($field->fieldData->component)->toBe('field-file');
+    expect($field->fieldData->type)->toBe('file')
+        ->and($field->fieldData->component)->toBe('FieldFile');
 });
 
 it('can set accepted file types', function () {
@@ -99,23 +99,35 @@ it('adds mime type validation when accepted types are set', function () {
     expect($rules)->toContain('mimes:pdf,doc');
 });
 
-it('converts file extensions to mime types correctly', function () {
+it('passes accepted extensions to the mimes rule unchanged', function () {
+    // `mimes` takes extensions; mapping docx/xlsx/txt to MIME subtypes made those uploads always fail
     $field = File::make('Document', 'document')
-        ->accept(['jpg', 'png', 'pdf']);
-    
+        ->accept(['.jpg', 'PNG', 'docx', 'xlsx', 'txt']);
+
+    expect($field->getRules())->toContain('mimes:jpg,png,docx,xlsx,txt');
+});
+
+it('uses a single mimetypes rule when MIME types are accepted', function () {
+    $field = File::make('Document', 'document')
+        ->accept(['image/*', 'application/pdf']);
+
     $rules = $field->getRules();
-    expect($rules)->toContain('mimes:jpeg,png,pdf');
+    expect($rules)->toContain('mimetypes:image/*,application/pdf')
+        ->and(collect($rules)->contains(fn ($rule) => is_string($rule) && str_starts_with($rule, 'mimes:')))->toBeFalse();
 });
 
 it('handles mixed mime types and extensions', function () {
     $field = File::make('Document', 'document')
         ->accept(['image/jpeg', 'png', 'application/pdf']);
     
+    // mimes + mimetypes would both have to pass, so a mixed list collapses into one mimetypes rule
     $rules = $field->getRules();
-    expect($rules[2])->toContain('mimes:');
-    expect($rules[2])->toContain('jpeg');
-    expect($rules[2])->toContain('png');
-    expect($rules[2])->toContain('pdf');
+    $typeRules = collect($rules)->filter(fn ($rule) => is_string($rule) && preg_match('/^mime(s|types):/', $rule))->values();
+
+    expect($typeRules)->toHaveCount(1)
+        ->and($typeRules[0])->toStartWith('mimetypes:')
+        ->and(explode(',', substr($typeRules[0], strlen('mimetypes:'))))
+        ->toContain('image/jpeg', 'image/png', 'application/pdf');
 });
 
 it('resolves file value from model correctly', function () {
@@ -127,7 +139,7 @@ it('resolves file value from model correctly', function () {
     
     expect($value)->toBeArray()
         ->toHaveKey('path', 'documents/test.pdf')
-        ->toHaveKey('label', 'test.pdf')
+        ->toHaveKey('name', 'test.pdf')
         ->toHaveKey('downloadable', true);
 });
 
@@ -178,7 +190,7 @@ it('serializes to array correctly', function () {
         ->toHaveKey('label', 'Document')
         ->toHaveKey('attribute', 'name')
         ->toHaveKey('type', 'file')
-        ->toHaveKey('component', 'field-file')
+        ->toHaveKey('component', 'FieldFile')
         ->toHaveKey('value')
         ->toHaveKey('props')
         ->toHaveKey('sortable', true)
@@ -217,4 +229,20 @@ it('handles all validation rules together', function () {
         ->and($rules)->toContain('required')
         ->and($rules)->toContain('max:5120')
         ->and($rules)->toContain('mimes:pdf,doc');
+});
+it('makes the upload rules nullable unless the field is required', function () {
+    // The form sends null for a file input the user left untouched on edit
+    expect(File::make('Document', 'document')->getRules())->toContain('nullable')
+        ->and(File::make('Document', 'document')->required()->getRules())->not->toContain('nullable')
+        ->and(File::make('Document', 'document')->creationRules(['required'])->getRulesFor(false))
+        ->toContain('required')->not->toContain('nullable')
+        ->and(File::make('Document', 'document')->creationRules(['required'])->getRulesFor(true))
+        ->toContain('nullable');
+});
+
+it('reports a required file as required on creation only when using creationRules', function () {
+    $field = File::make('Document', 'document')->creationRules(['required']);
+
+    expect($field->isRequired(false))->toBeTrue()
+        ->and($field->isRequired(true))->toBeFalse();
 });

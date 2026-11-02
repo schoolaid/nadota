@@ -73,6 +73,14 @@ class MultiImage extends File
     }
 
     /**
+     * The attribute holds an array; each upload is validated by getNestedRules().
+     */
+    protected function getUploadRules(): array
+    {
+        return [];
+    }
+
+    /**
      * Per-item rules, picked up by ProcessesFields::buildValidationRules().
      *
      * @return array<string, array<int, string>>

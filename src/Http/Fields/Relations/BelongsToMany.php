@@ -12,14 +12,15 @@ use SchoolAid\Nadota\Http\Fields\Field;
 use SchoolAid\Nadota\Http\Fields\Traits\ManagesAttachments;
 use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 use SchoolAid\Nadota\Http\Resources\RelationResource;
+use SchoolAid\Nadota\Http\Fields\Traits\LimitsInlineRelation;
 
 class BelongsToMany extends Field
 {
-    use ManagesAttachments;
+    use ManagesAttachments, LimitsInlineRelation;
     /**
-     * Maximum number of related items to show (when not paginated).
+     * Maximum number of related items to show (when not paginated); null shows all.
      */
-    protected ?int $limit = 10;
+    protected ?int $limit = null;
 
     /**
      * Whether to show as paginated list.
@@ -369,8 +370,8 @@ class BelongsToMany extends Field
             return [];
         }
 
-        // Use already loaded relation to avoid N+1 queries
-        $relatedItems = $model->{$relationName};
+        // Eager-loaded relation when available (avoids N+1), trimmed to limit()
+        $relatedItems = $this->resolveInlineItems($model, $relationName);
 
         // Ensure we have a collection
         if (!$relatedItems instanceof Collection) {
@@ -502,7 +503,7 @@ class BelongsToMany extends Field
         }
 
         return $relationResource->formatCollection($items, $request, [
-            'hasMore' => $this->limit !== null && $items->count() >= $this->limit,
+            'hasMore' => $this->hasMoreItems,
             'pivotColumns' => $this->withPivot ? $this->pivotColumns : [],
         ]);
     }
@@ -557,7 +558,7 @@ class BelongsToMany extends Field
             })->toArray(),
             'meta' => [
                 'total' => $items->count(),
-                'hasMore' => $this->limit !== null && $items->count() >= $this->limit,
+                'hasMore' => $this->hasMoreItems,
                 'pivotColumns' => $this->withPivot ? $this->pivotColumns : [],
             ]
         ];

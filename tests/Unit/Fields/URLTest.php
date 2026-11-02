@@ -15,8 +15,8 @@ it('can be instantiated', function () {
 it('has correct type and component', function () {
     $field = URL::make('Website', 'website_url');
     
-    expect($field->fieldData->type->value)->toBe('url')
-        ->and($field->fieldData->component)->toBe('field-url');
+    expect($field->getType())->toBe('url')
+        ->and($field->getComponent())->toBe('FieldUrl');
 });
 
 it('adds url validation rule by default', function () {
@@ -80,7 +80,7 @@ it('serializes to array correctly', function () {
         ->toHaveKey('label', 'Website')
         ->toHaveKey('attribute', 'name')
         ->toHaveKey('type', 'url')
-        ->toHaveKey('component', 'field-url')
+        ->toHaveKey('component', 'FieldUrl')
         ->toHaveKey('value', 'https://www.example.com')
         ->toHaveKey('required', true)
         ->toHaveKey('sortable', true)

@@ -66,9 +66,9 @@ it('passes correct parameters to default callback', function () {
     $field->resolve($request, $model, $resource);
     
     expect($callbackParams)->toHaveCount(3)
-        ->and($callbackParams[0])->toBeInstanceOf(\Said\Nadota\Http\Requests\NadotaRequest::class)
-        ->and($callbackParams[1])->toBeInstanceOf(\Said\Nadota\Tests\Models\TestModel::class)
-        ->and($callbackParams[2])->toBeInstanceOf(\Said\Nadota\Tests\Resources\TestResource::class);
+        ->and($callbackParams[0])->toBeInstanceOf(\SchoolAid\Nadota\Http\Requests\NadotaRequest::class)
+        ->and($callbackParams[1])->toBeInstanceOf(\SchoolAid\Nadota\Tests\Models\TestModel::class)
+        ->and($callbackParams[2])->toBeInstanceOf(\SchoolAid\Nadota\Tests\Resources\TestResource::class);
 });
 
 it('can use model attribute as default', function () {

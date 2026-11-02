@@ -1,10 +1,12 @@
 # Nadota Roadmaps
 
 This folder holds **planning and historical design documents** for the
-`SchoolAid\Nadota` package (current version: **1.1.4**). These are not reference docs —
+`SchoolAid\Nadota` package (current version: **1.2.6**). These are not reference docs —
 they capture the design intent, phased plans, and remaining work for various subsystems.
 Each document below carries a status line at the top, checked against the actual source
 code, so you can tell at a glance how much has shipped versus what is still planned.
+The status lines were written against v1.1.4; none of the code they describe changed
+between v1.1.4 and v1.2.6, so they still hold.
 
 For day-to-day, "how do I use this" reference material, see the feature guides under
 [`../guides/`](../guides/) instead.

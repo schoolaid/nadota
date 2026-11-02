@@ -2,3 +2,4 @@ vendor/
 .idea/
 .superpowers/
 .DS_Store
+storage/framework/testing/
