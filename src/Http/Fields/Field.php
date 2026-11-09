@@ -396,6 +396,30 @@ abstract class Field implements FieldInterface
     }
 
     /**
+     * Whether the field's input is an array.
+     *
+     * Forms are submitted as multipart, which cannot carry an empty array, so the frontend sends
+     * the string '[]' instead. For fields that return true here, the persist services turn that
+     * string into an empty array before validation.
+     *
+     * @return bool
+     */
+    public function expectsArrayInput(): bool
+    {
+        return false;
+    }
+
+    /**
+     * What an empty array input ('[]') becomes before validation, for fields that expect an array.
+     *
+     * @return mixed
+     */
+    public function emptyArrayInputValue(): mixed
+    {
+        return [];
+    }
+
+    /**
      * Mark this field as exportable.
      * Useful for relation fields that are normally excluded from export.
      *

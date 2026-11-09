@@ -85,6 +85,20 @@ class CheckboxList extends Field
         return is_array($firstOption) && isset($firstOption['value']) && isset($firstOption['label']);
     }
 
+    public function expectsArrayInput(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Nothing checked is null: `nullable|array|min:1` lets it through and `required` still rejects
+     * it. resolve() shows null as an empty list.
+     */
+    public function emptyArrayInputValue(): mixed
+    {
+        return null;
+    }
+
     public function resolve(Request $request, Model $model, ?ResourceInterface $resource): mixed
     {
         $value = $model->{$this->getAttribute()};

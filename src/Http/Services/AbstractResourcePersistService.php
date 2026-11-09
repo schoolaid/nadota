@@ -46,6 +46,8 @@ abstract class AbstractResourcePersistService
 
         $fields = $this->filterFields($resource, $request);
 
+        $this->normalizeEmptyArrayInputs($fields, $request);
+
         $rules = $this->buildValidationRules($fields, $this->isUpdate() ? $model : null);
 
         $validator = Validator::make($request->all(), $rules, $this->buildValidationMessages($fields));
@@ -101,6 +103,30 @@ abstract class AbstractResourcePersistService
         $this->commitPendingFiles($fields, $model);
 
         return $this->successResponse($model);
+    }
+
+    /**
+     * Turn the '[]' a multipart form sends for an empty array into the field's empty value (an
+     * empty array, or null for CheckboxList), only for fields that expect an array, so `array`
+     * rules accept it and the field can be cleared.
+     *
+     * @param Collection $fields
+     * @param NadotaRequest $request
+     * @return void
+     */
+    protected function normalizeEmptyArrayInputs(Collection $fields, NadotaRequest $request): void
+    {
+        foreach ($fields as $field) {
+            if (! method_exists($field, 'expectsArrayInput') || ! $field->expectsArrayInput()) {
+                continue;
+            }
+
+            $attribute = $field->getAttribute();
+
+            if ($request->input($attribute) === '[]') {
+                $request->merge([$attribute => $field->emptyArrayInputValue()]);
+            }
+        }
     }
 
     /**
