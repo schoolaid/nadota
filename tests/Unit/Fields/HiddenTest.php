@@ -74,3 +74,21 @@ it('serializes to array correctly', function () {
         ->toHaveKey('showOnIndex', false)
         ->toHaveKey('showOnDetail', false);
 });
+
+it('is still filled and validated like any other field', function () {
+    $field = Hidden::make('UUID', 'name')->required();
+    $model = new TestModel();
+
+    $field->fill(createNadotaRequest(['name' => 'u-1']), $model);
+
+    expect($model->name)->toBe('u-1')
+        ->and($field->getRules())->toBe(['required'])
+        ->and($field->resolveForStore(createNadotaRequest(), $model, null, 'u-2'))->toBe('u-2');
+});
+
+it('offers its default to the create form', function () {
+    $array = Hidden::make('Token', 'token')->default('abc')->toArray(createNadotaRequest(['action' => 'create']));
+
+    expect($array['default'])->toBe('abc')
+        ->and($array['showOnCreation'])->toBeTrue();
+});

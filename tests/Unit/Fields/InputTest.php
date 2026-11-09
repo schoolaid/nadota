@@ -153,3 +153,29 @@ it('can set default value', function () {
     
     expect($value)->toBe('Default Name');
 });
+
+it('is not sortable, searchable, filterable or required by default', function () {
+    $field = Input::make('Name', 'name');
+
+    expect($field->isSortable())->toBeFalse()
+        ->and($field->isSearchable())->toBeFalse()
+        ->and($field->isFilterable())->toBeFalse()
+        ->and($field->isRequired())->toBeFalse()
+        ->and($field->getRules())->toBe([]);
+});
+
+it('prefers the stored value over the default', function () {
+    $field = Input::make('Name', 'name')->default('Default Name');
+
+    expect($field->resolve(createNadotaRequest(), createTestModel(['name' => 'Ana']), null))->toBe('Ana');
+});
+
+it('reads the component from nadota.fields.input.component', function () {
+    config()->set('nadota.fields.input.component', 'MyTextInput');
+
+    expect(Input::make('Name', 'name')->getComponent())->toBe('MyTextInput');
+});
+
+it('can be asserted with the toBeFieldType expectation from tests/Pest.php', function () {
+    expect(Input::make('Name', 'name'))->toBeFieldType('text');
+})->skip('ISSUE FLD-026: the toBeFieldType expectation calls getType()->value but getType() returns a string');

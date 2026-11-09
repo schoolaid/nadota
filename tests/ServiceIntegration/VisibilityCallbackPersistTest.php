@@ -93,3 +93,54 @@ it('still excludes the field when the visibility callback returns false', functi
         ->and($model->fresh()->is_active)->toBeFalse()
         ->and($model->fresh()->name)->toBe('Updated');
 });
+
+/**
+ * Same class of bug, record side: the edit form evaluates showOnUpdate with
+ * the loaded model (ResourceEditService -> fieldsForForm($request, $model)),
+ * but filterFieldsForUpdate() calls isShowOnUpdate($request) without it, so a
+ * record-dependent callback sees null while persisting.
+ */
+function makeRecordDependentVisibilityResource(): Resource
+{
+    return new class extends Resource
+    {
+        public string $model = TestModel::class;
+
+        public function fields(NadotaRequest $request): array
+        {
+            return [
+                Input::make('Name', 'name')->required(),
+                Input::make('Email', 'email')
+                    ->showOnUpdate(fn ($request, $model) => $model?->is_active === true),
+            ];
+        }
+    };
+}
+
+it('persists a field whose showOnUpdate callback depends on the record', function () {
+    $model = TestModel::create(['name' => 'Original', 'is_active' => true]);
+    $resource = makeRecordDependentVisibilityResource();
+
+    $editable = $resource->fieldsForForm(new NadotaRequest(), $model->fresh())->map->key()->all();
+
+    $request = new NadotaRequest();
+    $request->merge(['name' => 'Original', 'email' => 'shown@example.com']);
+    $request->setResource($resource);
+
+    (new ResourceUpdateService())->handle($request, $model->id);
+
+    expect($editable)->toContain('email')
+        ->and($model->fresh()->email)->toBe('shown@example.com');
+})->skip('ISSUE TRT-006: filterFieldsForUpdate() evaluates visibility without the record');
+
+it('does not persist a record-dependent field the edit form hides', function () {
+    $model = TestModel::create(['name' => 'Original', 'is_active' => false, 'email' => 'kept@example.com']);
+
+    $request = new NadotaRequest();
+    $request->merge(['name' => 'Original', 'email' => 'forged@example.com']);
+    $request->setResource(makeRecordDependentVisibilityResource());
+
+    (new ResourceUpdateService())->handle($request, $model->id);
+
+    expect($model->fresh()->email)->toBe('kept@example.com');
+});

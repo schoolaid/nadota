@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\Validator;
 use SchoolAid\Nadota\Http\Fields\URL;
 use SchoolAid\Nadota\Tests\Models\TestModel;
 
@@ -87,6 +88,7 @@ it('serializes to array correctly', function () {
         ->toHaveKey('filterable', true)
         ->toHaveKey('searchable', true);
 });
+
 /**
  * Errores de un valor con las reglas del field (store o update).
  *
@@ -131,4 +133,11 @@ it('keeps a creation-only required URL required on store and optional on update'
 
     expect(urlErrors($field, null, false))->toHaveCount(1)
         ->and(urlErrors($field, null, true))->toBe([]);
+});
+
+it('rejects a malformed url and accepts a valid one', function () {
+    $rules = ['website' => URL::make('Website', 'website')->getRules()];
+
+    expect(Validator::make(['website' => 'not a url'], $rules)->fails())->toBeTrue()
+        ->and(Validator::make(['website' => 'https://school.test/path?q=1'], $rules)->passes())->toBeTrue();
 });

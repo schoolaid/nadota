@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\Validator;
 use SchoolAid\Nadota\Http\Fields\Email;
 use SchoolAid\Nadota\Tests\Models\TestModel;
 
@@ -87,6 +88,7 @@ it('serializes to array correctly', function () {
         ->toHaveKey('filterable', true)
         ->toHaveKey('searchable', true);
 });
+
 /** @return array<int, string> */
 function emailErrors(Email $field, mixed $value, bool $isUpdate = false): array
 {
@@ -108,4 +110,15 @@ it('lets an optional email be left empty', function (mixed $empty) {
 
 it('does not add email when the field declares its own', function () {
     expect(Email::make('Email', 'email')->required()->rules(['email:rfc'])->getRules())->toBe(['required', 'email:rfc']);
+});
+
+it('rejects a malformed address and accepts a valid one', function () {
+    $rules = ['email' => Email::make('Email', 'email')->getRules()];
+
+    expect(Validator::make(['email' => 'not-an-email'], $rules)->fails())->toBeTrue()
+        ->and(Validator::make(['email' => 'ana@school.test'], $rules)->passes())->toBeTrue();
+});
+
+it('does not duplicate the email rule when it is declared again', function () {
+    expect(Email::make('Email', 'email')->rules(['nullable', 'email'])->getRules())->toBe(['nullable', 'email']);
 });

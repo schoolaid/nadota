@@ -1,151 +1,104 @@
 <?php
 
+use Illuminate\Support\Facades\DB;
+use SchoolAid\Nadota\Http\Fields\Input;
 use SchoolAid\Nadota\Http\Fields\Relations\HasOne;
 use SchoolAid\Nadota\Http\Requests\NadotaRequest;
-use SchoolAid\Nadota\Resource;
-use SchoolAid\Nadota\Tests\Models\TestModel;
-use SchoolAid\Nadota\Tests\Models\Profile;
-use SchoolAid\Nadota\Tests\Resources\TestResource;
+use SchoolAid\Nadota\Http\Services\ResourceCreateService;
+use SchoolAid\Nadota\Http\Services\ResourceEditService;
+use SchoolAid\Nadota\Http\Services\ResourceShowService;
+use SchoolAid\Nadota\Http\Services\ResourceStoreService;
+use SchoolAid\Nadota\Http\Services\ResourceUpdateService;
+use SchoolAid\Nadota\Tests\Fixtures\FixtureSchema;
+use SchoolAid\Nadota\Tests\Fixtures\Models\Student;
+use SchoolAid\Nadota\Tests\Fixtures\Models\StudentProfile;
+use SchoolAid\Nadota\Tests\Fixtures\Relations\Resources\RelStudentResource;
+use SchoolAid\Nadota\Tests\Fixtures\Resources\StudentProfileResource;
 
-it('can be instantiated', function () {
-    $field = HasOne::make('Profile', 'profile');
-
-    // The relation name is the field key; the attribute stays empty so the
-    // field never adds a column to the parent SELECT.
-    expect($field)->toBeField()
-        ->and($field->key())->toBe('profile')
-        ->and($field->getRelation())->toBe('profile')
-        ->and($field->getAttribute())->toBe('')
-        ->and($field->isRelationship())->toBeTrue()
-        ->and($field->fieldData->label)->toBe('Profile');
-});
-
-it('returns hasOne relation type', function () {
-    $field = HasOne::make('Profile', 'profile');
-
-    expect($field->relationType())->toBe('hasOne');
-});
-
-it('can set related model', function () {
-    $field = HasOne::make('Profile', 'profile')
-        ->model(Profile::class);
-
-    expect($field->getModel())->toBe(Profile::class);
-});
-
-it('resolves relationship value from model', function () {
-    $testModel = TestModel::factory()->create();
-    $profile = Profile::factory()->create([
-        'test_model_id' => $testModel->id,
-        'bio' => 'User bio content'
+/**
+ * HasOne driven through the CRUD services (no HTTP layer): read-only on
+ * store/update, eager loaded with the related foreign key on show, absent from
+ * the create and edit forms.
+ */
+beforeEach(function () {
+    FixtureSchema::create();
+    RelStudentResource::using(fn () => [
+        Input::make('Name', 'name')->required(),
+        HasOne::make('Profile', 'profile', StudentProfileResource::class)->displayAttribute('nickname'),
     ]);
-
-    $field = HasOne::make('Profile', 'profile')
-        ->displayAttribute('bio');
-
-    $request = createNadotaRequest();
-    $value = $field->resolve($request, $testModel, null);
-
-    expect($value)->toBeArray()
-        ->toHaveKey('id', $profile->id)
-        ->toHaveKey('label', 'User bio content')
-        ->toHaveKey('resource', null);
 });
 
-it('returns null when no relationship exists', function () {
-    $testModel = TestModel::factory()->create();
-
-    $field = HasOne::make('Profile', 'profile');
-
-    $request = createNadotaRequest();
-    $value = $field->resolve($request, $testModel, null);
-
-    expect($value)->toBeNull();
+afterEach(function () {
+    RelStudentResource::reset();
 });
 
-it('can be made sortable', function () {
-    $field = HasOne::make('Profile', 'profile')
-        ->sortable();
+function hasOneServiceRequest(array $data = []): NadotaRequest
+{
+    $request = createNadotaRequest($data);
+    $request->setResource(new RelStudentResource());
 
-    expect($field->isSortable())->toBeTrue();
+    return $request;
+}
+
+function hasOneServiceKeys(array $payload): array
+{
+    return collect($payload['data']['attributes'] ?? $payload['data']['fields'] ?? [])->pluck('key')->all();
+}
+
+it('eager loads the profile on show, selecting the foreign key it needs', function () {
+    $student = Student::create(['name' => 'Ana']);
+    $profile = StudentProfile::create(['student_id' => $student->id, 'nickname' => 'Annie']);
+
+    DB::enableQueryLog();
+    $payload = app(ResourceShowService::class)->handle(hasOneServiceRequest(), $student->id)->getData(true);
+    $queries = collect(DB::getQueryLog())->pluck('query');
+    $value = collect($payload['data']['attributes'])->firstWhere('key', 'profile')['value'];
+
+    expect($value)->toBe([
+        'id' => $profile->id,
+        'key' => $profile->id,
+        'label' => 'Annie',
+        'resource' => 'student-profile',
+        'deletedAt' => null,
+    ])
+        ->and($queries)->toHaveCount(2)
+        ->and($queries->last())->toContain('"fx_student_profiles"."student_id"', '"fx_student_profiles"."nickname"');
 });
 
-it('can be made filterable', function () {
-    $field = HasOne::make('Profile', 'profile')
-        ->filterable();
+it('shows a null value when the profile does not exist', function () {
+    $student = Student::create(['name' => 'Ana']);
 
-    expect($field->isFilterable())->toBeTrue();
+    $payload = app(ResourceShowService::class)->handle(hasOneServiceRequest(), $student->id)->getData(true);
+
+    expect(collect($payload['data']['attributes'])->firstWhere('key', 'profile')['value'])->toBeNull();
 });
 
-it('does not alter the parent query when sorting', function () {
-    $testModel = new TestModel();
-    $field = HasOne::make('Profile', 'profile')
-        ->displayAttribute('bio');
+it('ignores a profile payload on store', function () {
+    $response = app(ResourceStoreService::class)
+        ->handle(hasOneServiceRequest(['name' => 'Ana', 'profile' => ['nickname' => 'Annie']]));
 
-    $query = $testModel->newQuery();
-    $sortedQuery = $field->applySorting($query, 'asc', $testModel);
-
-    expect($sortedQuery)->toBe($query)
-        ->and($sortedQuery->getQuery()->joins)->toBeNull()
-        ->and($sortedQuery->getQuery()->orders)->toBeNull();
+    expect($response->getStatusCode())->toBe(201)
+        ->and(Student::count())->toBe(1)
+        ->and(StudentProfile::count())->toBe(0);
 });
 
-it('serializes to array correctly', function () {
-    $testModel = TestModel::factory()->create();
-    $profile = Profile::factory()->create([
-        'test_model_id' => $testModel->id,
-        'bio' => 'User bio'
-    ]);
+it('keeps the existing profile untouched on update', function () {
+    $student = Student::create(['name' => 'Ana']);
+    StudentProfile::create(['student_id' => $student->id, 'nickname' => 'Annie']);
 
-    $field = HasOne::make('Profile', 'profile')
-        ->displayAttribute('bio')
-        ->sortable()
-        ->filterable();
+    app(ResourceUpdateService::class)
+        ->handle(hasOneServiceRequest(['name' => 'Ana B.', 'profile' => ['nickname' => 'Changed']]), $student->id);
 
-    $request = createNadotaRequest();
-    $array = $field->toArray($request, $testModel, new TestResource());
-
-    expect($array)
-        ->toHaveKey('label', 'Profile')
-        ->toHaveKey('key', 'profile')
-        ->toHaveKey('sortable', true)
-        ->toHaveKey('filterable', true)
-        ->and($array['props'])->toHaveKey('relationType', 'hasOne')
-        ->and($array['value'])->toHaveKey('id', $profile->id)
-        ->and($array['value'])->toHaveKey('label', 'User bio')
-        ->and($array['optionsUrl'])->toContain('/resource/field/profile/options');
+    expect($student->fresh()->name)->toBe('Ana B.')
+        ->and(StudentProfile::first()->nickname)->toBe('Annie');
 });
 
-it('can set display attribute', function () {
-    $field = HasOne::make('Profile', 'profile')
-        ->displayAttribute('bio');
+it('is not part of the create or edit forms', function () {
+    $student = Student::create(['name' => 'Ana']);
 
-    expect($field->getAttributeForDisplay())->toBe('bio');
-});
+    $create = app(ResourceCreateService::class)->handle(hasOneServiceRequest())->getData(true);
+    $edit = app(ResourceEditService::class)->handle(hasOneServiceRequest(), $student->id)->getData(true);
 
-it('derives the foreign key from the eloquent relation', function () {
-    $profileResource = new class extends Resource {
-        public string $model = Profile::class;
-        public static function getKey(): string { return 'profiles'; }
-        public function fields(NadotaRequest $request): array { return []; }
-    };
-
-    $testModel = TestModel::factory()->create();
-
-    $field = HasOne::make('Profile', 'profile', get_class($profileResource));
-
-    $array = $field->toArray(createNadotaRequest(), $testModel, new TestResource());
-
-    expect($array['props']['createContext'])
-        ->toHaveKey('foreignKey', 'test_model_id')
-        ->toHaveKey('prefill', ['test_model_id' => $testModel->id])
-        ->toHaveKey('lock', ['test_model_id']);
-});
-
-it('is hidden from index and shown on detail by default', function () {
-    $field = HasOne::make('Profile', 'profile');
-    $request = createNadotaRequest();
-
-    expect($field->isShowOnIndex($request, null))->toBeFalse()
-        ->and($field->isShowOnDetail($request, null))->toBeTrue();
+    expect(json_encode($create))->not->toContain('"key":"profile"')
+        ->and(hasOneServiceKeys($edit))->toBe(['name']);
 });

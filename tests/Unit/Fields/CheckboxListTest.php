@@ -1,6 +1,8 @@
 <?php
 
+use Illuminate\Support\Facades\Validator;
 use SchoolAid\Nadota\Http\Fields\CheckboxList;
+use SchoolAid\Nadota\Tests\Models\TestModel;
 
 it('can be instantiated', function () {
     $field = CheckboxList::make('Features', 'features');
@@ -109,8 +111,10 @@ it('resolves array value from model', function () {
 });
 
 it('resolves JSON string value from model', function () {
-    $model = createTestModel(['features' => '["wifi","parking","pool"]']);
-    $field = CheckboxList::make('Features', 'features');
+    // 'description' is a plain text column; on 'features' (array cast) Eloquent would double encode
+    // the string and the field would only see it after the cast decoded it back.
+    $model = createTestModel(['description' => '["wifi","parking","pool"]']);
+    $field = CheckboxList::make('Features', 'description');
     $request = createNadotaRequest();
     
     $value = $field->resolve($request, $model, null);
@@ -166,3 +170,68 @@ it('serializes to array correctly', function () {
         ->and($array['props']['maxSelections'])->toBe(3)
         ->and($array['props']['options'])->toHaveCount(3);
 });
+it('is a checkbox list rendered by the FieldCheckboxList component', function () {
+    $field = CheckboxList::make('Features', 'features');
+
+    expect($field->getType())->toBe('checkbox_list')
+        ->and($field->getComponent())->toBe('FieldCheckboxList');
+});
+
+it('resolves an empty string or non JSON text as no selection', function () {
+    $field = CheckboxList::make('Features', 'description');
+
+    expect($field->resolve(createNadotaRequest(), createTestModel(['description' => '']), null))->toBe([])
+        ->and($field->resolve(createNadotaRequest(), createTestModel(['description' => 'wifi']), null))->toBe([]);
+});
+
+it('keeps an array for a column cast to array and re-indexes it', function () {
+    $field = CheckboxList::make('Features', 'features');
+
+    expect($field->resolveForStore(createNadotaRequest(), new TestModel(), null, [2 => 'wifi', 5 => 'pool']))->toBe(['wifi', 'pool'])
+        ->and($field->resolveForUpdate(createNadotaRequest(), new TestModel(), null, '["wifi"]'))->toBe(['wifi']);
+});
+
+it('json-encodes the selection for a column without an array cast', function () {
+    $field = CheckboxList::make('Features', 'description');
+
+    expect($field->resolveForStore(createNadotaRequest(), new TestModel(), null, ['wifi', 'pool']))->toBe('["wifi","pool"]')
+        ->and($field->resolveForUpdate(createNadotaRequest(), new TestModel(), null, '["a","b"]'))->toBe('["a","b"]');
+});
+
+it('wraps a single scalar selection in an array', function () {
+    $field = CheckboxList::make('Features', 'features');
+
+    expect($field->resolveForStore(createNadotaRequest(), new TestModel(), null, 'wifi'))->toBe(['wifi'])
+        ->and($field->resolveForStore(createNadotaRequest(), new TestModel(), null, 7))->toBe([7]);
+});
+
+it('stores null as null', function () {
+    expect(CheckboxList::make('Features', 'features')->resolveForStore(createNadotaRequest(), new TestModel(), null, null))->toBeNull();
+});
+
+it('recognizes encrypted array casts', function () {
+    $model = new TestModel();
+    $model->mergeCasts(['description' => 'encrypted:array']);
+
+    expect(CheckboxList::make('Features', 'description')->resolveForStore(createNadotaRequest(), $model, null, ['a']))->toBe(['a']);
+});
+
+it('adds no array rule without min or max', function () {
+    expect(CheckboxList::make('Features', 'features')->getRules())->toBe([])
+        ->and(CheckboxList::make('Features', 'features')->required()->min(1)->getRules())->toBe(['required', 'array', 'min:1']);
+});
+
+it('enforces the selection count', function () {
+    $rules = ['features' => CheckboxList::make('Features', 'features')->min(1)->max(2)->getRules()];
+
+    expect(Validator::make(['features' => []], $rules)->fails())->toBeTrue()
+        ->and(Validator::make(['features' => ['a', 'b', 'c']], $rules)->fails())->toBeTrue()
+        ->and(Validator::make(['features' => 'a'], $rules)->fails())->toBeTrue()
+        ->and(Validator::make(['features' => ['a', 'b']], $rules)->passes())->toBeTrue();
+});
+
+it('accepts closure rules next to string rules', function () {
+    $field = CheckboxList::make('Features', 'features')->required()->rules([fn ($attribute, $value, $fail) => null]);
+
+    expect($field->getRules())->toHaveCount(2);
+})->skip('ISSUE FLD-009: CheckboxList::getRules() runs array_unique() over the rules, a Closure throws "could not be converted to string"');

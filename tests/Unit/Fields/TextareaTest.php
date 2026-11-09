@@ -94,3 +94,13 @@ it('serializes to array correctly', function () {
         ->toHaveKey('rows', 6)
         ->toHaveKey('cols', 80);
 });
+
+it('sends null rows and cols when not configured', function () {
+    expect(Textarea::make('Bio', 'bio')->toArray(createNadotaRequest())['props'])->toBe(['rows' => null, 'cols' => null]);
+});
+
+it('stores the submitted text with its line breaks', function () {
+    $text = "line one\nline two";
+
+    expect(Textarea::make('Bio', 'bio')->resolveForStore(createNadotaRequest(), new TestModel(), null, $text))->toBe($text);
+});

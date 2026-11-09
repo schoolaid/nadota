@@ -7,6 +7,28 @@ use SchoolAid\Nadota\Http\Fields\Select;
 use SchoolAid\Nadota\Http\Fields\Toggle;
 use SchoolAid\Nadota\Http\Fields\Date;
 use SchoolAid\Nadota\Http\Fields\File;
+use SchoolAid\Nadota\Http\Fields\Checkbox;
+use SchoolAid\Nadota\Http\Fields\Relations\BelongsTo;
+use SchoolAid\Nadota\Tests\Models\TestModel;
+use SchoolAid\Nadota\Tests\Resources\RelatedModelResource;
+use Illuminate\Http\Request;
+
+/** A DynamicField over the "description" column, typed by "status". */
+function answerDynamicField(): DynamicField
+{
+    return DynamicField::make('Answer', 'description')
+        ->basedOn('status')
+        ->types([
+            'bool' => Checkbox::make('Answer', 'description')->trueValue('yes')->falseValue('no'),
+            'number' => Number::make('Answer', 'description')->min(0),
+        ])
+        ->defaultType(Input::make('Answer', 'description'));
+}
+
+function answerModel(?string $status, mixed $description): TestModel
+{
+    return new TestModel(['status' => $status, 'description' => $description]);
+}
 
 // =========================================================================
 // BASIC SETUP
@@ -351,3 +373,162 @@ it('extracts primary key from Eloquent models', function () {
 
     expect($method->invoke($field, $mockModel))->toBe(3);
 });
+
+// =========================================================================
+// RESOLUTION
+// =========================================================================
+
+it('is rendered by the FieldDynamic component', function () {
+    expect(DynamicField::make('Value', 'value')->getComponent())->toBe('FieldDynamic');
+});
+
+it('resolves the value through the field matched by the model type', function () {
+    expect(answerDynamicField()->resolve(createNadotaRequest(), answerModel('bool', 'no'), null))->toBeFalse()
+        ->and(answerDynamicField()->resolve(createNadotaRequest(), answerModel('number', '7'), null))->toBe('7')
+        ->and(answerDynamicField()->resolve(createNadotaRequest(), answerModel('other', 'free text'), null))->toBe('free text');
+});
+
+it('takes the type from the request when the model has none', function () {
+    $array = answerDynamicField()->toArray(createNadotaRequest(['status' => 'number']), answerModel(null, null));
+
+    expect($array['props']['matchedType'])->toBe('number')
+        ->and($array['props']['matchedField']['type'])->toBe('number');
+});
+
+it('prefers the model type over the request type', function () {
+    $array = answerDynamicField()->toArray(createNadotaRequest(['status' => 'number']), answerModel('bool', 'yes'));
+
+    expect($array['props']['matchedType'])->toBe('bool')
+        ->and($array['value'])->toBeTrue();
+});
+
+it('falls back to the raw value without a type field or matching type', function () {
+    $model = answerModel('x', 'raw');
+
+    expect(DynamicField::make('Answer', 'description')->resolve(createNadotaRequest(), $model, null))->toBe('raw')
+        ->and(DynamicField::make('Answer', 'description')->basedOn('status')->resolve(createNadotaRequest(), $model, null))->toBe('raw');
+});
+
+it('passes the model and the request to a closure type', function () {
+    $received = [];
+    $field = DynamicField::make('Answer', 'description')->basedOn('status')->types([
+        'lazy' => function ($model, $request) use (&$received) {
+            $received = [$model, $request];
+
+            return Input::make('Answer', 'description');
+        },
+    ]);
+    $model = answerModel('lazy', 'v');
+    $request = createNadotaRequest();
+
+    expect($field->resolve($request, $model, null))->toBe('v')
+        ->and($received[0])->toBe($model)
+        ->and($received[1])->toBe($request);
+});
+
+it('resolves the type through a relation with dot notation', function () {
+    $field = DynamicField::make('Answer', 'description')->basedOn('profile.kind');
+
+    expect($field->getTypeFieldRelation())->toBe('profile')
+        ->and($field->getRequiredRelations())->toBe(['profile'])
+        ->and(DynamicField::make('A', 'a')->basedOn('kind')->getTypeFieldRelation())->toBeNull()
+        ->and(DynamicField::make('A', 'a')->getRequiredRelations())->toBe([]);
+});
+
+it('resolves each model with its own type', function () {
+    $field = answerDynamicField();
+    $request = createNadotaRequest();
+
+    $first = $field->resolveForExport($request, answerModel('bool', 'yes'), null);
+    $second = $field->resolveForExport($request, answerModel('number', '42'), null);
+
+    expect($first)->toBeTrue()
+        ->and($second)->toBe('42');
+})->skip('ISSUE FLD-008: resolve() caches the matched field on the instance; the export reuses the first row type for every row');
+
+// =========================================================================
+// PERSISTENCE
+// =========================================================================
+
+it('delegates fill to the matched field', function () {
+    $model = answerModel('bool', null);
+
+    answerDynamicField()->fill(new Request(['status' => 'bool', 'description' => 'true']), $model);
+
+    expect($model->description)->toBe('true');
+});
+
+it('converts the value with the matched field before storing it', function () {
+    $model = answerModel('bool', null);
+
+    expect(answerDynamicField()->resolveForStore(createNadotaRequest(), $model, null, true))->toBe('yes');
+})->skip('ISSUE FLD-007: DynamicField does not delegate resolveForStore/Update; store and update persist the raw value');
+
+it('validates with the rules of the matched field', function () {
+    $field = answerDynamicField();
+    $field->toArray(createNadotaRequest(['status' => 'number']), answerModel('number', null));
+
+    expect($field->getRules())->toContain('numeric')->toContain('min:0');
+})->skip('ISSUE FLD-006: DynamicField::getRules() is inside an unterminated docblock, so only the base rules apply');
+
+it('delegates the save hooks to the matched field', function () {
+    $model = answerModel('bool', null);
+    $request = new Request(['status' => 'bool']);
+    $calls = [];
+    $spy = new class('Answer', 'description') extends Input {
+        public array $calls = [];
+
+        public function beforeSave(\Illuminate\Http\Request $request, \Illuminate\Database\Eloquent\Model $model, string $operation): void
+        {
+            $this->calls[] = "before:{$operation}";
+        }
+
+        public function afterSave(\Illuminate\Http\Request $request, \Illuminate\Database\Eloquent\Model $model): void
+        {
+            $this->calls[] = 'after';
+        }
+
+        public function supportsAfterSave(): bool
+        {
+            return true;
+        }
+    };
+
+    $field = DynamicField::make('Answer', 'description')->basedOn('status')->types(['bool' => $spy]);
+
+    expect($field->supportsAfterSave())->toBeTrue();
+
+    $field->beforeSave($request, $model, 'store');
+    $field->afterSave($request, $model);
+
+    expect($spy->calls)->toBe(['before:store', 'after'])
+        ->and(answerDynamicField()->supportsAfterSave())->toBeFalse();
+});
+
+// =========================================================================
+// QUERY
+// =========================================================================
+
+it('selects its own column, the type column and the columns of every type', function () {
+    $field = DynamicField::make('Answer', 'description')->basedOn('status')->types([
+        'a' => Input::make('A', 'name'),
+        'b' => Input::make('B', 'email'),
+        'c' => fn () => Input::make('C', 'never_selected'),
+    ])->defaultType(Input::make('D', 'age'));
+
+    expect(array_values($field->getColumnsForSelect(TestModel::class)))->toBe(['description', 'status', 'name', 'email', 'age'])
+        ->and(DynamicField::make('A', 'description')->basedOn('profile.kind')->getColumnsForSelect(TestModel::class))->toBe(['description']);
+});
+
+it('reports the relation fields of its types for eager loading', function () {
+    $relation = BelongsTo::make('Related', 'relatedModel', RelatedModelResource::class);
+    $field = DynamicField::make('Answer', 'description')->basedOn('status')->types([
+        'rel' => $relation,
+        'text' => Input::make('T', 'description'),
+    ]);
+
+    expect($field->getNestedRelationFields())->toBe([$relation])
+        ->and($field->hasNestedRelations())->toBeTrue()
+        ->and(answerDynamicField()->hasNestedRelations())->toBeFalse();
+});
+

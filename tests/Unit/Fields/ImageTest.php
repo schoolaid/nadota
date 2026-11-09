@@ -1,6 +1,12 @@
 <?php
 
+use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+use SchoolAid\Nadota\Http\Fields\File;
 use SchoolAid\Nadota\Http\Fields\Image;
+use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 use SchoolAid\Nadota\Tests\Models\TestModel;
 
 it('can be instantiated', function () {
@@ -198,9 +204,8 @@ it('serializes to array correctly', function () {
     expect($array)
         ->toHaveKey('label', 'Avatar')
         ->toHaveKey('attribute', 'name')
-        // type/component values are asserted in the (skipped, BUG) 'has correct type and component' test
-        ->toHaveKey('type')
-        ->toHaveKey('component')
+        ->toHaveKey('type', 'image')
+        ->toHaveKey('component', 'FieldImage')
         ->toHaveKey('value')
         ->toHaveKey('props')
         ->toHaveKey('sortable', true)
@@ -265,3 +270,97 @@ it('skips the image rule when svg is accepted', function () {
     expect($rules)->not->toContain('image')
         ->and($rules)->toContain('mimes:png,svg');
 });
+
+it('is a File that stores uploads the same way', function () {
+    Storage::fake('fld-images');
+    $upload = UploadedFile::fake()->image('me.png', 40, 20);
+    $model = new TestModel();
+
+    $field = Image::make('Avatar', 'name')->disk('fld-images')->path('avatars');
+    $field->fill(Request::create('/', 'POST', [], [], ['name' => $upload]), $model);
+
+    expect($field)->toBeInstanceOf(File::class)
+        ->and($model->name)->toBe('avatars/' . $upload->hashName());
+    Storage::disk('fld-images')->assertExists($model->name);
+});
+
+it('reads the real dimensions of a stored image', function () {
+    Storage::fake('fld-images');
+    $upload = UploadedFile::fake()->image('me.png', 40, 20);
+    Storage::disk('fld-images')->putFileAs('avatars', $upload, 'me.png');
+    $model = new TestModel(['name' => 'avatars/me.png']);
+
+    $value = Image::make('Avatar', 'name')->disk('fld-images')->resolve(createNadotaRequest(), $model, null);
+
+    expect($value['dimensions'])->toBe(['width' => 40, 'height' => 20, 'type' => IMAGETYPE_PNG, 'ratio' => 2.0])
+        ->and($value['url'])->toBe(Storage::disk('fld-images')->url('avatars/me.png'));
+});
+
+it('lists only the thumbnails that exist on disk', function () {
+    Storage::fake('fld-images');
+    Storage::disk('fld-images')->put('avatars/thumbs/me_small.png', 'x');
+    $model = new TestModel(['name' => 'avatars/me.png']);
+
+    $value = Image::make('Avatar', 'name')->disk('fld-images')
+        ->thumbnails(['small' => ['width' => 50, 'height' => 50], 'large' => ['width' => 500]])
+        ->resolve(createNadotaRequest(), $model, null);
+
+    expect($value['thumbnails'])->toBe([
+        'small' => [
+            'path' => 'avatars/thumbs/me_small.png',
+            'url' => Storage::disk('fld-images')->url('avatars/thumbs/me_small.png'),
+            'width' => 50,
+            'height' => 50,
+        ],
+    ])->and($value['dimensions'])->toBeNull();
+});
+
+it('rejects a non image upload and an oversized one', function () {
+    $rules = ['avatar' => Image::make('Avatar', 'avatar')->maxImageDimensions(100, 100)->getRules()];
+
+    expect(Validator::make(['avatar' => UploadedFile::fake()->image('ok.jpg', 50, 50)], $rules)->passes())->toBeTrue()
+        ->and(Validator::make(['avatar' => UploadedFile::fake()->image('big.jpg', 150, 50)], $rules)->fails())->toBeTrue()
+        ->and(Validator::make(['avatar' => UploadedFile::fake()->create('doc.pdf', 1, 'application/pdf')], $rules)->fails())->toBeTrue();
+});
+
+it('offers web safe and wide image presets', function () {
+    expect(Image::make('A', 'a')->webSafe()->acceptedTypes)->toBe(['jpg', 'jpeg', 'png', 'webp'])
+        ->and(Image::make('A', 'a')->acceptImages()->acceptedTypes)->toBe(['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'])
+        ->and(Image::make('A', 'a')->acceptImages()->getRules())->not->toContain('image');
+});
+
+it('exposes display options in props and clamps the quality', function () {
+    $props = Image::make('Avatar', 'avatar')->circle()->previewSize('64px')->lazy(false)->placeholder('/img/blank.png')
+        ->convertTo('webp')->quality(150)->imageWidth(300)->imageHeight(200)
+        ->toArray(createNadotaRequest())['props'];
+
+    expect($props)->toMatchArray([
+        'rounded' => true,
+        'square' => true,
+        'previewSize' => '64px',
+        'lazy' => false,
+        'placeholder' => '/img/blank.png',
+        'convertFormat' => 'webp',
+        'compressionQuality' => 100,
+        'maxImageWidth' => 300,
+        'maxImageHeight' => 200,
+    ])->and(Image::make('A', 'a')->quality(-5)->toArray(createNadotaRequest())['props']['compressionQuality'])->toBe(1)
+        ->and(Image::make('A', 'a')->rounded()->squared(false)->toArray(createNadotaRequest())['props']['square'])->toBeFalse();
+});
+
+it('keeps the image placeholder apart from the field placeholder', function () {
+    $array = Image::make('Avatar', 'avatar')->placeholder('/img/blank.png')->toArray(createNadotaRequest());
+
+    expect($array['placeholder'])->toBe('Avatar')
+        ->and($array['props']['placeholder'])->toBe('/img/blank.png');
+});
+
+it('hides the preview on the index listing when asked to', function () {
+    // The index route is GET /nadota-api/{resourceKey}/resource
+    $request = NadotaRequest::create('/nadota-api/student-media/resource', 'GET');
+
+    $props = Image::make('Avatar', 'avatar')->disablePreviewOnIndex()->toArray($request)['props'];
+
+    expect($props['showPreview'])->toBeFalse();
+})->skip('ISSUE FLD-024: Image::getProps() checks $request->is("*/index") but the index route has no /index segment');
+

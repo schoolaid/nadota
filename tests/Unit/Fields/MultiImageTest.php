@@ -7,6 +7,10 @@ use SchoolAid\Nadota\Http\Fields\File;
 use SchoolAid\Nadota\Http\Fields\MultiImage;
 use SchoolAid\Nadota\Tests\Models\TestModel;
 
+// A disk name of its own: Storage::fake() wipes storage/framework/testing/disks/<name>,
+// which is shared with any other test process faking the same disk at the same time.
+beforeEach(fn () => config()->set('filesystems.default', 'fld-multi'));
+
 it('has correct type, component and defaults', function () {
     $field = MultiImage::make('Images', 'images');
 
@@ -38,7 +42,7 @@ it('builds array rules with max files and nested per-image rules', function () {
 });
 
 it('stores every uploaded image and assigns the array of paths', function () {
-    Storage::fake('local');
+    Storage::fake('fld-multi');
 
     $field = MultiImage::make('Images', 'images')->path('uploads/test');
     $model = new TestModel;
@@ -54,12 +58,12 @@ it('stores every uploaded image and assigns the array of paths', function () {
         ->and($model->images[0])->toBe('uploads/test/'.$uploadA->hashName())
         ->and($model->images[1])->toBe('uploads/test/'.$uploadB->hashName());
 
-    Storage::disk('local')->assertExists($model->images[0]);
-    Storage::disk('local')->assertExists($model->images[1]);
+    Storage::disk('fld-multi')->assertExists($model->images[0]);
+    Storage::disk('fld-multi')->assertExists($model->images[1]);
 });
 
 it('appends new uploads to existing paths', function () {
-    Storage::fake('local');
+    Storage::fake('fld-multi');
 
     $field = MultiImage::make('Images', 'images')->path('uploads/test');
     $model = new TestModel;
@@ -76,7 +80,7 @@ it('appends new uploads to existing paths', function () {
 });
 
 it('does nothing when readonly, disabled or without uploads', function () {
-    Storage::fake('local');
+    Storage::fake('fld-multi');
 
     $model = new TestModel;
     $model->images = ['uploads/test/existing.jpg'];
@@ -91,6 +95,11 @@ it('does nothing when readonly, disabled or without uploads', function () {
     $readonly = MultiImage::make('Images', 'images')->readonly();
     $readonly->fill($request, $model);
     expect($model->images)->toBe(['uploads/test/existing.jpg']);
+
+    $disabled = MultiImage::make('Images', 'images')->disabled();
+    $disabled->fill($request, $model);
+    expect($model->images)->toBe(['uploads/test/existing.jpg'])
+        ->and(Storage::disk('fld-multi')->allFiles())->toBe([]);
 });
 
 it('does not touch the attribute when the key is present but empty', function () {
@@ -103,10 +112,10 @@ it('does not touch the attribute when the key is present but empty', function ()
 });
 
 it('resolves an array of per-image objects with url', function () {
-    Storage::fake('local');
-    Storage::disk('local')->put('uploads/test/one.jpg', 'x');
+    Storage::fake('fld-multi');
+    Storage::disk('fld-multi')->put('uploads/test/one.jpg', 'x');
 
-    $field = MultiImage::make('Images', 'images')->disk('local');
+    $field = MultiImage::make('Images', 'images')->disk('fld-multi');
     $model = new TestModel;
     $model->images = ['uploads/test/one.jpg'];
 
@@ -150,8 +159,10 @@ it('accepts the frontend empty-array indicator when nullable', function () {
 it('rejects non-array garbage even when nullable', function () {
     $field = MultiImage::make('Images', 'images')->nullable();
 
+    // Shorter than the default max:5 so only the array closure can reject it
+    // ('not-an-array' also failed max:5 as a 12 character string).
     $validator = \Illuminate\Support\Facades\Validator::make(
-        ['images' => 'not-an-array'],
+        ['images' => 'abc'],
         ['images' => $field->getRules()]
     );
 
@@ -185,3 +196,76 @@ it('still validates real arrays and the max files cap', function () {
     expect($ok->passes())->toBeTrue()
         ->and($tooMany->fails())->toBeTrue();
 });
+
+it('stores a single upload sent without the array brackets', function () {
+    Storage::fake('fld-multi');
+    $upload = UploadedFile::fake()->image('solo.jpg');
+    $model = new TestModel;
+
+    MultiImage::make('Images', 'images')->path('p')->fill(Request::create('/', 'POST', [], [], ['images' => $upload]), $model);
+
+    expect($model->images)->toBe(['p/' . $upload->hashName()]);
+});
+
+it('removes the stored uploads when the save is rolled back', function () {
+    Storage::fake('fld-multi');
+    $field = MultiImage::make('Images', 'images')->path('p');
+    $model = new TestModel;
+
+    $field->fill(Request::create('/', 'POST', [], [], ['images' => [UploadedFile::fake()->image('a.jpg')]]), $model);
+    $stored = $model->images[0];
+    Storage::disk('fld-multi')->assertExists($stored);
+
+    $field->discardPendingFiles();
+
+    Storage::disk('fld-multi')->assertMissing($stored);
+});
+
+it('rejects a non image item through the nested rules', function () {
+    $field = MultiImage::make('Images', 'images');
+    $rules = ['images' => $field->getRules()] + $field->getNestedRules();
+
+    $validator = \Illuminate\Support\Facades\Validator::make(
+        ['images' => [UploadedFile::fake()->create('doc.pdf', 1, 'application/pdf')]],
+        $rules
+    );
+
+    expect($validator->fails())->toBeTrue()
+        ->and($validator->errors()->keys())->toBe(['images.0']);
+});
+
+it('ignores non string entries when resolving', function () {
+    $model = new TestModel;
+    $model->images = ['a.jpg', ['broken'], null, 'b.jpg'];
+
+    $resolved = MultiImage::make('Images', 'images')->resolve(Request::create('/', 'GET'), $model, null);
+
+    expect(array_column($resolved, 'path'))->toBe(['a.jpg', 'b.jpg']);
+});
+
+it('defaults to five files of 5 MB in jpg, png or webp', function () {
+    $field = MultiImage::make('Images', 'images');
+
+    expect($field->toArray(createNadotaRequest())['props'])->toMatchArray([
+        'maxFiles' => 5,
+        'maxSize' => 5 * 1024 * 1024,
+        'acceptedTypes' => ['jpg', 'jpeg', 'png', 'webp'],
+    ]);
+});
+
+it('never lets the stored list grow beyond maxFiles', function () {
+    Storage::fake('fld-multi');
+    $field = MultiImage::make('Images', 'images')->maxFiles(2);
+    $model = new TestModel;
+    $model->images = ['p/one.jpg', 'p/two.jpg'];
+
+    $uploads = [UploadedFile::fake()->image('three.jpg')];
+    $validator = \Illuminate\Support\Facades\Validator::make(['images' => $uploads], ['images' => $field->getRules()]);
+
+    if ($validator->passes()) {
+        $field->fill(Request::create('/', 'POST', [], [], ['images' => $uploads]), $model);
+    }
+
+    expect(count($model->images))->toBeLessThanOrEqual(2);
+})->skip('ISSUE FLD-016: max:{maxFiles} only counts the files of the current request; fill() appends to the stored list');
+

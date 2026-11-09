@@ -1,6 +1,16 @@
 <?php
 
+use Illuminate\Support\Facades\Validator;
 use SchoolAid\Nadota\Http\Fields\ArrayField;
+use SchoolAid\Nadota\Tests\Models\TestModel;
+
+/** Mirrors ProcessesFields::buildValidationRules(): the field rules plus any nested ones. */
+function arrayFieldRules(ArrayField $field): array
+{
+    $rules = [$field->getAttribute() => $field->getRules()];
+
+    return method_exists($field, 'getNestedRules') ? $rules + $field->getNestedRules() : $rules;
+}
 
 it('can be instantiated', function () {
     $field = ArrayField::make('Numbers', 'numbers');
@@ -369,3 +379,93 @@ it('serializes to array correctly', function () {
         ->and($array['props']['displayAsChips'])->toBeTrue()
         ->and($array['props']['itemPlaceholder'])->toBe('Enter number...');
 });
+
+it('is an array field rendered by the FieldArray component', function () {
+    $field = ArrayField::make('Tags', 'tags');
+
+    expect($field->getType())->toBe('array')
+        ->and($field->getComponent())->toBe('FieldArray');
+});
+
+it('has sensible defaults in props', function () {
+    expect(ArrayField::make('Tags', 'tags')->toArray(createNadotaRequest())['props'])->toBe([
+        'valueType' => null,
+        'allowDuplicates' => true,
+        'minItems' => null,
+        'maxItems' => null,
+        'sortable' => true,
+        'itemPlaceholder' => 'Enter value...',
+        'defaultValues' => [],
+        'itemRules' => [],
+        'options' => null,
+        'displayAsChips' => false,
+        'addButtonText' => 'Add Item',
+    ]);
+});
+
+it('puts the type rule first in the item rules', function () {
+    expect(ArrayField::make('Scores', 'scores')->integers()->itemRules(['min:0'])->getItemRules())->toBe(['integer', 'min:0'])
+        ->and(ArrayField::make('Scores', 'scores')->numbers()->getItemRules())->toBe(['numeric'])
+        ->and(ArrayField::make('Flags', 'flags')->valueType('boolean')->getItemRules())->toBe(['boolean'])
+        ->and(ArrayField::make('Emails', 'emails')->emails()->getItemRules())->toBe(['email'])
+        ->and(ArrayField::make('X', 'x')->valueType('custom')->getItemRules())->toBe([]);
+});
+
+it('casts booleans and floats', function () {
+    $model = createTestModel()->forceFill(['numbers' => ['1.5', '2']]);
+    $flags = createTestModel()->forceFill(['numbers' => [1, 0, '']]);
+
+    expect(ArrayField::make('N', 'numbers')->numbers()->resolve(createNadotaRequest(), $model, null))->toBe([1.5, 2.0])
+        ->and(ArrayField::make('F', 'numbers')->valueType('boolean')->resolve(createNadotaRequest(), $flags, null))->toBe([true, false, false]);
+});
+
+it('wraps a scalar stored value in an array', function () {
+    $model = createTestModel()->forceFill(['numbers' => 5]);
+
+    expect(ArrayField::make('N', 'numbers')->resolve(createNadotaRequest(), $model, null))->toBe([5]);
+});
+
+it('does not fill a readonly, disabled or computed field', function (callable $configure) {
+    $model = createTestModel(['tags' => ['keep']]);
+
+    $configure(ArrayField::make('Tags', 'tags'))->fill(createNadotaRequest(['tags' => ['new']]), $model);
+
+    expect($model->tags)->toBe(['keep']);
+})->with([
+    'readonly' => [fn ($f) => $f->readonly()],
+    'disabled' => [fn ($f) => $f->disabled()],
+    'computed' => [fn ($f) => $f->computed()],
+]);
+
+it('validates the size of the array', function () {
+    $rules = arrayFieldRules(ArrayField::make('Tags', 'tags')->min(1)->max(2));
+
+    expect(Validator::make(['tags' => []], $rules)->fails())->toBeTrue()
+        ->and(Validator::make(['tags' => ['a', 'b', 'c']], $rules)->fails())->toBeTrue()
+        ->and(Validator::make(['tags' => 'a'], $rules)->fails())->toBeTrue()
+        ->and(Validator::make(['tags' => ['a']], $rules)->passes())->toBeTrue();
+});
+
+it('validates every item against the item rules', function () {
+    $rules = arrayFieldRules(ArrayField::make('Emails', 'emails')->emails());
+
+    expect(Validator::make(['emails' => ['ok@school.test', 'not-an-email']], $rules)->fails())->toBeTrue();
+})->skip('ISSUE FLD-005: getItemRules() is only sent to the frontend, no {attribute}.* rules are built for the backend');
+
+it('rejects duplicated items when unique', function () {
+    $rules = arrayFieldRules(ArrayField::make('Tags', 'tags')->unique());
+
+    expect(Validator::make(['tags' => ['a', 'a']], $rules)->fails())->toBeTrue();
+})->skip('ISSUE FLD-005: unique() adds "distinct" to the array attribute itself, where Laravel ignores it (it needs tags.*)');
+
+it('accepts closure rules next to the array rule', function () {
+    $field = ArrayField::make('Tags', 'tags')->rules([fn ($attribute, $value, $fail) => null]);
+
+    expect($field->getRules())->toHaveCount(2);
+})->skip('ISSUE FLD-009: ArrayField::getRules() runs array_unique() over the rules, a Closure throws "could not be converted to string"');
+
+it('is not sortable on the index unless asked', function () {
+    expect(ArrayField::make('Tags', 'tags')->isSortable())->toBeFalse()
+        ->and(ArrayField::make('Tags', 'tags')->toArray(createNadotaRequest())['sortable'])->toBeFalse();
+})->skip('ISSUE FLD-018: ArrayField reuses SortableTrait::$sortable (default true) for "items can be reordered", so every array column reports sortable');
+

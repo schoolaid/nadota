@@ -129,3 +129,22 @@ it('keeps cascadeFrom and scopes side by side under options', function () {
             ['field' => 'grade', 'optional' => false],
         ]);
 });
+
+it('reaches the frontend through toArray() on a relation field', function () {
+    $field = \SchoolAid\Nadota\Http\Fields\Relations\BelongsTo::make('Grade', 'grade')->scopedBy('school');
+
+    $dependencies = $field->toArray(createNadotaRequest())['dependencies'];
+
+    expect($dependencies['fields'])->toBe(['school'])
+        ->and($dependencies['clearOnChange'])->toBeTrue()
+        ->and($dependencies['options']['scope'])->toBe([['field' => 'school', 'optional' => false]]);
+});
+
+it('keeps a scope declared before other dependencies', function () {
+    $field = Input::make('Student', 'student_id')
+        ->scopedBy('grade')
+        ->showWhenHasValue('campus');
+
+    expect($field->getDependsOnFields())->toBe(['grade', 'campus'])
+        ->and($field->getDependencyConfig()['options']['scope'])->toHaveCount(1);
+});

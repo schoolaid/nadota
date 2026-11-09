@@ -126,3 +126,36 @@ it('returns empty array when not filterable', function () {
     expect($filters)->toBeArray()
         ->and($filters)->toBeEmpty();
 });
+
+it('reports a boolean type rendered by the FieldExists component', function () {
+    $field = Exists::make('Has Comments', 'comments');
+
+    expect($field->getType())->toBe('boolean')
+        ->and($field->getComponent())->toBe('FieldExists')
+        ->and($field->requiresWithExists())->toBeTrue()
+        ->and(Exists::make('Has Latest Note', 'latestNote')->getAttribute())->toBe('latest_note_exists');
+});
+
+it('exposes the checked relation in props', function () {
+    expect(Exists::make('Has Comments', 'comments')->toArray(createNadotaRequest())['props'])->toBe(['relation' => 'comments']);
+});
+
+it('casts the loaded withExists value to a boolean', function () {
+    $model = new TestModel();
+    $model->comments_exists = 0;
+
+    expect(Exists::make('Has Comments', 'comments')->resolve(createNadotaRequest(), $model, null))->toBeFalse();
+
+    $model->comments_exists = '1';
+    expect(Exists::make('Has Comments', 'comments')->resolve(createNadotaRequest(), $model, null))->toBeTrue();
+});
+
+it('filters by existence through the deprecated applyFilter()', function () {
+    $field = Exists::make('Has Profile', 'profile');
+
+    $with = $field->applyFilter(TestModel::query(), 'true', new TestModel())->toSql();
+    $without = $field->applyFilter(TestModel::query(), '0', new TestModel())->toSql();
+
+    expect($with)->toContain('exists')->not->toContain('not exists')
+        ->and($without)->toContain('not exists');
+});

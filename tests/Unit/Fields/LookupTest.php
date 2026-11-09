@@ -76,3 +76,24 @@ it('can be the source of another field option scope', function () {
     expect($lookup->hasOptionScopes())->toBeFalse()
         ->and($student->getOptionScopes()['grade']->column)->toBe('grade_id');
 });
+
+it('is rendered by the FieldLookup component', function () {
+    expect(Lookup::make('Grade', 'grade')->getComponent())->toBe('FieldLookup');
+});
+
+it('still takes part in validation', function () {
+    $field = Lookup::make('Grade', 'grade')->required()->rules(['integer']);
+
+    expect($field->getRules())->toBe(['required', 'integer'])
+        ->and($field->toArray(createNadotaRequest())['required'])->toBeTrue();
+});
+
+it('never exposes a value even with a default', function () {
+    $model = new TestModel();
+    $model->grade = 3;
+
+    $array = Lookup::make('Grade', 'grade')->default(5)->toArray(createNadotaRequest(), $model);
+
+    expect($array['value'])->toBeNull()
+        ->and($array['default'])->toBe(5);
+});

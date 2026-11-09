@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\Validator;
 use SchoolAid\Nadota\Http\Fields\Radio;
 use SchoolAid\Nadota\Tests\Models\TestModel;
 
@@ -100,3 +101,19 @@ it('serializes to array correctly', function () {
         ->toHaveKey('options')
         ->toHaveKey('inline', true);
 });
+
+it('is not inline and has no options by default', function () {
+    expect(Radio::make('Gender', 'gender')->toArray(createNadotaRequest())['props'])->toBe(['options' => [], 'inline' => false]);
+});
+
+it('keeps integer option values', function () {
+    $options = Radio::make('Level', 'level')->options([1 => 'One', 2 => 'Two'])->toArray(createNadotaRequest())['props']['options'];
+
+    expect($options)->toBe([['value' => 1, 'label' => 'One'], ['value' => 2, 'label' => 'Two']]);
+});
+
+it('rejects a value that is not one of the options', function () {
+    $field = Radio::make('Gender', 'gender')->options(['f' => 'Female', 'm' => 'Male']);
+
+    expect(Validator::make(['gender' => 'zz'], ['gender' => $field->getRules()])->fails())->toBeTrue();
+})->skip('ISSUE FLD-023: option based fields (Select, Radio, CheckboxList, Status) add no in: rule');

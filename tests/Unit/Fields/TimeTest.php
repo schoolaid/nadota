@@ -1,8 +1,10 @@
 <?php
 
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Validator;
+use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
 use SchoolAid\Nadota\Http\Fields\Time;
-
+use SchoolAid\Nadota\Tests\Models\TestModel;
 /** @return array<int, string> */
 function timeErrors(Time $field, mixed $value): array
 {
@@ -57,3 +59,66 @@ it('keeps a value it cannot read and a declared date_format untouched', function
     expect(Time::make('Start', 't')->normalizeInput('25:99x'))->toBe('25:99x')
         ->and(Time::make('Start', 't')->rules(['date_format:H:i'])->normalizeInput('08:00'))->toBe('08:00');
 });
+
+it('is a time field rendered by the FieldTime component', function () {
+    $field = Time::make('Class Time', 'class_time');
+
+    expect($field)->toBeField()
+        ->toHaveFieldAttribute('class_time')
+        ->and($field->getType())->toBe(FieldType::TIME->value)
+        ->and($field->getComponent())->toBe('FieldTime');
+});
+
+it('defaults to H:i:s with a one minute step and no limits', function () {
+    expect(Time::make('Class Time', 'class_time')->toArray(createNadotaRequest())['props'])
+        ->toBe(['format' => 'H:i:s', 'min' => null, 'max' => null, 'step' => 60]);
+});
+
+it('exposes format, limits and step in props', function () {
+    $props = Time::make('Class Time', 'class_time')->format('H:i')->min('08:00')->max('17:30')->step(300)
+        ->toArray(createNadotaRequest())['props'];
+
+    expect($props)->toBe(['format' => 'H:i', 'min' => '08:00', 'max' => '17:30', 'step' => 300]);
+});
+
+it('offers step shortcuts in seconds', function (string $method, int $seconds) {
+    $field = Time::make('Class Time', 'class_time')->step(1)->{$method}();
+
+    expect($field->toArray(createNadotaRequest())['props']['step'])->toBe($seconds);
+})->with([
+    'minute' => ['minuteStep', 60],
+    'quarter hour' => ['quarterHourStep', 900],
+    'half hour' => ['halfHourStep', 1800],
+    'hour' => ['hourStep', 3600],
+]);
+
+it('formats a date/time object with the display format', function () {
+    $model = new TestModel();
+    $model->published_at = Carbon::parse('2024-01-15 08:05:09'); // datetime cast
+
+    expect(Time::make('Time', 'published_at')->resolve(createNadotaRequest(), $model, null))->toBe('08:05:09')
+        ->and(Time::make('Time', 'published_at')->format('g:i A')->resolve(createNadotaRequest(), $model, null))->toBe('8:05 AM');
+});
+
+it('returns a time string column untouched', function () {
+    $model = new TestModel();
+    $model->name = '08:30';
+
+    expect(Time::make('Time', 'name')->resolve(createNadotaRequest(), $model, null))->toBe('08:30');
+});
+
+it('resolves null for an empty time', function () {
+    expect(Time::make('Time', 'name')->resolve(createNadotaRequest(), new TestModel(), null))->toBeNull();
+});
+
+it('stores the submitted value as is', function () {
+    expect(Time::make('Time', 'name')->resolveForStore(createNadotaRequest(), new TestModel(), null, '23:59'))->toBe('23:59');
+});
+
+it('validates the submitted value against the time format and limits', function () {
+    $rules = ['t' => Time::make('Time', 't')->format('H:i')->min('08:00')->max('17:00')->getRules()];
+
+    expect(Validator::make(['t' => 'later'], $rules)->fails())->toBeTrue()
+        ->and(Validator::make(['t' => '07:59'], $rules)->fails())->toBeTrue()
+        ->and(Validator::make(['t' => '09:15'], $rules)->passes())->toBeTrue();
+})->skip('ISSUE FLD-029: Time adds no date_format/limit rule, format/min/max/step are only frontend props');

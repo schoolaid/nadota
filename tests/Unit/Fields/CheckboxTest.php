@@ -1,6 +1,7 @@
 <?php
 
 use SchoolAid\Nadota\Http\Fields\Checkbox;
+use SchoolAid\Nadota\Tests\Models\TestModel;
 
 it('can be instantiated', function () {
     $field = Checkbox::make('Accept Terms', 'accept_terms');
@@ -98,8 +99,10 @@ it('handles null values as false', function () {
 });
 
 it('recognizes custom true values', function () {
-    $model = createTestModel(['accept_terms' => 'yes']);
-    $field = Checkbox::make('Accept Terms', 'accept_terms')
+    // 'status' has no cast on TestModel. The previous version used accept_terms, which is cast
+    // to boolean, so 'yes' was already true before the custom value was ever compared.
+    $model = createTestModel(['status' => 'yes']);
+    $field = Checkbox::make('Accept Terms', 'status')
         ->trueValue('yes')
         ->falseValue('no');
     $request = createNadotaRequest();
@@ -119,4 +122,53 @@ it('recognizes custom false values', function () {
     $value = $field->resolve($request, $model, null);
     
     expect($value)->toBeFalse();
+});
+it('is a checkbox field rendered by the FieldCheckbox component', function () {
+    $field = Checkbox::make('Accept Terms', 'accept_terms');
+
+    expect($field->getType())->toBe('checkbox')
+        ->and($field->getComponent())->toBe('FieldCheckbox')
+        ->and($field->toArray(createNadotaRequest())['props'])->toBe(['trueValue' => 1, 'falseValue' => 0]);
+});
+
+it('treats a value that is neither custom value by its truthiness', function () {
+    $field = Checkbox::make('Flag', 'status')->trueValue('yes')->falseValue('no');
+
+    expect($field->resolve(createNadotaRequest(), createTestModel(['status' => 'maybe']), null))->toBeTrue()
+        ->and($field->resolve(createNadotaRequest(), createTestModel(['status' => '0']), null))->toBeFalse();
+});
+
+it('converts submitted booleans and boolean-like strings to the stored values', function (mixed $input, mixed $expected) {
+    $field = Checkbox::make('Accept Terms', 'accept_terms');
+    $request = createNadotaRequest();
+
+    expect($field->resolveForStore($request, new TestModel(), null, $input))->toBe($expected)
+        ->and($field->resolveForUpdate($request, new TestModel(), null, $input))->toBe($expected);
+})->with([
+    'true' => [true, 1],
+    'false' => [false, 0],
+    'string true' => ['true', 1],
+    'string false' => ['false', 0],
+    'string one' => ['1', 1],
+    'string zero' => ['0', 0],
+    'on' => ['on', 1],
+    'off' => ['off', 0],
+    'yes' => ['yes', 1],
+]);
+
+it('stores the custom true and false values', function () {
+    $field = Checkbox::make('Accept Terms', 'status')->trueValue('yes')->falseValue('no');
+    $request = createNadotaRequest();
+
+    expect($field->resolveForStore($request, new TestModel(), null, true))->toBe('yes')
+        ->and($field->resolveForStore($request, new TestModel(), null, 'false'))->toBe('no')
+        ->and($field->resolveForUpdate($request, new TestModel(), null, '1'))->toBe('yes');
+});
+
+it('keeps null on store unless there is a default', function () {
+    $request = createNadotaRequest();
+
+    expect(Checkbox::make('A', 'a')->resolveForStore($request, new TestModel(), null, null))->toBeNull()
+        ->and(Checkbox::make('A', 'a')->default(true)->resolveForStore($request, new TestModel(), null, null))->toBeTrue()
+        ->and(Checkbox::make('A', 'a')->default(true)->resolveForUpdate($request, new TestModel(), null, null))->toBeTrue();
 });

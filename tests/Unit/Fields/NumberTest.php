@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\Validator;
 use SchoolAid\Nadota\Http\Fields\Number;
 use SchoolAid\Nadota\Tests\Models\TestModel;
 
@@ -130,4 +131,32 @@ it('serializes to array correctly', function () {
         ->toHaveKey('min', 18.0)
         ->toHaveKey('max', 120.0)
         ->toHaveKey('step', 1.0);
+});
+
+it('has null min, max and step props by default', function () {
+    expect(Number::make('Age', 'age')->toArray(createNadotaRequest())['props'])->toBe(['min' => null, 'max' => null, 'step' => null]);
+});
+
+it('keeps fractional limits in the rules', function () {
+    expect(Number::make('Rating', 'rating')->min(0.5)->max(9.75)->getRules())->toBe(['min:0.5', 'max:9.75', 'numeric']);
+});
+
+it('validates the value as a number within the limits', function (mixed $value, bool $passes) {
+    $rules = ['age' => Number::make('Age', 'age')->min(18)->max(120)->getRules()];
+
+    expect(Validator::make(['age' => $value], $rules)->passes())->toBe($passes);
+})->with([
+    'inside' => [30, true],
+    'numeric string' => ['42', true],
+    'lower bound' => [18, true],
+    'below' => [17, false],
+    'above' => [121, false],
+    'text' => ['abc', false],
+]);
+
+it('keeps numeric rules in the store and update context', function () {
+    $field = Number::make('Age', 'age')->min(1)->creationRules(['required']);
+
+    expect($field->getRulesFor(false))->toBe(['min:1', 'numeric', 'required'])
+        ->and($field->getRulesFor(true))->toBe(['min:1', 'numeric']);
 });

@@ -186,3 +186,28 @@ it('resolves field value from model', function () {
 
     expect($resolved)->toBe('console.log("Hello World");');
 });
+
+it('is rendered by the FieldCode component and hidden from index', function () {
+    $field = Code::make('Script', 'script');
+
+    expect($field->getComponent())->toBe('FieldCode')
+        ->and($field->isShowOnIndex(createNadotaRequest()))->toBeFalse()
+        ->and($field->isShowOnDetail(createNadotaRequest()))->toBeTrue();
+});
+
+it('has light theme, line numbers, highlighting and no word wrap by default', function () {
+    expect(Code::make('Script', 'script')->toArray(NadotaRequest::create('/'))['props'])->toBe([
+        'language' => 'javascript',
+        'theme' => 'light',
+        'showLineNumbers' => true,
+        'editable' => true,
+        'syntaxHighlighting' => true,
+        'wordWrap' => false,
+    ]);
+});
+
+it('stores the code as submitted, whitespace included', function () {
+    $code = "<?php\n\techo 'hi';\n";
+
+    expect(Code::make('Script', 'script')->resolveForStore(NadotaRequest::create('/'), new TestModel(), null, $code))->toBe($code);
+});

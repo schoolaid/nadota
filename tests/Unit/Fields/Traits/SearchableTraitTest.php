@@ -33,24 +33,39 @@ it('includes searchable in array representation', function () {
     expect($array)->toHaveKey('searchable', true);
 });
 
-it('can set search callback', function () {
-    $callbackSet = false;
-    
+it('takes no search callback: an argument to searchable() is silently dropped', function () {
+    // The previous version of this test passed a closure and only asserted it
+    // was not called, which read as "custom search callbacks are supported".
+    // They are not (see TRT-012); the closure is discarded by PHP.
+    $called = false;
+
     $field = Input::make('Name', 'name')
-        ->searchable(function ($query, $value, $attribute) use (&$callbackSet) {
-            $callbackSet = true;
-            return $query->where($attribute, 'like', "%{$value}%");
+        ->searchable(function () use (&$called) {
+            $called = true;
         });
-    
-    expect($field->isSearchable())->toBeTrue()
-        ->and($callbackSet)->toBeFalse(); // Callback not called during setup
+
+    expect((new ReflectionMethod($field, 'searchable'))->getNumberOfParameters())->toBe(0)
+        ->and($field->isSearchable())->toBeTrue()
+        ->and($called)->toBeFalse();
 });
 
-it('can be globally searchable', function () {
-    $field = Input::make('Name', 'name')
-        ->searchableGlobally();
-    
-    expect($field->isSearchable())->toBeTrue();
+it('can be globally searchable, which implies searchable', function () {
+    $field = Input::make('Name', 'name');
+
+    expect($field->isSearchableGlobally())->toBeFalse();
+
+    $field->searchableGlobally();
+
+    expect($field->isSearchable())->toBeTrue()
+        ->and($field->isSearchableGlobally())->toBeTrue();
+});
+
+it('keeps the global flag when notSearchable() is called afterwards', function () {
+    // notSearchable() only clears the plain flag (see TRT-012).
+    $field = Input::make('Name', 'name')->searchableGlobally()->notSearchable();
+
+    expect($field->isSearchable())->toBeFalse()
+        ->and($field->isSearchableGlobally())->toBeTrue();
 });
 
 it('can set search weight', function () {

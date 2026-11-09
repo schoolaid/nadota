@@ -69,6 +69,16 @@ This documentation is organized by audience and domain. Start with **Getting Sta
 | [Menu Internals](internals/menu.md) | How the navigation tree is built |
 | [Filter Internals](internals/filters.md) | `FilterCriteria`, `ApplyFiltersPipe`, field→filter wiring |
 
+## Testing & Audit (for contributors)
+
+| Doc | What it covers |
+|-----|----------------|
+| [Testing guide](testing/README.md) | Suite layout, the fixture domain, conventions, HTTP test helper |
+| [Progress log](testing/PROGRESS.md) | 2026-11-02 normalisation: done / pending / missing, recommendations |
+| [Coverage matrix](testing/COVERAGE.md) | Every field, relation, filter, trait, action and route against its tests |
+| [Known issues](testing/ISSUES.md) | 197 documented bugs and contradictions (not fixed yet), root causes, fix order |
+| [Audits](audit/) | Functional audits of the [menu](audit/menu.md), [exports](audit/exports.md), [actions](audit/actions.md) and [configuration](audit/configuration.md) |
+
 ## Roadmaps
 
 Planning and design docs (some features started here and are now shipped). See [Roadmaps](roadmaps/README.md).

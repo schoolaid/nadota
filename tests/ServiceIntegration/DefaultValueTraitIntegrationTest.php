@@ -1,128 +1,98 @@
 <?php
 
 use SchoolAid\Nadota\Http\Fields\Input;
-use SchoolAid\Nadota\Tests\Models\TestModel;
+use SchoolAid\Nadota\Http\Requests\NadotaRequest;
+use SchoolAid\Nadota\Http\Services\ResourceCreateService;
+use SchoolAid\Nadota\Http\Services\ResourceEditService;
+use SchoolAid\Nadota\Http\Services\ResourceShowService;
+use SchoolAid\Nadota\Http\Services\ResourceStoreService;
+use SchoolAid\Nadota\Tests\Fixtures\FixtureSchema;
+use SchoolAid\Nadota\Tests\Fixtures\Models\Student;
+use SchoolAid\Nadota\Tests\Fixtures\Resources\AdHocResource;
 
-it('field has no default value by default', function () {
-    $field = Input::make('Name', 'name');
-    
-    expect($field->hasDefault())->toBeFalse();
+/**
+ * Field defaults through the create/edit/show/store services, against the
+ * fixture students table. The DefaultValueTrait API itself is unit-tested in
+ * tests/Unit/Fields/Traits/DefaultValueTraitTest.php, and resolveForStore()'s
+ * null handling in FieldResolveTraitTest.php.
+ *
+ * (Until 2026-11-02 this file was a verbatim copy of the unit test.)
+ */
+
+beforeEach(fn () => FixtureSchema::create());
+
+function defaultsResource(): AdHocResource
+{
+    return AdHocResource::withFields([
+        Input::make('Name', 'name'),
+        Input::make('Status', 'status')->default('draft'),
+        Input::make('Website', 'website')->defaultUsing(fn ($request, $model, $resource) => $resource::getKey() . '.example'),
+        Input::make('Email', 'email')->defaultFromAttribute('name'),
+    ]);
+}
+
+function defaultsRequest(array $input = []): NadotaRequest
+{
+    $request = createNadotaRequest($input);
+    $request->setResource(defaultsResource());
+
+    return $request;
+}
+
+function defaultsAttribute(array $payload, string $key): array
+{
+    return collect($payload['data']['attributes'])->firstWhere('key', $key);
+}
+
+it('pre-fills the create form with the resolved defaults', function () {
+    $payload = (new ResourceCreateService())->handle(defaultsRequest())->getData(true);
+
+    expect(defaultsAttribute($payload, 'status')['default'])->toBe('draft')
+        ->and(defaultsAttribute($payload, 'website')['default'])->toBe('ad-hoc.example')
+        // no model on the create form, so an attribute-based default has nothing to read
+        ->and(defaultsAttribute($payload, 'email')['default'])->toBeNull()
+        ->and(defaultsAttribute($payload, 'name')['default'])->toBeNull();
 });
 
-it('can set default value', function () {
-    $field = Input::make('Status', 'status')
-        ->default('active');
-    
-    expect($field->hasDefault())->toBeTrue();
+it('shows the stored value on the edit form, the default only for null columns', function () {
+    $student = Student::create(['name' => 'Ana', 'status' => 'enrolled']);
+
+    $payload = (new ResourceEditService())->handle(defaultsRequest(), $student->id)->getData(true);
+
+    expect(defaultsAttribute($payload, 'status')['value'])->toBe('enrolled')
+        ->and(defaultsAttribute($payload, 'website')['value'])->toBe('ad-hoc.example')
+        ->and(defaultsAttribute($payload, 'email')['value'])->toBe('Ana')
+        ->and(defaultsAttribute($payload, 'email')['default'])->toBe('Ana');
 });
 
-it('resolves default value when model attribute is empty', function () {
-    $model = createTestModel(['name' => null]);
-    $field = Input::make('Name', 'name')
-        ->default('Default Name');
-    
-    $request = createNadotaRequest();
-    $value = $field->resolve($request, $model, null);
-    
-    expect($value)->toBe('Default Name');
+it('displays the default for a null column on the detail view', function () {
+    $student = Student::create(['name' => 'Ana']);
+
+    $payload = (new ResourceShowService())->handle(defaultsRequest(), $student->id)->getData(true);
+
+    expect(defaultsAttribute($payload, 'status')['value'])->toBe('draft');
 });
 
-it('uses model value when available instead of default', function () {
-    $model = createTestModel(['name' => 'Actual Name']);
-    $field = Input::make('Name', 'name')
-        ->default('Default Name');
-    
-    $request = createNadotaRequest();
-    $value = $field->resolve($request, $model, null);
-    
-    expect($value)->toBe('Actual Name');
+it('stores the defaults of fields submitted as null', function () {
+    $response = (new ResourceStoreService())->handle(defaultsRequest([
+        'name' => 'Ana', 'status' => null, 'website' => null, 'email' => null,
+    ]));
+
+    $student = Student::first();
+
+    expect($response->getStatusCode())->toBe(201)
+        ->and($student->status)->toBe('draft')
+        ->and($student->website)->toBe('ad-hoc.example')
+        // the attribute default reads the model being created, whose name was filled first
+        ->and($student->email)->toBe('Ana');
 });
 
-it('can use callback for default value', function () {
-    $model = createTestModel(['name' => null]);
-    $field = Input::make('Created At', 'created_at')
-        ->default(function ($request, $model, $resource) {
-            return now()->format('Y-m-d');
-        });
-    
-    $request = createNadotaRequest();
-    $value = $field->resolve($request, $model, null);
-    
-    expect($value)->toBe(now()->format('Y-m-d'));
-});
+it('stores what the user typed over any default', function () {
+    (new ResourceStoreService())->handle(defaultsRequest([
+        'name' => 'Ana', 'status' => 'enrolled', 'website' => 'ana.dev', 'email' => 'ana@example.com',
+    ]));
 
-it('passes correct parameters to default callback', function () {
-    $callbackParams = [];
-    $model = createTestModel(['name' => null]);
-    $resource = createTestResource();
-    
-    $field = Input::make('Name', 'name')
-        ->default(function ($request, $model, $resource) use (&$callbackParams) {
-            $callbackParams = [$request, $model, $resource];
-            return 'callback_value';
-        });
-    
-    $request = createNadotaRequest();
-    $field->resolve($request, $model, $resource);
-    
-    expect($callbackParams)->toHaveCount(3)
-        ->and($callbackParams[0])->toBeInstanceOf(\SchoolAid\Nadota\Http\Requests\NadotaRequest::class)
-        ->and($callbackParams[1])->toBeInstanceOf(\SchoolAid\Nadota\Tests\Models\TestModel::class)
-        ->and($callbackParams[2])->toBeInstanceOf(\SchoolAid\Nadota\Tests\Resources\TestResource::class);
-});
-
-it('can use model attribute as default', function () {
-    $model = createTestModel(['email' => 'test@example.com', 'name' => null]);
-    $field = Input::make('Name', 'name')
-        ->defaultFromAttribute('email');
-    
-    $request = createNadotaRequest();
-    $value = $field->resolve($request, $model, null);
-    
-    expect($value)->toBe('test@example.com');
-});
-
-it('can resolve nested default values', function () {
-    $model = createTestModel(['metadata' => ['title' => 'Test Title'], 'name' => null]);
-    $field = Input::make('Name', 'name')
-        ->defaultFromAttribute('metadata.title');
-    
-    $request = createNadotaRequest();
-    $value = $field->resolve($request, $model, null);
-    
-    expect($value)->toBe('Test Title');
-});
-
-it('handles null default gracefully', function () {
-    $model = createTestModel(['name' => null]);
-    $field = Input::make('Name', 'name')
-        ->default(null);
-    
-    $request = createNadotaRequest();
-    $value = $field->resolve($request, $model, null);
-    
-    expect($value)->toBeNull();
-});
-
-it('resolves boolean default values correctly', function () {
-    $model = createTestModel(['is_active' => null]);
-    $field = Input::make('Active', 'is_active')
-        ->default(true);
-    
-    $request = createNadotaRequest();
-    $value = $field->resolve($request, $model, null);
-    
-    expect($value)->toBeTrue();
-});
-
-it('resolves array default values correctly', function () {
-    $model = createTestModel(['metadata' => null]);
-    $defaultArray = ['key' => 'value'];
-    $field = Input::make('Metadata', 'metadata')
-        ->default($defaultArray);
-    
-    $request = createNadotaRequest();
-    $value = $field->resolve($request, $model, null);
-    
-    expect($value)->toBe($defaultArray);
+    expect(Student::first()->only(['status', 'website', 'email']))->toBe([
+        'status' => 'enrolled', 'website' => 'ana.dev', 'email' => 'ana@example.com',
+    ]);
 });

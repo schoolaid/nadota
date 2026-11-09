@@ -130,3 +130,94 @@ it('can hide based on callback', function () {
     expect($field->isShowOnIndex($request, null))->toBeFalse();
 });
 
+
+it('accepts a callback per context and hands it the request and the record', function () {
+    $received = null;
+    $field = Input::make('Grade', 'grade')->showOnDetail(function ($request, $record) use (&$received) {
+        $received = [$request, $record];
+
+        return $record === 'visible-record';
+    });
+    $request = createNadotaRequest();
+
+    expect($field->isShowOnDetail($request, 'visible-record'))->toBeTrue()
+        ->and($received)->toBe([$request, 'visible-record'])
+        ->and($field->isShowOnDetail($request, 'other'))->toBeFalse()
+        // the other contexts keep their own flag
+        ->and($field->isShowOnIndex($request, 'other'))->toBeTrue();
+});
+
+it('casts callback results to bool', function () {
+    $field = Input::make('Grade', 'grade')
+        ->showOnIndex(fn () => 1)
+        ->showOnDetail(fn () => null);
+
+    expect($field->isShowOnIndex())->toBeTrue()
+        ->and($field->isShowOnDetail())->toBeFalse();
+});
+
+it('applies showWhen and hideWhen to every context', function () {
+    $hidden = Input::make('Secret', 'secret')->hideWhen(fn () => true);
+    $shown = Input::make('Admin', 'admin')->showWhen(fn () => false);
+
+    foreach (['isShowOnIndex', 'isShowOnDetail', 'isShowOnCreation', 'isShowOnUpdate'] as $method) {
+        expect($hidden->{$method}())->toBeFalse()
+            ->and($shown->{$method}())->toBeFalse();
+    }
+});
+
+it('lets hideWhen win over showWhen', function () {
+    $field = Input::make('Secret', 'secret')
+        ->showWhen(fn () => true)
+        ->hideWhen(fn () => true);
+
+    expect($field->isShowOnIndex())->toBeFalse();
+});
+
+it('cannot make a field visible in a context it was hidden from', function () {
+    $field = Input::make('Secret', 'secret')->hideFromIndex()->showWhen(fn () => true);
+
+    expect($field->isShowOnIndex())->toBeFalse()
+        ->and($field->isShowOnDetail())->toBeTrue();
+});
+
+it('hands the request and the record to showWhen and hideWhen', function () {
+    $received = [];
+    $field = Input::make('Secret', 'secret')
+        ->hideWhen(function (...$args) use (&$received) {
+            $received['hide'] = $args;
+
+            return false;
+        })
+        ->showWhen(function (...$args) use (&$received) {
+            $received['show'] = $args;
+
+            return true;
+        });
+    $request = createNadotaRequest();
+
+    $field->isShowOnUpdate($request, 'record');
+
+    expect($received)->toBe(['hide' => [$request, 'record'], 'show' => [$request, 'record']]);
+});
+
+it('treats onlyWhen as an alias of showWhen', function () {
+    $field = Input::make('Admin', 'admin')->onlyWhen(fn ($request) => $request?->get('role') === 'admin');
+
+    expect($field->isShowOnIndex(createNadotaRequest(['role' => 'admin'])))->toBeTrue()
+        ->and($field->isShowOnIndex(createNadotaRequest(['role' => 'guest'])))->toBeFalse();
+});
+
+it('can be re-enabled for a context after an only* shortcut', function () {
+    $field = Input::make('Status', 'status')->onlyOnDetail()->showOnIndex();
+
+    expect($field->isShowOnIndex())->toBeTrue()
+        ->and($field->isShowOnCreation())->toBeFalse();
+});
+
+it('evaluates callbacks in toArray against the given model', function () {
+    $field = Input::make('Grade', 'grade')->showOnUpdate(fn ($request, $model) => $model?->name === 'Ana');
+
+    expect($field->toArray(createNadotaRequest(), createTestModel(['name' => 'Ana']))['showOnUpdate'])->toBeTrue()
+        ->and($field->toArray(createNadotaRequest(), createTestModel(['name' => 'Bob']))['showOnUpdate'])->toBeFalse();
+});

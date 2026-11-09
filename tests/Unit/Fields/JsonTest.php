@@ -135,3 +135,61 @@ it('can chain multiple settings', function () {
     expect($array['props']['indentSize'])->toBe(2);
     expect($array['props']['showLineNumbers'])->toBeTrue();
 });
+
+it('is rendered by the FieldJson component and hidden from index', function () {
+    $field = Json::make('Settings', 'settings');
+
+    expect($field->getComponent())->toBe('FieldJson')
+        ->and($field->isShowOnIndex(createNadotaRequest()))->toBeFalse()
+        ->and($field->toArray(createNadotaRequest())['props'])->toBe([
+            'prettyPrint' => true, 'editable' => true, 'indentSize' => 2, 'showLineNumbers' => false,
+        ]);
+});
+
+it('resolves null and scalars untouched', function () {
+    $model = new TestModel();
+
+    expect(Json::make('Meta', 'metadata')->resolve(createNadotaRequest(), $model, null))->toBeNull();
+
+    $model->age = 5;
+    expect(Json::make('Age', 'age')->resolve(createNadotaRequest(), $model, null))->toBe(5);
+});
+
+it('decodes a JSON string payload when filling an array cast attribute', function () {
+    $model = new TestModel();
+
+    Json::make('Meta', 'metadata')->fill(Request::create('/', 'POST', ['metadata' => '{"a":1}']), $model);
+
+    expect($model->metadata)->toBe(['a' => 1]);
+});
+
+it('keeps an array payload as is when filling', function () {
+    $model = new TestModel();
+
+    Json::make('Meta', 'metadata')->fill(Request::create('/', 'POST', ['metadata' => ['a' => 1]]), $model);
+
+    expect($model->metadata)->toBe(['a' => 1]);
+});
+
+it('leaves the attribute alone when the request does not carry it', function () {
+    $model = new TestModel();
+    $model->metadata = ['keep' => true];
+
+    Json::make('Meta', 'metadata')->fill(Request::create('/', 'POST', []), $model);
+
+    expect($model->metadata)->toBe(['keep' => true]);
+})->skip('ISSUE FLD-003: Json::fill() assigns $request->get() unconditionally, a missing key nulls the attribute');
+
+it('decodes a JSON string before storing it in an array cast column', function () {
+    $model = new TestModel(); // metadata is cast to array
+
+    $stored = Json::make('Meta', 'metadata')->resolveForStore(createNadotaRequest(), $model, null, '{"a":1}');
+
+    expect($stored)->toBe(['a' => 1]);
+})->skip('ISSUE FLD-003: store/update use resolveForStore() (raw string), Json::fill() never runs, the cast double encodes it');
+
+it('rejects malformed JSON', function () {
+    $validator = \Illuminate\Support\Facades\Validator::make(['settings' => '{oops'], ['settings' => Json::make('S', 'settings')->getRules()]);
+
+    expect($validator->fails())->toBeTrue();
+})->skip('ISSUE FLD-003: Json adds no json rule, malformed JSON is stored as a plain string');

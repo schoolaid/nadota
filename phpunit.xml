@@ -41,6 +41,8 @@
         </exclude>
     </source>
     <php>
+        <!-- ~3000 tests load PhpSpreadsheet & co. once each; peak is ~160 MB, above PHP's 128 MB default -->
+        <ini name="memory_limit" value="512M"/>
         <env name="APP_ENV" value="testing"/>
         <env name="APP_KEY" value="base64:2fl+Ktvkdphvz+KbKtFrb7f1mJB/KuNFr2jGFZ8bWGg="/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>

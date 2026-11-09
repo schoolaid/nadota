@@ -1,6 +1,7 @@
 <?php
 
 use SchoolAid\Nadota\Http\Fields\Toggle;
+use SchoolAid\Nadota\Tests\Models\TestModel;
 
 it('can be instantiated', function () {
     $field = Toggle::make('Is Active', 'is_active');
@@ -151,3 +152,45 @@ it('sends no labels unless they are set, so the frontend uses its own', function
     expect($props['trueLabel'])->toBeNull()
         ->and($props['falseLabel'])->toBeNull();
 });
+it('reports a boolean type rendered by the FieldToggle component', function () {
+    $field = Toggle::make('Active', 'is_active');
+
+    expect($field->getType())->toBe('boolean')
+        ->and($field->getComponent())->toBe('FieldToggle');
+});
+
+it('defaults to no labels and 1/0 values', function () {
+    expect(Toggle::make('Active', 'is_active')->toArray(createNadotaRequest())['props'])
+        ->toBe(['trueLabel' => null, 'falseLabel' => null, 'trueValue' => 1, 'falseValue' => 0]);
+});
+
+it('treats a value that is neither custom value by its truthiness', function () {
+    $field = Toggle::make('Status', 'status')->trueValue('active')->falseValue('inactive');
+
+    expect($field->resolve(createNadotaRequest(), createTestModel(['status' => 'archived']), null))->toBeTrue()
+        ->and($field->resolve(createNadotaRequest(), createTestModel(['status' => '']), null))->toBeFalse();
+});
+
+it('passes a real boolean through on store', function () {
+    $field = Toggle::make('Active', 'is_active');
+
+    expect($field->resolveForStore(createNadotaRequest(), new TestModel(), null, true))->toBeTrue()
+        ->and($field->resolveForUpdate(createNadotaRequest(), new TestModel(), null, false))->toBeFalse();
+});
+
+it('normalizes boolean-like strings before storing', function (mixed $input, mixed $expected) {
+    $field = Toggle::make('Active', 'is_active');
+
+    expect($field->resolveForStore(createNadotaRequest(), new TestModel(), null, $input))->toBe($expected);
+})->with([
+    'string false' => ['false', 0],
+    'string zero' => ['0', 0],
+    'string true' => ['true', 1],
+])->skip('ISSUE FLD-010: Toggle has no resolveForStore/Update, "false" is stored raw and reads back as true');
+
+it('stores the custom true and false values', function () {
+    $field = Toggle::make('Status', 'status')->trueValue('active')->falseValue('inactive');
+
+    expect($field->resolveForStore(createNadotaRequest(), new TestModel(), null, true))->toBe('active')
+        ->and($field->resolveForStore(createNadotaRequest(), new TestModel(), null, false))->toBe('inactive');
+})->skip('ISSUE FLD-010: Toggle never maps to trueValue()/falseValue() on store (Checkbox does)');

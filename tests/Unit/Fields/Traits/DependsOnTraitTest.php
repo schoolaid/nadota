@@ -443,3 +443,69 @@ it('works with all field types', function () {
         ->and($select->hasDependencies())->toBeTrue()
         ->and($number->hasDependencies())->toBeTrue();
 });
+
+// =========================================================================
+// SERIALISATION SHAPE
+// =========================================================================
+
+it('serialises the dependency fields as a JSON list after de-duplication', function () {
+    $field = Input::make('Result', 'result')
+        ->dependsOn('a')
+        ->dependsOn(['b', 'a', 'c']);
+
+    expect($field->getDependsOnFields())->toBe(['a', 'b', 'c'])
+        ->and(json_encode($field->getDependencyConfig()['fields']))->toBe('["a","b","c"]');
+})->skip('ISSUE TRT-010: array_unique() keeps the keys, fields becomes {"0":"a","1":"b","3":"c"}');
+
+it('serialises computeUsing() dependencies as a JSON list once reserved words are removed', function () {
+    $field = Number::make('Total', 'total')->computeUsing('round(price) * qty');
+
+    expect(json_encode($field->getDependencyConfig()['fields']))->toBe('["price","qty"]');
+});
+
+it('keeps cascadeFrom when an options endpoint is configured afterwards', function () {
+    $field = Select::make('District', 'district_id')
+        ->cascadeFrom('city_id')
+        ->optionsFromEndpoint('/api/districts', 'city_id');
+
+    expect($field->getDependencyConfig()['options'])->toMatchArray([
+        'cascadeFrom' => 'city_id',
+        'endpoint' => '/api/districts',
+    ]);
+})->skip('ISSUE TRT-011: setOptionsConfig() replaces the whole options array, dropping cascadeFrom');
+
+it('keeps the endpoint when cascadeFrom is configured afterwards', function () {
+    $field = Select::make('District', 'district_id')
+        ->optionsFromEndpoint('/api/districts', 'city_id')
+        ->cascadeFrom('city_id');
+
+    expect($field->getDependencyConfig()['options'])->toMatchArray([
+        'endpoint' => '/api/districts',
+        'cascadeFrom' => 'city_id',
+    ]);
+});
+
+it('sends an endpoint without a parameter field as nulls', function () {
+    $field = Select::make('City', 'city_id')->optionsFromEndpoint('/api/cities');
+
+    expect($field->hasDependencies())->toBeTrue()
+        ->and($field->getDependsOnFields())->toBe([])
+        ->and($field->getDependencyConfig()['options'])->toBe([
+            'endpoint' => '/api/cities',
+            'paramField' => null,
+            'paramName' => null,
+        ]);
+});
+
+it('drops clearOnChange and debounce when nothing is observed', function () {
+    $field = Input::make('Search', 'search')->clearOnDependencyChange()->debounce(300);
+
+    expect($field->hasDependencies())->toBeFalse()
+        ->and($field->getDependencyConfig())->toBe([]);
+});
+
+it('does not send debounce 0 or clearOnChange false', function () {
+    $field = Input::make('Search', 'search')->dependsOn('q')->debounce(0)->clearOnDependencyChange(false);
+
+    expect($field->getDependencyConfig())->toBe(['fields' => ['q']]);
+});
