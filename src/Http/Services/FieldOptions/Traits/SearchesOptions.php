@@ -199,11 +199,32 @@ trait SearchesOptions
                 continue;
             }
 
+            // Keys match exactly: a LIKE on id 5 also hit 15 and 51 (and the frontend resolves the
+            // label of a saved BelongsTo with filters[id]=<id>)
+            if ($this->isKeyColumn($query, $field)) {
+                $query->where($field, $value);
+                continue;
+            }
+
             // Handle standard search with like
             $query->where($field, 'like', '%' . $value . '%');
         }
 
         return $query;
+    }
+
+    /**
+     * Whether a filter column is the model key or a foreign key (`*_id`), which compare exactly.
+     *
+     * @param Builder $query
+     * @param string $field
+     * @return bool
+     */
+    protected function isKeyColumn(Builder $query, string $field): bool
+    {
+        $column = str_contains($field, '.') ? substr($field, strrpos($field, '.') + 1) : $field;
+
+        return $column === $query->getModel()->getKeyName() || str_ends_with($column, '_id');
     }
 
     /**
