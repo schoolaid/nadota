@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.1] - 2026-11-09
+
+### Added
+- `nadota.mcp.translation_prefixes`: groups the MCP tools try before the bare key when a resource title, field label or option label is a translation key the frontend resolves (SchoolAid keeps its panel keys under `global.`). Until now the agent got the raw key (`studentResource.fields.firstName`). The translation goes through the new `Mcp\Labels`, which also never hands a whole translation group over as a label. Default `[]`: nothing changes.
+
 ## [1.4.0] - 2026-11-09
 
 ### Added

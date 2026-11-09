@@ -77,6 +77,7 @@ In `config/nadota.php`:
     'forbidden_attributes' => ['merchant_id'],
     'default_currency' => 'USD',
     'descriptions' => [],
+    'translation_prefixes' => [],
 ],
 ```
 
@@ -110,6 +111,7 @@ Pass a user who sees every field (fields with `showWhen` are resolved for that u
 | Several lists in one app (a tenant server and a central one) | Bind your own `Mcp\Contracts\ResourceList`. |
 | A currency per tenant or per session | Bind your own `Mcp\Contracts\CurrencyResolver`. |
 | Another tool text | `nadota.mcp.descriptions.<tool name>`, or a subclass. |
+| Titles and labels that are translation keys of the frontend, kept in one group (`global.studentResource.title`) | `nadota.mcp.translation_prefixes` (`['global.']`): each prefix is tried before the bare key. Bind your own `Mcp\Labels` for anything else. |
 | An extra query argument (a branch office, say) | Subclass `QueryAdminResourceTool`: `extraSchema()`, `extraRules()`, and `beforeQuery()` to apply it or answer an error. |
 | Records keyed by text (a slug, a UUID) | Subclass `GetAdminRecordTool` with `usesStringIds()` returning true. |
 

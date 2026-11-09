@@ -43,8 +43,10 @@ class QueryCatalog
         DateFilter::class => 'date',
     ];
 
-    public function __construct(private readonly FieldTypes $types)
-    {
+    public function __construct(
+        private readonly FieldTypes $types,
+        private readonly Labels $labels,
+    ) {
     }
 
     /**
@@ -189,7 +191,7 @@ class QueryCatalog
 
         $fields = $listed->map(fn (Field $field): array => array_filter([
             'key' => $field->key(),
-            'label' => (string) __($field->getLabel()),
+            'label' => $this->labels->translate($field->getLabel()),
             'type' => $this->types->forColumn($exposed, $field),
             'sortable' => in_array($field->key(), $sortable, true),
             'onIndex' => $field->isShowOnIndex($request),
@@ -213,7 +215,7 @@ class QueryCatalog
         $filters = collect($this->filters($exposed, $request))
             ->map(fn (array $entry, string $key): array => array_filter([
                 'key' => $key,
-                'label' => (string) __($entry['filter']->name()),
+                'label' => $this->labels->translate((string) $entry['filter']->name()),
                 'kind' => $entry['kind'],
                 'options' => $this->types->of($entry['field']) === 'enum' ? $this->types->options($entry['field']) : null,
             ], $withoutNulls))
@@ -223,14 +225,14 @@ class QueryCatalog
         $searchFields = $this->searchable($exposed)
             ? $listed
                 ->filter(fn (Field $field): bool => in_array($field->getAttribute(), $resource->getSearchableAttributes(), true))
-                ->map(fn (Field $field): string => (string) __($field->getLabel()))
+                ->map(fn (Field $field): string => $this->labels->translate($field->getLabel()))
                 ->values()
                 ->all()
             : [];
 
         return [
             'key' => $exposed->key,
-            'title' => (string) __($resource->title()),
+            'title' => $this->labels->translate((string) $resource->title()),
             'fields' => $fields->all(),
             'filters' => $filters,
             'search' => ['enabled' => $this->searchable($exposed), 'fields' => $searchFields],

@@ -230,6 +230,8 @@ return [
     |   secrets that never leave the tools (password, api_key, …).
     | - default_currency: ISO code for 'default' money sources.
     | - descriptions: tool name => description, to replace a tool's text.
+    | - translation_prefixes: groups tried before the bare key when a title or
+    |   label is a translation key the frontend resolves (e.g. ['global.']).
     */
     'mcp' => [
         'resources' => [],
@@ -237,5 +239,6 @@ return [
         'forbidden_attributes' => [],
         'default_currency' => null,
         'descriptions' => [],
+        'translation_prefixes' => [],
     ],
 ];

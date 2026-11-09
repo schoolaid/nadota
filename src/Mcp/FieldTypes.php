@@ -16,6 +16,10 @@ use SchoolAid\Nadota\Http\Fields\Field;
  */
 class FieldTypes
 {
+    public function __construct(private readonly Labels $labels = new Labels)
+    {
+    }
+
     private const TYPES = [
         FieldType::TEXT->value => 'string',
         FieldType::TEXTAREA->value => 'string',
@@ -93,7 +97,7 @@ class FieldTypes
             ->filter(fn (mixed $option): bool => is_array($option) && array_key_exists('value', $option))
             ->map(fn (array $option): array => [
                 'value' => $option['value'],
-                'label' => (string) __((string) ($option['label'] ?? $option['value'])),
+                'label' => $this->labels->translate((string) ($option['label'] ?? $option['value'])),
             ])
             ->values()
             ->all();

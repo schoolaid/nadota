@@ -8,6 +8,7 @@ use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 use SchoolAid\Nadota\Mcp\ExposedResource;
+use SchoolAid\Nadota\Mcp\Labels;
 
 #[IsReadOnly]
 #[IsIdempotent]
@@ -36,7 +37,7 @@ class ListAdminResourcesTool extends NadotaTool
         return Response::json([
             'resources' => array_map(fn (ExposedResource $exposed): array => [
                 'key' => $exposed->key,
-                'title' => (string) __($exposed->resource->title()),
+                'title' => app(Labels::class)->translate((string) $exposed->resource->title()),
                 'searchable' => $exposed->search && $exposed->resource->isSearchable(),
             ], $visible),
         ]);
