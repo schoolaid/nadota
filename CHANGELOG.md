@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-11-09
+
+### Added
+- **MCP read tools** (`SchoolAid\Nadota\Mcp`, requires `laravel/mcp` ^0.5.9, now in `suggest`): `list-admin-resources`, `describe-admin-resource`, `query-admin-resource` and `get-admin-record`, ported from MarketAid's admin MCP server so every app that consumes Nadota shares one implementation. They read through Nadota's index pipes and show service, project records to `field => value` (raw `{amount, currency}` money, `{value, label}` enums, `{id, label}` to-one relations, ISO dates, text cut to 1,000 characters) and fail closed at four levels: the allowlist in the new `nadota.mcp.resources` config (empty by default), the `ExposureRule`s (`RequiresExplicitPolicy` always: a policy with `viewAny` and `view`; the app adds its own in `nadota.mcp.rules`), the Gate, and the field types (blobs, credentials, panel components and to-many relations are blocked in code, as is any attribute named like a secret: `password`, `api_key`, `two_factor_secret`… plus `nadota.mcp.forbidden_attributes`). A `Status` with options filters exactly, a BelongsTo filter compares the foreign key, ties break by primary key, and unknown filters or sort fields are an error instead of being ignored. `get-admin-record` eager loads only the relations of the fields that leave, not every detail relation nor `getWithOnShow()`, so a record does not load children or related data the projection drops. `ResourceListValidator` is the guard an app runs from one test. Extension points: `ResourceList` and `CurrencyResolver` bindings, `QueryAdminResourceTool::extraSchema()/extraRules()/beforeQuery()`, `GetAdminRecordTool::usesStringIds()`, and `nadota.mcp.descriptions`. Nothing changes for apps that do not register the tools. See [docs/guides/mcp.md](docs/guides/mcp.md).
+
+  **Config:** apps that published `config/nadota.php` must add the `mcp` key to use the tools (Laravel merges only top-level keys).
+- The dev environment runs on Laravel 12 (`orchestra/testbench` ^9|^10, `laravel/mcp` in `require-dev`). The runtime requirements are unchanged (`laravel/framework` ^11|^12).
+
 ## [1.3.0] - 2026-11-01
 
 ### Security

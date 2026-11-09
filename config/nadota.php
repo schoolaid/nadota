@@ -213,4 +213,29 @@ return [
         // Chunk size for processing large datasets
         'chunk_size' => env('NADOTA_EXPORT_CHUNK_SIZE', 500),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | MCP read tools (SchoolAid\Nadota\Mcp, requires laravel/mcp)
+    |--------------------------------------------------------------------------
+    | list-admin-resources, describe-admin-resource, query-admin-resource and
+    | get-admin-record. Everything fails closed: a resource outside `resources`
+    | does not exist for the tools, and a field outside an entry's `fields`
+    | never leaves them. See docs/guides/mcp.md.
+    |
+    | - resources: key => ['fields' => [...], 'money' => [...], 'search' => bool,
+    |   'hints' => [...]]. Empty: nothing is exposed.
+    | - rules: ExposureRule classes the app adds after RequiresExplicitPolicy.
+    | - forbidden_attributes: attribute names added to the built-in list of
+    |   secrets that never leave the tools (password, api_key, …).
+    | - default_currency: ISO code for 'default' money sources.
+    | - descriptions: tool name => description, to replace a tool's text.
+    */
+    'mcp' => [
+        'resources' => [],
+        'rules' => [],
+        'forbidden_attributes' => [],
+        'default_currency' => null,
+        'descriptions' => [],
+    ],
 ];
