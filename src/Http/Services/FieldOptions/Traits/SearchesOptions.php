@@ -203,6 +203,13 @@ trait SearchesOptions
             // label of a saved BelongsTo with filters[id]=<id>)
             if ($this->isKeyColumn($query, $field)) {
                 $query->where($field, $value);
+
+                // Por la clave del modelo el front busca la etiqueta del valor guardado: si ese
+                // registro está soft-deleted también tiene que venir (BelongsTo-6), o el edit lo
+                // muestra vacío. La búsqueda normal sigue sin los borrados.
+                if ($this->isPrimaryKeyColumn($query, $field) && method_exists($query->getModel(), 'bootSoftDeletes')) {
+                    $query->withTrashed();
+                }
                 continue;
             }
 
@@ -225,6 +232,20 @@ trait SearchesOptions
         $column = str_contains($field, '.') ? substr($field, strrpos($field, '.') + 1) : $field;
 
         return $column === $query->getModel()->getKeyName() || str_ends_with($column, '_id');
+    }
+
+    /**
+     * Whether a filter column is the model's primary key.
+     *
+     * @param Builder $query
+     * @param string $field
+     * @return bool
+     */
+    protected function isPrimaryKeyColumn(Builder $query, string $field): bool
+    {
+        $column = str_contains($field, '.') ? substr($field, strrpos($field, '.') + 1) : $field;
+
+        return $column === $query->getModel()->getKeyName();
     }
 
     /**

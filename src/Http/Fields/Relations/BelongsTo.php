@@ -4,6 +4,9 @@ namespace SchoolAid\Nadota\Http\Fields\Relations;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo as EloquentBelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo as EloquentMorphTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use SchoolAid\Nadota\Contracts\ResourceInterface;
@@ -166,6 +169,17 @@ class BelongsTo extends Field
 
         $relatedModel = $model->{$relationName};
 
+        // Relacionado soft-deleted (ver loadsTrashed): la carga anticipada del resource ya lo trae
+        // (ManagesRelationLoading), pero la perezosa o una restricción propia del resource no. Si la
+        // FK tiene valor y no llegó nada, se busca de nuevo con withTrashed.
+        if (!$relatedModel instanceof Model) {
+            $relation = $model->{$relationName}();
+            if (static::loadsTrashed($relation) && $model->getAttribute($relation->getForeignKeyName()) !== null) {
+                $relatedModel = $relation->withTrashed()->first();
+                $model->setRelation($relationName, $relatedModel);
+            }
+        }
+
         // Ensure we have a Model instance, not a scalar value (like FK id)
         if (!$relatedModel instanceof Model) {
             if ($this->hasDefault()) {
@@ -189,6 +203,20 @@ class BelongsTo extends Field
 
         // Otherwise, return basic formatting
         return $this->formatBasic($relatedModel);
+    }
+
+    /**
+     * Si la relación debe cargar también los registros soft-deleted.
+     *
+     * Un BelongsTo apunta a un solo registro: si está borrado (soft), el valor del field sigue siendo
+     * ese registro, con su `deletedAt`. Antes resolvía null y el form de edición mandaba la FK vacía,
+     * así que guardar la borraba. MorphTo queda fuera (sus tipos pueden no usar SoftDeletes).
+     */
+    public static function loadsTrashed(mixed $relation): bool
+    {
+        return $relation instanceof EloquentBelongsTo
+            && !$relation instanceof EloquentMorphTo
+            && in_array(SoftDeletes::class, class_uses_recursive($relation->getRelated()), true);
     }
 
     /**

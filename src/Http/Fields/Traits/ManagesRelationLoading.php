@@ -5,6 +5,7 @@ namespace SchoolAid\Nadota\Http\Fields\Traits;
 use Illuminate\Support\Collection;
 use SchoolAid\Nadota\Http\Fields\Count;
 use SchoolAid\Nadota\Http\Fields\Exists;
+use SchoolAid\Nadota\Http\Fields\Relations\BelongsTo;
 
 trait ManagesRelationLoading
 {
@@ -77,8 +78,15 @@ trait ManagesRelationLoading
 
         if ($columns !== null) {
             return [$relationName => function ($query) use ($field, $columns, $pivotColumns) {
+                // BelongsTo hacia un modelo con SoftDeletes: también el registro borrado, con su
+                // deleted_at (el valor lo expone como deletedAt). Ver BelongsTo::loadsTrashed.
+                if (BelongsTo::loadsTrashed($query)) {
+                    $query->withTrashed();
+                    $columns[] = $query->getRelated()->getDeletedAtColumn();
+                }
+
                 // Qualify columns with table name to avoid ambiguity with pivot table columns
-                $qualifiedColumns = $this->qualifyColumnsWithTable($query, $columns);
+                $qualifiedColumns = $this->qualifyColumnsWithTable($query, array_values(array_unique($columns)));
                 $query->select($qualifiedColumns);
 
                 // Apply pivot columns if the relation supports it
@@ -92,6 +100,10 @@ trait ManagesRelationLoading
 
         // null means select all columns, but still apply pivot if needed
         return [$relationName => function ($query) use ($field, $pivotColumns) {
+            if (BelongsTo::loadsTrashed($query)) {
+                $query->withTrashed();
+            }
+
             if (!empty($pivotColumns)) {
                 $query->withPivot($pivotColumns);
             }
