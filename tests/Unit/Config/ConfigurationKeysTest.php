@@ -57,19 +57,32 @@ function audConfigKeysReadBySrc(): array
         if ($file->getExtension() !== 'php') {
             continue;
         }
-        preg_match_all('/(?:config|safeConfig|Config::get)\(\s*[\'"]nadota\.([^\'"]+)[\'"]/', file_get_contents($file->getPathname()), $matches);
+        // Comments are dropped: docblocks mention keys (`config('nadota.mcp')`) they do not read.
+        $code = implode('', array_map(
+            fn ($token) => is_array($token) ? (in_array($token[0], [T_COMMENT, T_DOC_COMMENT], true) ? '' : $token[1]) : $token,
+            token_get_all(file_get_contents($file->getPathname())),
+        ));
+        preg_match_all('/(?:config|safeConfig|Config::get)\(\s*[\'"]nadota\.([^\'"]+)[\'"]/', $code, $matches);
         foreach ($matches[1] as $key) {
-            $keys[$key] = true;
+            // 'nadota.mcp.descriptions.'.$name: the concatenated tail is a dynamic segment.
+            $keys[str_ends_with($key, '.') ? $key . '{$concatenated}' : $key] = true;
         }
     }
 
     return array_keys($keys);
 }
 
-/** A key read as "nadota.filters.boolean.{$key}" matches any declared key in that position. */
+/**
+ * A key read as "nadota.filters.boolean.{$key}" matches any declared key in that position.
+ * When the dynamic segment is the last one it also matches the parent itself, so reading
+ * "nadota.mcp.descriptions.{$name}" counts as reading a declared empty `descriptions` map.
+ */
 function audConfigKeyMatches(string $readKey, string $declaredKey): bool
 {
     $pattern = preg_replace('/\\\\\{\\\\\$\w+\\\\\}/', '[A-Za-z0-9_]+', preg_quote($readKey, '/'));
+    if (preg_match('/^(.+)\.\{\$\w+\}$/', $readKey, $parent) && $parent[1] === $declaredKey) {
+        return true;
+    }
 
     return (bool) preg_match('/^' . $pattern . '$/', $declaredKey);
 }
