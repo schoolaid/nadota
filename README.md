@@ -93,7 +93,7 @@ Full walkthrough: [Quick Start](docs/getting-started/quick-start.md).
 Complete documentation lives in [`docs/`](docs/README.md):
 
 - **Getting Started** — [Installation](docs/getting-started/installation.md) · [Quick Start](docs/getting-started/quick-start.md) · [Configuration](docs/getting-started/configuration.md)
-- **Guides** — [Resources](docs/guides/resources.md) · [Authorization](docs/guides/authorization.md) · [Lifecycle Hooks](docs/guides/lifecycle-hooks.md) · [Actions](docs/guides/actions.md) · [Action Events](docs/guides/action-events.md) · [Attachments](docs/guides/attachments.md) · [Exports](docs/guides/exports.md) · [Soft Deletes](docs/guides/soft-deletes.md) · [Menu](docs/guides/menu.md)
+- **Guides** — [Resources](docs/guides/resources.md) · [Authorization](docs/guides/authorization.md) · [Lifecycle Hooks](docs/guides/lifecycle-hooks.md) · [Actions](docs/guides/actions.md) · [Action Events](docs/guides/action-events.md) · [Attachments](docs/guides/attachments.md) · [Exports](docs/guides/exports.md) · [Soft Deletes](docs/guides/soft-deletes.md) · [Menu](docs/guides/menu.md) · [MCP Read Tools](docs/guides/mcp.md)
 - **Fields** — [Overview](docs/fields/README.md) · [Basic](docs/fields/basic-fields.md) · [Relations](docs/fields/relation-fields.md) · [Dynamic](docs/fields/dynamic-fields.md) · [Depends On](docs/fields/depends-on.md) · [Custom](docs/fields/custom-fields.md)
 - **Filters** — [Overview](docs/filters/README.md) · [Built-in](docs/filters/built-in-filters.md) · [Morph](docs/filters/morph-filters.md)
 - **API** — [Overview](docs/api/README.md) · [Routes](docs/api/routes.md) · [Responses](docs/api/responses.md) · [Filtering](docs/api/filtering.md)

@@ -15,6 +15,10 @@ pest()->extend(\SchoolAid\Nadota\Tests\TestCase::class)
     ->use(\Illuminate\Foundation\Testing\RefreshDatabase::class)
     ->in('Feature', 'Unit', 'ServiceIntegration');
 
+pest()->extend(\SchoolAid\Nadota\Tests\Mcp\McpTestCase::class)
+    ->use(\Illuminate\Foundation\Testing\RefreshDatabase::class)
+    ->in('Mcp');
+
 /*
 |--------------------------------------------------------------------------
 | Expectations
@@ -64,4 +68,13 @@ function createNadotaRequest(array $data = []): \SchoolAid\Nadota\Http\Requests\
     $request = new \SchoolAid\Nadota\Http\Requests\NadotaRequest();
     $request->merge($data);
     return $request;
+}
+/**
+ * Calls an MCP read tool on the fixture server as $user.
+ *
+ * @param  array<string, mixed>  $arguments
+ */
+function mcpTool(\SchoolAid\Nadota\Tests\Mcp\Fixtures\McpUser $user, string $tool, array $arguments = []): \Laravel\Mcp\Server\Testing\TestResponse
+{
+    return \SchoolAid\Nadota\Tests\Mcp\Fixtures\McpTestServer::actingAs($user)->tool($tool, $arguments);
 }
