@@ -7,8 +7,9 @@ use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
 class Toggle extends Field
 {
     protected string $component = 'field-toggle';
-    protected string $trueLabel = 'On';
-    protected string $falseLabel = 'Off';
+    // Without labels the frontend shows its own translated yes/no (the old 'On'/'Off' were English)
+    protected ?string $trueLabel = null;
+    protected ?string $falseLabel = null;
     protected mixed $trueValue = 1;
     protected mixed $falseValue = 0;
 

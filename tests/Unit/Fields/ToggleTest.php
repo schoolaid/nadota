@@ -144,3 +144,10 @@ it('recognizes custom false values', function () {
     
     expect($value)->toBeFalse();
 });
+// The defaults were 'On'/'Off' in English: the panel showed them over its own translated yes/no.
+it('sends no labels unless they are set, so the frontend uses its own', function () {
+    $props = Toggle::make('Active', 'is_active')->toArray(createNadotaRequest())['props'];
+
+    expect($props['trueLabel'])->toBeNull()
+        ->and($props['falseLabel'])->toBeNull();
+});
