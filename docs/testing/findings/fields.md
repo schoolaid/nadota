@@ -56,6 +56,10 @@ the validated value, so the custom `fill()` of `Signature`, `KeyValue`, `Json`, 
 - **Severity:** high (readonly/hidden keys are a data-integrity/security promise the API does not keep). **Kind:** bug.
 
 ### FLD-003 — `Json`: a JSON string payload is double encoded; `fill()` is dead and nulls missing keys; no `json` rule
+- **Status:** ✅ fixed by `9e7292c` (2026-11-14). `Json::normalizeInput()` runs before validation through
+  `AbstractResourcePersistService::normalizeFieldInputs()`: valid text is decoded once, malformed text gets a
+  `validation.json` 422, and `Json::fill()` leaves the attribute alone when the key is absent. The four regression
+  tests are un-skipped. Root cause 2 (fields' `fill()` is not used by the persist service) is still open.
 - **Location:** `src/Http/Fields/Json.php:74-98`.
 - **Observed:** `POST meta='{"a":1}'` stores `"{\"a\":1}"` in the `array`-cast column (the string is
   json-encoded again by the cast); `GET` still shows `{a:1}` only because `Json::resolve()` decodes

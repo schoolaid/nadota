@@ -103,7 +103,7 @@ class StudentResource extends Resource
             BelongsTo::make('Grade', 'grade', GradeResource::class)->filterable(),
             HasOne::make('Profile', 'profile', StudentProfileResource::class),
             BelongsToMany::make('Courses', 'courses', CourseResource::class),
-            MorphMany::make('Notes', 'notes', NoteResource::class),
+            MorphMany::make('Notes', 'notes', NoteResource::class)->attachable(),
             MorphOne::make('Latest Note', 'latestNote', NoteResource::class),
             MorphToMany::make('Labels', 'labels', LabelResource::class),
             Count::make('Courses Count', 'courses'),

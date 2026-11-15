@@ -80,6 +80,21 @@ Functional audit documents: [../audit/menu.md](../audit/menu.md) ·
   when the closure throws (README, rule 8). The one existing negated `toThrow` uses `Exception::class`
   and is correct.
 
+### Follow-up 2026-11-14 — integration with the fixes of the field-audit session
+
+The suite was rebased onto the fixes published after the audit (CheckboxList, `filters[id]`, BelongsTo with a
+soft-deleted related record, HasMany/MorphMany attach opt-in, File `clear`, Json input).
+
+- **Closed:** FLD-003, OPS-001, OPS-025 (see the "Fixed since the audit" table in [ISSUES.md](./ISSUES.md)); their
+  skipped tests were removed from the skip list or rewritten to the new contract.
+- **Adapted to an intended behaviour change:** attach/detach on HasMany and MorphMany is now opt-in. The fixture fields
+  `Grade.students`, `Grade.notes` and `Student.notes` declare `->attachable()`, and the unit tests of `HasMany`,
+  `MorphMany` and `ManagesAttachments` assert the new default (off) next to the opted-in behaviour.
+- **New:** OPS-028 (low), found while testing the new attach rejection.
+- **Guard fix:** `ConfigurationKeysTest` ignores comments and understands concatenated keys
+  (`'nadota.mcp.descriptions.'.$name`), which the MCP release introduced.
+- Result: 2750 passed, 334 skipped (159 open issue IDs), 0 failed; every skipped test still fails without its skip.
+
 ---
 
 ## Pending (and why)

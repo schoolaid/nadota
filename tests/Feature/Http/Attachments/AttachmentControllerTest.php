@@ -80,19 +80,19 @@ describe('attachable', function () {
             ->and(collect($fromLabel->json('data'))->pluck('id')->all())->toBe([$this->ben->id]);
     });
 
-    it('lists HasMany children of other parents or of none, with attachable_limit meta', function () {
+    it('lists only HasMany children without a parent, with attachable_limit meta (OPS-025)', function () {
         $first = Grade::create(['name' => 'First']);
         $second = Grade::create(['name' => 'Second']);
         $this->ana->update(['grade_id' => $first->id]);
-        $this->ben->update(['grade_id' => $second->id]);
+        $this->ben->update(['grade_id' => $second->id]); // belongs to another grade: not offered
         $carla = Student::create(['name' => 'Carla']);
 
         $response = $this->getJson($this->apiUrl('grade', "{$first->id}/attachable/students"))
             ->assertOk()
             ->assertJsonPath('meta.attachable_limit', null);
 
-        expect(collect($response->json('data'))->pluck('id')->all())->toBe([$this->ben->id, $carla->id])
-            ->and($response->json('data.0'))->toBe(['id' => $this->ben->id, 'label' => 'Ben', 'meta' => []]);
+        expect(collect($response->json('data'))->pluck('id')->all())->toBe([$carla->id])
+            ->and($response->json('data.0'))->toBe(['id' => $carla->id, 'label' => 'Carla', 'meta' => []]);
     });
 
     it('lists MorphMany items not attached to this parent', function () {
@@ -102,7 +102,7 @@ describe('attachable', function () {
         $response = $this->getJson($this->apiUrl('student', "{$this->ana->id}/attachable/notes"))->assertOk();
 
         expect(collect($response->json('data'))->pluck('id')->all())->toBe([$loose->id]);
-    })->skip('ISSUE OPS-001: AttachmentController::getServiceForField() references FieldType::MORPH_TO_MANY, which does not exist; every MorphMany call is a 500');
+    });
 
     it('falls back to the default page size for a per_page below one', function () {
         $this->getJson($this->apiUrl('student', "{$this->ana->id}/attachable/courses?per_page=-1"))
@@ -204,10 +204,8 @@ describe('attach', function () {
             ]);
     });
 
-    it('attaches HasMany children by setting their foreign key, also moving them from another parent', function () {
+    it('attaches HasMany children without a parent by setting their foreign key', function () {
         $first = Grade::create(['name' => 'First']);
-        $second = Grade::create(['name' => 'Second']);
-        $this->ben->update(['grade_id' => $second->id]);
 
         $this->postJson($this->apiUrl('grade', "{$first->id}/attach/students"), ['items' => [$this->ana->id, $this->ben->id]])
             ->assertOk()
@@ -217,6 +215,28 @@ describe('attach', function () {
             ->and($this->ben->fresh()->grade_id)->toBe($first->id);
     });
 
+    it('refuses to move a HasMany child away from another parent and writes nothing (OPS-025)', function () {
+        $first = Grade::create(['name' => 'First']);
+        $second = Grade::create(['name' => 'Second']);
+        $this->ben->update(['grade_id' => $second->id]);
+
+        $response = $this->postJson($this->apiUrl('grade', "{$first->id}/attach/students"), ['items' => [$this->ana->id, $this->ben->id]])
+            ->assertStatus(422);
+
+        expect(array_map('intval', $response->json('rejected')))->toBe([$this->ben->id])
+            ->and($this->ana->fresh()->grade_id)->toBeNull()
+            ->and($this->ben->fresh()->grade_id)->toBe($second->id);
+    });
+
+    it('reports rejected ids with the same type as attached ids', function () {
+        $first = Grade::create(['name' => 'First']);
+        $this->ben->update(['grade_id' => Grade::create(['name' => 'Second'])->id]);
+
+        $this->postJson($this->apiUrl('grade', "{$first->id}/attach/students"), ['items' => [$this->ben->id]])
+            ->assertStatus(422)
+            ->assertJsonPath('rejected', [$this->ben->id]);
+    })->skip('ISSUE OPS-028: OwnedChildrenAttachmentService returns rejected ids as strings ("2") while attached ids are integers');
+
     it('attaches MorphMany children by setting the morph columns', function () {
         $note = Note::create(['body' => 'Loose']);
 
@@ -225,7 +245,7 @@ describe('attach', function () {
             ->assertJsonPath('attached', [$note->id]);
 
         expect($note->fresh()->only('notable_type', 'notable_id'))->toBe(['notable_type' => Student::class, 'notable_id' => $this->ana->id]);
-    })->skip('ISSUE OPS-001: AttachmentController::getServiceForField() references FieldType::MORPH_TO_MANY, which does not exist; every MorphMany call is a 500');
+    });
 
     it('enforces the attachable limit', function () {
         $this->ana->courses()->attach($this->math->id);

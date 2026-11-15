@@ -25,9 +25,9 @@ class GradeResource extends Resource
             Input::make('Name', 'name')->required()->sortable(),
             Number::make('Level', 'level')->sortable()->filterable(),
             BelongsTo::make('School', 'school', SchoolResource::class)->filterable(),
-            HasMany::make('Students', 'students', StudentResource::class),
+            HasMany::make('Students', 'students', StudentResource::class)->attachable(),
             HasOneThrough::make('First Student Profile', 'firstStudentProfile', StudentProfileResource::class),
-            MorphMany::make('Notes', 'notes', NoteResource::class),
+            MorphMany::make('Notes', 'notes', NoteResource::class)->attachable(),
         ];
     }
 }

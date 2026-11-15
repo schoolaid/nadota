@@ -1,9 +1,19 @@
 # Issues found during the 2026-11-02 test audit
 
-**197 issues** (24 high · 82 medium · 91 low), found while normalising and
-extending the test suite. **None of them were fixed** — `src/`, `config/` and
-`routes/` are untouched. They are here to be re-evaluated and fixed in later
-sessions.
+**198 issues** (24 high · 82 medium · 92 low), found while normalising and
+extending the test suite. The audit itself fixed none of them — `src/`, `config/`
+and `routes/` were left untouched. They are here to be re-evaluated and fixed in
+later sessions.
+
+**Fixed since the audit (3):**
+
+| ID | Fixed by | Regression tests |
+|----|----------|------------------|
+| [FLD-003](findings/fields.md) | `9e7292c` fix(json): el Json del form ya no se guarda encodado dos veces | `JsonTest`, `StudentFieldsRoundTripTest`, un-skipped |
+| [OPS-001](findings/ops.md) | `dfdb766` fix(has-many): agregar/quitar hijos en HasMany y MorphMany es opt-in y solo toma huérfanos | `AttachmentControllerTest` (MorphMany attach / attachable), un-skipped |
+| [OPS-025](findings/ops.md) | `dfdb766` (same commit) — attach is opt-in (`->attachable()`) and only adopts children without a parent unless `->reassignable()` | `AttachmentControllerTest` › "lists only HasMany children without a parent", "refuses to move a HasMany child away from another parent" |
+
+Found while checking those fixes: OPS-028 (low).
 
 How to read this file:
 
@@ -12,7 +22,7 @@ How to read this file:
   [core](findings/core.md) · [fields](findings/fields.md) · [relations](findings/relations.md) ·
   [filters](findings/filters.md) · [traits](findings/traits.md) · [http](findings/http.md) ·
   [ops](findings/ops.md) (options, attachments, actions, export routes) · [audit](findings/audit.md) (menu, exports, actions, configuration).
-- **160 of them have a regression test** that asserts the correct behaviour and is
+- **159 open issues have a regression test** that asserts the correct behaviour and is
   skipped with `->skip('ISSUE <ID>: …')`. Every skipped test was run once without
   its skip and failed for the stated reason. When you fix an issue, remove the
   skip and the test becomes the regression test:
@@ -30,7 +40,7 @@ How to read this file:
 - Several issues were found twice from different angles. The last column links
   them; fix them together.
 
-## Root causes (my reading of the 197 issues)
+## Root causes (my reading of the 197 issues found by the audit)
 
 Most issues are symptoms of a small number of structural problems. Fixing the
 cause closes several IDs at once.
@@ -107,7 +117,7 @@ cause closes several IDs at once.
 | [CORE-010](findings/core.md) | low | core | PHP 8.4 implicit-nullable parameters in filters | TRT-020, AUD-008 |
 | [FLD-001](findings/fields.md) | high | fields | `Signature::fill()` never runs on store/update: disk mode, `clear` and file replacement are broken through the API |  |
 | [FLD-002](findings/fields.md) | high | fields | `KeyValue::fill()` never runs: readonly/hidden keys can be overwritten, unknown keys kept, JSON strings double encoded |  |
-| [FLD-003](findings/fields.md) | medium | fields | `Json`: a JSON string payload is double encoded; `fill()` is dead and nulls missing keys; no `json` rule |  |
+| [FLD-003](findings/fields.md) | medium | fields | ✅ **Fixed** (`9e7292c`) — `Json`: a JSON string payload is double encoded; `fill()` is dead and nulls missing keys; no `json` rule |  |
 | [FLD-004](findings/fields.md) | medium | fields | `ArrayField::fill()` never runs: no casting, de-duplication or empty-item removal on store/update |  |
 | [FLD-005](findings/fields.md) | medium | fields | `ArrayField` item rules and `unique()` are not enforced by the backend |  |
 | [FLD-006](findings/fields.md) | medium | fields | `DynamicField::getRules()` is commented out by an unterminated docblock |  |
@@ -228,7 +238,7 @@ cause closes several IDs at once.
 | [HTTP-015](findings/http.md) | low | http | Documentation drift (docs/api, guides) against the behaviour |  |
 | [HTTP-016](findings/http.md) | low | http | Each index row rebuilds the resource's `fields()` |  |
 | [HTTP-017](findings/http.md) | low | http | The edit envelope always includes `id` |  |
-| [OPS-001](findings/ops.md) | high | ops | Every MorphMany attachment call is a 500 (`FieldType::MORPH_TO_MANY` does not exist) |  |
+| [OPS-001](findings/ops.md) | high | ops | ✅ **Fixed** (`dfdb766`) — Every MorphMany attachment call is a 500 (`FieldType::MORPH_TO_MANY` does not exist) |  |
 | [OPS-002](findings/ops.md) | low | ops | Attaching to a non-to-many field is a 500, not 422 |  |
 | [OPS-003](findings/ops.md) | high | ops | Pivot payload can override the pivot foreign key: attach/sync write rows for another parent |  |
 | [OPS-004](findings/ops.md) | medium | ops | Action fields are never validated | AUD-021 |
@@ -252,9 +262,10 @@ cause closes several IDs at once.
 | [OPS-022](findings/ops.md) | high | ops | The export endpoint does not check the `export` ability | AUD-013 |
 | [OPS-023](findings/ops.md) | low | ops | Documentation contradictions found while testing these routes |  |
 | [OPS-024](findings/ops.md) | medium | ops | Field options are authorized against the owning resource, never the related one |  |
-| [OPS-025](findings/ops.md) | medium | ops | HasMany / MorphMany attach moves children away from their current parent |  |
+| [OPS-025](findings/ops.md) | medium | ops | ✅ **Fixed** (`dfdb766`) — HasMany / MorphMany attach moves children away from their current parent |  |
 | [OPS-026](findings/ops.md) | low | ops | Global options endpoint is public and runs resource code for anonymous callers |  |
 | [OPS-027](findings/ops.md) | low | ops | Minor behaviours worth a decision (low, no fix required) |  |
+| [OPS-028](findings/ops.md) | low | ops | HasMany / MorphMany attach answers `rejected` ids as strings while `attached` ids are integers |  |
 | [AUD-001](findings/audit.md) | medium | audit | Resources sharing a title collapse into one menu item |  |
 | [AUD-002](findings/audit.md) | medium | audit | Top-level custom `MenuSection`s overwrite each other |  |
 | [AUD-003](findings/audit.md) | medium | audit | Section placement loses resources in three edge cases |  |

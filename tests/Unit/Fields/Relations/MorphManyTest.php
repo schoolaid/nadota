@@ -138,10 +138,22 @@ it('returns an empty paginated stub when paginated', function () {
 
 // --- props --------------------------------------------------------------
 
+it('offers no attach or detach until the field opts in with attachable()', function () {
+    $student = Student::create(['name' => 'Ana']);
+
+    $props = MorphMany::make('Notes', 'notes', NoteResource::class)
+        ->toArray(createNadotaRequest(), $student, new StudentResource())['props'];
+
+    expect($props['canAttach'])->toBeFalse()
+        ->and($props['canDetach'])->toBeFalse()
+        ->and($props)->not->toHaveKey('attachment')
+        ->and(array_keys($props['urls']))->toBe(['options']);
+});
+
 it('serializes inline configuration, urls and a polymorphic createContext', function () {
     $student = Student::create(['name' => 'Ana']);
 
-    $props = MorphMany::make('Notes', 'notes', NoteResource::class)->limit(5)->orderBy('created_at')
+    $props = MorphMany::make('Notes', 'notes', NoteResource::class)->attachable()->limit(5)->orderBy('created_at')
         ->toArray(createNadotaRequest(), $student, new StudentResource())['props'];
 
     expect($props)->toMatchArray([

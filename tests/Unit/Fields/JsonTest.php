@@ -178,18 +178,23 @@ it('leaves the attribute alone when the request does not carry it', function () 
     Json::make('Meta', 'metadata')->fill(Request::create('/', 'POST', []), $model);
 
     expect($model->metadata)->toBe(['keep' => true]);
-})->skip('ISSUE FLD-003: Json::fill() assigns $request->get() unconditionally, a missing key nulls the attribute');
+});
 
 it('decodes a JSON string before storing it in an array cast column', function () {
     $model = new TestModel(); // metadata is cast to array
+    $field = Json::make('Meta', 'metadata');
 
-    $stored = Json::make('Meta', 'metadata')->resolveForStore(createNadotaRequest(), $model, null, '{"a":1}');
+    // The persist service runs normalizeInput() on the request before validating and storing
+    $stored = $field->resolveForStore(createNadotaRequest(), $model, null, $field->normalizeInput('{"a":1}'));
 
     expect($stored)->toBe(['a' => 1]);
-})->skip('ISSUE FLD-003: store/update use resolveForStore() (raw string), Json::fill() never runs, the cast double encodes it');
+});
 
 it('rejects malformed JSON', function () {
-    $validator = \Illuminate\Support\Facades\Validator::make(['settings' => '{oops'], ['settings' => Json::make('S', 'settings')->getRules()]);
+    $field = Json::make('S', 'settings');
+    $value = $field->normalizeInput('{oops');
+
+    $validator = \Illuminate\Support\Facades\Validator::make(['settings' => $value], ['settings' => $field->getRules()]);
 
     expect($validator->fails())->toBeTrue();
-})->skip('ISSUE FLD-003: Json adds no json rule, malformed JSON is stored as a plain string');
+});

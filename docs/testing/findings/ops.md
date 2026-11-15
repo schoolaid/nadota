@@ -24,6 +24,8 @@ cosmetic, documentation.
 ---
 
 ### OPS-001 — Every MorphMany attachment call is a 500 (`FieldType::MORPH_TO_MANY` does not exist)
+- **Status:** ✅ fixed by `dfdb766` (2026-11-14); the two MorphMany attach / attachable tests are un-skipped. MorphMany
+  attach is now opt-in (`->attachable()`), like HasMany.
 - **Location:** `src/Http/Controllers/AttachmentController.php:238`, `getServiceForField()`.
 - **Observed:** the `match` arms are evaluated in order; for any field type other than `hasMany` or
   `belongsToMany` PHP reaches `FieldType::MORPH_TO_MANY->value` and throws
@@ -309,6 +311,12 @@ cosmetic, documentation.
 - **Severity:** medium if unintended. **Kind:** doubt.
 
 ### OPS-025 — HasMany / MorphMany attach moves children away from their current parent
+- **Status:** ✅ fixed by `dfdb766` (2026-11-14). Attach/detach on HasMany and MorphMany is off by default
+  (`->attachable()`); attach only adopts children without a parent (`->reassignable()` allows taking them from another
+  record); candidates go through the related resource's `optionsQuery()` plus `attachableQuery()`; an id outside them
+  rejects the whole request with 422 and `rejected: [ids]` without writing; detach is only offered when the owner
+  columns are nullable. Tests: `AttachmentControllerTest` › "lists only HasMany children without a parent", "refuses to
+  move a HasMany child away from another parent and writes nothing".
 - **Location:** `HasManyAttachmentService::getAttachableItems()/attach()` (`whereNull(fk)->orWhere(fk, '!=', parent)`);
   same in `MorphManyAttachmentService`. Related records are loaded with `$relatedClass::query()` (no target `getQuery()`).
 - **Observed:** `attachable` on `grade/1/students` lists students of other grades; attaching them re-parents them
@@ -341,3 +349,12 @@ cosmetic, documentation.
 - Export with `columns[]` that match no field streams a BOM, an empty header line and one empty line per record.
 - `getServiceForField()` keeps a `'morphedByMany'` arm that can never match (MorphedByMany reports `belongsToMany`).
 - **Kind:** doubt / cosmetic.
+
+### OPS-028 — HasMany / MorphMany attach answers `rejected` ids as strings
+- **Location:** `src/Http/Services/Attachments/OwnedChildrenAttachmentService.php:99` (introduced by `dfdb766`):
+  `array_diff()` over the requested ids and the candidates' keys cast to `(string)`.
+- **Observed:** `POST grade/1/attach/students {items:[2]}` for a student of another grade answers
+  `422 {"rejected":["2"]}`, while a successful attach answers `"attached":[2]`.
+- **Expected:** the same type in both lists (the ids as the model keys them), so a client can compare them with what it sent.
+- **Verified:** HTTP, `AttachmentControllerTest` › "reports rejected ids with the same type as attached ids" (skipped).
+- **Severity:** low. **Kind:** bug (response shape).

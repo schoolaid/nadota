@@ -225,6 +225,7 @@ it('serializes the inline configuration in props', function () {
     $grade = hasManyGradeWithStudents(['Ana']);
 
     $array = HasMany::make('Students', 'students', StudentResource::class)
+        ->attachable()
         ->limit(10)
         ->orderBy('name', 'asc')
         ->toArray(createNadotaRequest(), $grade, new GradeResource());
@@ -246,10 +247,22 @@ it('serializes the inline configuration in props', function () {
         ->and($array['value']['data'][0]['label'])->toBe('Ana');
 });
 
-it('builds options, attach and detach urls for an existing parent', function () {
+it('offers no attach or detach until the field opts in with attachable()', function () {
     $grade = Grade::create(['name' => 'G']);
 
     $props = HasMany::make('Students', 'students', StudentResource::class)
+        ->toArray(createNadotaRequest(), $grade, new GradeResource())['props'];
+
+    expect($props['canAttach'])->toBeFalse()
+        ->and($props['canDetach'])->toBeFalse()
+        ->and($props)->not->toHaveKey('attachment')
+        ->and(array_keys($props['urls']))->toBe(['options']);
+});
+
+it('builds options, attach and detach urls for an existing parent', function () {
+    $grade = Grade::create(['name' => 'G']);
+
+    $props = HasMany::make('Students', 'students', StudentResource::class)->attachable()
         ->toArray(createNadotaRequest(), $grade, new GradeResource())['props'];
 
     expect($props['urls'])->toBe([
@@ -301,7 +314,7 @@ it('drops attach urls when the parent policy denies attach and detach', function
     hasManyDenyAuthorization();
     $grade = Grade::create(['name' => 'G']);
 
-    $props = HasMany::make('Students', 'students', StudentResource::class)
+    $props = HasMany::make('Students', 'students', StudentResource::class)->attachable()
         ->toArray(createNadotaRequest(), $grade, new GradeResource())['props'];
 
     expect($props['canAttach'])->toBeFalse()

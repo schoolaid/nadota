@@ -254,7 +254,7 @@ it('decodes a JSON string sent to a Json field instead of double encoding it', f
     $id = $this->postJson($this->apiUrl('student'), roundTripStorePayload(['meta' => '{"a":1}']))->assertCreated()->json('data.id');
 
     expect(roundTripRawColumn($id, 'meta'))->toBe('{"a":1}');
-})->skip('ISSUE FLD-003: the raw JSON string is assigned to the array cast column and stored as "\"{\\\"a\\\":1}\""');
+});
 
 it('decodes a JSON string sent to a KeyValue field instead of double encoding it', function () {
     $student = Student::create(['name' => 'Ana']);
