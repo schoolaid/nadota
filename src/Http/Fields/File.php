@@ -14,6 +14,9 @@ use Symfony\Component\Mime\MimeTypes;
 
 class File extends Field
 {
+    /** Request value that removes the stored file (see fill()). */
+    public const CLEAR_VALUE = 'clear';
+
     protected array $acceptedTypes = [];
     protected ?int $maxSize = null; // in bytes
     protected ?string $disk = null;
@@ -498,6 +501,23 @@ class File extends Field
         }
 
         $requestAttribute = $this->getAttribute();
+
+        // Remove the stored file. Only the explicit value counts (the same one Signature takes): forms
+        // send an empty value when nothing was picked, and that must keep the file.
+        // The file is deleted once the save commits (see commitPendingFiles), like a replaced one.
+        if ($request->input($requestAttribute) === self::CLEAR_VALUE) {
+            $oldPath = $model->getOriginal($this->getAttribute());
+
+            if (!$this->isRequired(true)) {
+                if ($oldPath) {
+                    $this->pendingReplacedFiles[] = [$this->disk ?? config('filesystems.default', 'local'), $oldPath];
+                }
+
+                $model->{$this->getAttribute()} = null;
+            }
+
+            return;
+        }
 
         // Check if a file was uploaded
         if ($request->hasFile($requestAttribute) && $request->file($requestAttribute)) {

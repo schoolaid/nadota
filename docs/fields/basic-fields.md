@@ -517,6 +517,8 @@ Unless the field is `required()`, the rules also get `nullable`. On edit, the fo
 
 `Image` (`type: image`, component `FieldImage`) — extends `File`. Defaults to accepting `jpg, jpeg, png, gif, webp`, a 5 MB max size, and adds image preview, thumbnails, and dimension data on resolve. All `File` methods apply.
 
+To remove the stored file, submit the literal `clear` (`File::CLEAR_VALUE`) for the field: it sets the attribute to `null` and deletes the file once the save commits (through `deleteUsing()` when defined; a rolled-back save keeps it). A required field ignores it. An empty value, a missing key or the resolved value sent back keep the file untouched, because that is what forms send when nothing was picked or a picked file was dropped. `Image` inherits this.
+
 | Method | Description |
 | ------ | ----------- |
 | `maxImageDimensions(int $width, int $height)` | Max dimensions. |

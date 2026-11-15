@@ -34,6 +34,7 @@ Versions not listed below shipped without changelog entries; see the git tags fo
 - Attaching to or detaching from a `MorphMany` field threw `Undefined constant FieldType::MORPH_TO_MANY` (500): `AttachmentController::getServiceForField()` referenced an enum case that does not exist.
 - A `HasMany` field declared over a `morphMany` relation (host apps do this with `attachments`) offered every row of the related table and attach wrote only the id, leaving the row of another model pointing at a record of its own type. Such fields now have no attach/detach (no URLs, `422`).
 - Building a create form crashed when a HasMany/BelongsToMany attach check fell back to a policy `update($user, Model $model)` with no record: without a record `canAttach`/`canDetach` are now `false`.
+- A `File`/`Image` could not be removed once stored. Submitting the literal `clear` (`File::CLEAR_VALUE`, the same value `Signature` takes) nulls the attribute and deletes the file once the save commits — through `deleteUsing()` when defined; a rolled-back save keeps it. Ignored on a required field. Empty, missing or the resolved value sent back keep the file.
 
 ### Changed
 - **Behavior change — one-to-many attach/detach (`HasMany`, `MorphMany`) is now opt-in and stricter** (`AttachesOwnedChildren`, `OwnedChildrenAttachmentService`). Attaching writes the child's owner columns, so it used to let any user with `update` on the parent pull children out of any other record (e.g. a batch taking another batch's orders), and detaching a child with a `NOT NULL` foreign key was a 500. Now:
