@@ -5,7 +5,7 @@ extending the test suite. The audit itself fixed none of them — `src/`, `confi
 and `routes/` were left untouched. They are here to be re-evaluated and fixed in
 later sessions.
 
-**Fixed since the audit (8, plus REL-009 in part):**
+**Fixed since the audit (9, plus REL-009 and FLD-029 in part):**
 
 | ID | Fixed by | Regression tests |
 |----|----------|------------------|
@@ -18,6 +18,8 @@ later sessions.
 | [OPS-028](findings/ops.md) | `96fa4bf` — `rejected` ids come back as they were sent | `AttachmentControllerTest` › "reports rejected ids with the same type as attached ids", un-skipped |
 | [FLD-019](findings/fields.md) | `5bed5c0` — `withData()` runs once per serialization | `CustomComponentTest`, un-skipped |
 | [FLD-020](findings/fields.md) | `5bed5c0` (same commit) — `component()` changes the serialized component | `CustomComponentTest`, un-skipped |
+| [FLD-002](findings/fields.md) | `785ccae` fix(key-value): KeyValue::fill() corre al guardar (v1.5.0) | `StudentShowcaseRoundTripTest` › "protects readonly and hidden keys…", `StudentFieldsRoundTripTest` › "decodes a JSON string sent to a KeyValue field…", un-skipped |
+| [FLD-029](findings/fields.md) (part) | `28451c6` fix(time): valida que el valor sea una hora (v1.5.0), `c86ec9f` normalizes to `H:i:s` (v1.5.1) — a value that is not a time is rejected; `min()`/`max()` are still frontend-only | `TimeTest` › "validates the submitted value against the time limits" stays skipped, narrowed to the limits |
 
 Found while checking those fixes: OPS-028 (low), fixed since; and a regression of `3e462bc` (the
 MorphToMany/MorphedByMany attachable list answered 500), fixed by `96fa4bf` in the same push.
@@ -29,7 +31,7 @@ How to read this file:
   [core](findings/core.md) · [fields](findings/fields.md) · [relations](findings/relations.md) ·
   [filters](findings/filters.md) · [traits](findings/traits.md) · [http](findings/http.md) ·
   [ops](findings/ops.md) (options, attachments, actions, export routes) · [audit](findings/audit.md) (menu, exports, actions, configuration).
-- **154 open issues have a regression test** that asserts the correct behaviour and is
+- **153 open issues have a regression test** that asserts the correct behaviour and is
   skipped with `->skip('ISSUE <ID>: …')`. Every skipped test was run once without
   its skip and failed for the stated reason. When you fix an issue, remove the
   skip and the test becomes the regression test:
@@ -123,7 +125,7 @@ cause closes several IDs at once.
 | [CORE-009](findings/core.md) | low | core | `tests/ServiceIntegration/README.md` is stale |  |
 | [CORE-010](findings/core.md) | low | core | PHP 8.4 implicit-nullable parameters in filters | TRT-020, AUD-008 |
 | [FLD-001](findings/fields.md) | high | fields | `Signature::fill()` never runs on store/update: disk mode, `clear` and file replacement are broken through the API |  |
-| [FLD-002](findings/fields.md) | high | fields | `KeyValue::fill()` never runs: readonly/hidden keys can be overwritten, unknown keys kept, JSON strings double encoded |  |
+| [FLD-002](findings/fields.md) | high | fields | ✅ **Fixed** (`785ccae`) — `KeyValue::fill()` never runs: readonly/hidden keys can be overwritten, unknown keys kept, JSON strings double encoded |  |
 | [FLD-003](findings/fields.md) | medium | fields | ✅ **Fixed** (`9e7292c`) — `Json`: a JSON string payload is double encoded; `fill()` is dead and nulls missing keys; no `json` rule |  |
 | [FLD-004](findings/fields.md) | medium | fields | `ArrayField::fill()` never runs: no casting, de-duplication or empty-item removal on store/update |  |
 | [FLD-005](findings/fields.md) | medium | fields | `ArrayField` item rules and `unique()` are not enforced by the backend |  |
@@ -150,7 +152,7 @@ cause closes several IDs at once.
 | [FLD-026](findings/fields.md) | low | fields | `toBeFieldType` expectation in `tests/Pest.php` cannot work |  |
 | [FLD-027](findings/fields.md) | low | fields | `Signature` base64 detection and quality handling |  |
 | [FLD-028](findings/fields.md) | low | fields | `File`: a stored file can never be removed; dead helpers; original name lost (doubt) |  |
-| [FLD-029](findings/fields.md) | low | fields | `Time` has no validation or normalisation (doubt) |  |
+| [FLD-029](findings/fields.md) | low | fields | ◐ **Partly fixed** (`28451c6`, `c86ec9f`: the time shape is validated; `min()`/`max()` are not) — `Time` has no validation or normalisation (doubt) |  |
 | [FLD-030](findings/fields.md) | low | fields | `displayUsing()` does not make the field readonly nor take it off the forms |  |
 | [FLD-031](findings/fields.md) | low | fields | Dead code and unused state in field classes (low) |  |
 | [FLD-032](findings/fields.md) | low | fields | `Select::multiple()` decodes JSON on read but never encodes on store |  |

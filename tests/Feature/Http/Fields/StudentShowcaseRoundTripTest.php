@@ -233,7 +233,7 @@ it('protects readonly and hidden keys and drops unknown keys on update', functio
     ]))->assertOk();
 
     expect($student->fresh()->settings)->toBe(['theme' => 'dark', 'locale' => 'es', 'token' => 'secret']);
-})->skip('ISSUE FLD-002: KeyValue::fill() never runs on store/update, readonly/hidden keys are overwritten and unknown keys kept');
+});
 
 it('stores the array items and enforces the item count', function () {
     $id = $this->postJson(showcaseUrl(), showcasePayload(['skills' => ['a@school.test', 'b@school.test']]))->assertCreated()->json('data.id');

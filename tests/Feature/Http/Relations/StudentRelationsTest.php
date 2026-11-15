@@ -164,13 +164,18 @@ it('gives every relation field of the show payload a distinct, non-empty key', f
 })->skip('ISSUE REL-001: the MorphOne latestNote field is serialized with key ""');
 
 it('runs a bounded number of queries on show, whatever the number of related rows', function () {
+    // Student.notes is attachable: whether detach is offered comes from a per-process schema lookup
+    // (one per table, not per row). Flushing it before each request keeps the two counts comparable
+    // whatever test ran earlier in the process.
     $small = studentRelationsSeed();
+    MorphMany::flushOrphanableCache();
     DB::enableQueryLog();
     $this->getJson($this->apiUrl('student', (string) $small->id))->assertOk();
     $smallCount = count(DB::getQueryLog());
 
     DB::flushQueryLog();
     $large = studentRelationsSeed(extraRows: 6);
+    MorphMany::flushOrphanableCache();
     DB::flushQueryLog();
     $this->getJson($this->apiUrl('student', (string) $large->id))->assertOk();
     $largeCount = count(DB::getQueryLog());

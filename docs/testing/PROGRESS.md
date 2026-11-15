@@ -99,6 +99,23 @@ soft-deleted related record, HasMany/MorphMany attach opt-in, File `clear`, Json
   (ours without the skips, plus their tests).
 - Result: 2781 passed, 325 skipped (154 open issue IDs), 0 failed; every skipped test still fails without its skip.
 
+### Follow-up 2026-11-15 / 17 — v1.5.0 and v1.5.1 (`96fa4bf..1d95559`)
+
+Rebased onto the nine field fixes released as v1.5.0 (URL/Email/Time format rules, File required on edit, action
+events for uploads, Code over a JSON cast, create-form context, Toggle labels, empty RichText, KeyValue `fill()`).
+
+- **Closed:** FLD-002 (`785ccae`); both regression tests un-skipped. **Partly closed:** FLD-029 (`28451c6` validates the
+  time shape, `c86ec9f` in v1.5.1 normalizes it to `H:i:s`); its skipped test is narrowed to `min()`/`max()`, which
+  are still not enforced, and normalizes the input first as the persist service does.
+- **Kept both sides** of the five test files the two efforts had both written (`EmailTest`, `URLTest`, `TimeTest`,
+  `ToggleTest`, `RichTextTest`). Two of our expectations follow intended changes: Email puts its format rule last
+  (`['nullable', 'email']`) and Toggle sends no default labels.
+- **Flaky test fixed:** `StudentRelationsTest` › "runs a bounded number of queries on show…" compared two requests
+  of which only the first paid the once-per-process schema lookup that decides whether `Student.notes` (attachable
+  since the previous follow-up) offers detach. It flushes that cache before each request now.
+- Result: 2853 passed, 323 skipped (153 open issue IDs), 0 failed on three random seeds; every skipped test still fails
+  without its skip.
+
 ---
 
 ## Pending (and why)
@@ -143,7 +160,7 @@ Consolidated from the areas; each item's detail is in that area's progress file.
 3. **Keep the two guard tests green** (`FixtureResourcesUseEveryFieldTest`, the route dataset in
    `ResourceAuthorizationTest`): they turn "add a field / route" into "add a fixture and a test".
 4. **When fixing an issue, un-skip its tests in the same commit** (`grep -rn "ISSUE <ID>" tests`).
-   Open issues that still have a skipped test (160 today):
+   Open issues that still have a skipped test (153 on 2026-11-15):
    `grep -rhoE "ISSUE [A-Z]+-[0-9]+" tests | sort -u | wc -l`.
 5. Align `phpunit.xml` and `phpunit.xml.dist` (bootstrap file, exclusions, display flags still
    differ) and decide which one is canonical.

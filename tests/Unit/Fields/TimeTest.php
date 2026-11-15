@@ -115,10 +115,11 @@ it('stores the submitted value as is', function () {
     expect(Time::make('Time', 'name')->resolveForStore(createNadotaRequest(), new TestModel(), null, '23:59'))->toBe('23:59');
 });
 
-it('validates the submitted value against the time format and limits', function () {
-    $rules = ['t' => Time::make('Time', 't')->format('H:i')->min('08:00')->max('17:00')->getRules()];
+it('validates the submitted value against the time limits', function () {
+    $field = Time::make('Time', 't')->format('H:i')->min('08:00')->max('17:00');
+    $passes = fn (string $value) => Validator::make(['t' => $field->normalizeInput($value)], ['t' => $field->getRules()])->passes();
 
-    expect(Validator::make(['t' => 'later'], $rules)->fails())->toBeTrue()
-        ->and(Validator::make(['t' => '07:59'], $rules)->fails())->toBeTrue()
-        ->and(Validator::make(['t' => '09:15'], $rules)->passes())->toBeTrue();
-})->skip('ISSUE FLD-029: Time adds no date_format/limit rule, format/min/max/step are only frontend props');
+    expect($passes('07:59'))->toBeFalse()
+        ->and($passes('17:01'))->toBeFalse()
+        ->and($passes('09:15'))->toBeTrue();
+})->skip('ISSUE FLD-029: min()/max() are only frontend props, no limit rule (the time shape is validated since 28451c6/c86ec9f)');

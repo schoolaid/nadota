@@ -262,7 +262,7 @@ it('decodes a JSON string sent to a KeyValue field instead of double encoding it
     $this->putJson($this->apiUrl('student', (string) $student->id), ['name' => 'Ana', 'settings' => '{"theme":"dark"}'])->assertOk();
 
     expect(roundTripRawColumn($student->id, 'settings'))->toBe('{"theme":"dark"}');
-})->skip('ISSUE FLD-002: KeyValue::fill() never runs on store/update, the JSON string is double encoded by the array cast');
+});
 
 it('stores "false" sent by a form to a Toggle as false', function () {
     $student = Student::create(['name' => 'Ana', 'is_active' => true]);

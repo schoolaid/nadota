@@ -54,6 +54,8 @@ the validated value, so the custom `fill()` of `Signature`, `KeyValue`, `Json`, 
   `StudentFieldsRoundTripTest` › "decodes a JSON string sent to a KeyValue field…" (skipped).
   `KeyValueTest` covers `fill()` called directly (passing).
 - **Severity:** high (readonly/hidden keys are a data-integrity/security promise the API does not keep). **Kind:** bug.
+- **Status:** ✅ fixed by `785ccae` (v1.5.0): `KeyValue` implements `FillableFieldInterface`, so `fill()` runs on store and
+  update. Both regression tests are un-skipped.
 
 ### FLD-003 — `Json`: a JSON string payload is double encoded; `fill()` is dead and nulls missing keys; no `json` rule
 - **Status:** ✅ fixed by `9e7292c` (2026-11-14). `Json::normalizeInput()` runs before validation through
@@ -328,8 +330,12 @@ the validated value, so the custom `fill()` of `Signature`, `KeyValue`, `Json`, 
 - **Observed:** `format`, `min`, `max`, `step` are props only; any string is stored (`'later'`), a
   `'08:30'` string column is returned as is although the format is `H:i:s`.
 - **Expected:** `date_format:{format}` and limit rules, or document it as a frontend-only widget.
-- **Verified:** `TimeTest` › "validates the submitted value against the time format and limits" (skipped).
+- **Verified:** `TimeTest` › "validates the submitted value against the time limits" (skipped).
 - **Severity:** low. **Kind:** doubt.
+- **Status:** ◐ partly fixed by `28451c6` (v1.5.0) and `c86ec9f` (v1.5.1): `normalizeInput()` turns `8:00`/`08:00` into
+  `08:00:00` and `date_format:H:i:s` is appended to the rules, so a value that is not a time gets a 422 instead of
+  reaching the column. The rule does not follow `format()`, and `min()`/`max()` are still not enforced; the skipped
+  test now asserts only the limits.
 
 ### FLD-030 — `displayUsing()` does not make the field readonly nor take it off the forms
 - **Location:** `src/Http/Fields/Field.php:548-568` (docblock: "also marks the field as computed
