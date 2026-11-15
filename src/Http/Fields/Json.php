@@ -11,6 +11,11 @@ class Json extends Field
     protected ?int $indentSize = 2;
     protected bool $showLineNumbers = false;
 
+    /**
+     * Set by normalizeInput() when the submitted text is not valid JSON.
+     */
+    protected bool $invalidJsonInput = false;
+
     public function __construct(string $name, string $attribute)
     {
         parent::__construct($name, $attribute, FieldType::JSON->value, static::safeConfig('nadota.fields.json.component', 'FieldJson'));
@@ -71,29 +76,99 @@ class Json extends Field
         return $value;
     }
 
+    /**
+     * Fill outside the persist service (which goes through normalizeInput() and resolveForStore()).
+     */
     public function fill(\Illuminate\Http\Request $request, \Illuminate\Database\Eloquent\Model $model): void
     {
-        $value = $request->get($this->getAttribute());
-
-        // Handle JSON string input
-        if (is_string($value)) {
-            // Try to decode to validate JSON
-            $decoded = json_decode($value, true);
-            if (json_last_error() === JSON_ERROR_NONE) {
-                // Store as JSON string if the model casts to json
-                $casts = $model->getCasts();
-                if (isset($casts[$this->getAttribute()]) && in_array($casts[$this->getAttribute()], ['json', 'array', 'object', 'collection'])) {
-                    $model->{$this->getAttribute()} = $decoded;
-                } else {
-                    $model->{$this->getAttribute()} = $value;
-                }
-            } else {
-                // Invalid JSON, store as is or handle error
-                $model->{$this->getAttribute()} = $value;
-            }
-        } else {
-            // Already an array/object
-            $model->{$this->getAttribute()} = $value;
+        if (!$request->exists($this->getAttribute())) {
+            return;
         }
+
+        $model->{$this->getAttribute()} = $this->toStoredValue($model, $this->normalizeInput($request->get($this->getAttribute())));
+    }
+
+    /**
+     * The form sends the JSON as text (multipart). Decode it before validation, so the rules
+     * (and data-aware rules of other fields, e.g. `settings.allow_http`) see the structure the
+     * model will store. Empty text is null; text that is not JSON stays as is and fails the
+     * validation added by getRules().
+     */
+    public function normalizeInput(mixed $value): mixed
+    {
+        $this->invalidJsonInput = false;
+
+        if (!is_string($value)) {
+            return $value;
+        }
+
+        if (trim($value) === '') {
+            return null;
+        }
+
+        try {
+            return json_decode($value, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            $this->invalidJsonInput = true;
+
+            return $value;
+        }
+    }
+
+    public function getRules(): array
+    {
+        $rules = parent::getRules();
+
+        // Only after normalizeInput() saw text that is not JSON (it runs before validation), so
+        // the rules sent to the frontend stay plain strings.
+        if ($this->invalidJsonInput) {
+            $rules[] = static function (string $attribute, mixed $value, \Closure $fail): void {
+                $fail('validation.json')->translate();
+            };
+        }
+
+        return $rules;
+    }
+
+    public function resolveForStore(\Illuminate\Http\Request $request, \Illuminate\Database\Eloquent\Model $model, ?\SchoolAid\Nadota\Contracts\ResourceInterface $resource, $value): mixed
+    {
+        return $this->toStoredValue($model, parent::resolveForStore($request, $model, $resource, $value));
+    }
+
+    public function resolveForUpdate(\Illuminate\Http\Request $request, \Illuminate\Database\Eloquent\Model $model, ?\SchoolAid\Nadota\Contracts\ResourceInterface $resource, $value): mixed
+    {
+        return $this->toStoredValue($model, parent::resolveForUpdate($request, $model, $resource, $value));
+    }
+
+    /**
+     * The decoded value for a JSON-cast attribute (the cast encodes it once); JSON text for a
+     * plain column.
+     */
+    protected function toStoredValue(\Illuminate\Database\Eloquent\Model $model, mixed $value): mixed
+    {
+        if ($value === null || $this->modelCastsAttributeToJson($model)) {
+            return $value;
+        }
+
+        return json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
+
+    protected function modelCastsAttributeToJson(\Illuminate\Database\Eloquent\Model $model): bool
+    {
+        $cast = $model->getCasts()[$this->getAttribute()] ?? null;
+
+        if (!is_string($cast)) {
+            return false;
+        }
+
+        // `encrypted:array` is one cast; `AsCollection:Foo` is the class plus an argument.
+        $base = explode(':', $cast, 2)[0];
+        $base = $base === 'encrypted' ? $cast : $base;
+
+        return in_array(strtolower($base), ['array', 'json', 'object', 'collection', 'encrypted:array', 'encrypted:json', 'encrypted:object', 'encrypted:collection'], true)
+            || is_a($base, \Illuminate\Database\Eloquent\Casts\AsArrayObject::class, true)
+            || is_a($base, \Illuminate\Database\Eloquent\Casts\AsCollection::class, true)
+            || is_a($base, \Illuminate\Database\Eloquent\Casts\AsEncryptedArrayObject::class, true)
+            || is_a($base, \Illuminate\Database\Eloquent\Casts\AsEncryptedCollection::class, true);
     }
 }

@@ -102,8 +102,8 @@ it('fills model with json data', function () {
 
     $field->fill($request, $model);
 
-    // Since TestModel doesn't cast settings to json, it should store as string
-    expect($model->settings)->toBe('{"theme": "dark", "notifications": true}');
+    // TestModel doesn't cast settings to json: the text is decoded and stored as JSON text again
+    expect($model->settings)->toBe('{"theme":"dark","notifications":true}');
 });
 
 it('handles invalid json gracefully', function () {

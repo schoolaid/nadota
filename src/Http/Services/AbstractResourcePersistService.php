@@ -48,6 +48,8 @@ abstract class AbstractResourcePersistService
 
         $this->normalizeEmptyArrayInputs($fields, $request);
 
+        $this->normalizeFieldInputs($fields, $request);
+
         $rules = $this->buildValidationRules($fields, $this->isUpdate() ? $model : null);
 
         $validator = Validator::make($request->all(), $rules, $this->buildValidationMessages($fields));
@@ -125,6 +127,29 @@ abstract class AbstractResourcePersistService
 
             if ($request->input($attribute) === '[]') {
                 $request->merge([$attribute => $field->emptyArrayInputValue()]);
+            }
+        }
+    }
+
+    /**
+     * Let fields turn what the form sends into the value they store, before validation, so the
+     * rules see that value (e.g. Json decodes its text). Only for inputs present in the request.
+     *
+     * @param Collection $fields
+     * @param NadotaRequest $request
+     * @return void
+     */
+    protected function normalizeFieldInputs(Collection $fields, NadotaRequest $request): void
+    {
+        foreach ($fields as $field) {
+            if (! method_exists($field, 'normalizeInput')) {
+                continue;
+            }
+
+            $attribute = $field->getAttribute();
+
+            if ($request->exists($attribute)) {
+                $request->merge([$attribute => $field->normalizeInput($request->input($attribute))]);
             }
         }
     }

@@ -380,7 +380,13 @@ Code::make('Snippet', 'snippet')->php()->wordWrap();
 
 ## Json
 
-`Json` (`type: json`, component `FieldJson`). JSON editor; hidden from the index by default. `resolve()` decodes JSON strings to arrays; `fill()` stores arrays when the model casts the attribute, otherwise a JSON string.
+`Json` (`type: json`, component `FieldJson`). JSON editor; hidden from the index by default. `resolve()` decodes JSON strings to arrays.
+
+On store/update the form sends the JSON as text. Before validation the field decodes it (`normalizeInput()`, called by the persist service), so the rules — and data-aware rules of other fields, e.g. one reading `settings.allow_http` — see the decoded value:
+
+- empty text is `null` (so `required` still applies);
+- text that is not JSON fails validation (`validation.json`) and nothing is written;
+- the decoded value is stored once: as is when the model casts the attribute to `array`/`json`/`object`/`collection` (or their encrypted / `AsArrayObject` / `AsCollection` variants), otherwise as JSON text.
 
 | Method | Description |
 | ------ | ----------- |
