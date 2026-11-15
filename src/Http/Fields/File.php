@@ -261,6 +261,37 @@ class File extends Field
     }
 
     /**
+     * On update a required file keeps the stored one: the form sends the saved value back or nothing
+     * when the file is not replaced, and fill() keeps the stored file in both cases. `required` would
+     * reject that (and the upload rules the saved value), so every edit would have to upload the file
+     * again. Only a new upload replaces it; `clear` still cannot empty it (see isClearable()).
+     */
+    public function getRulesFor(bool $isUpdate): array
+    {
+        $rules = parent::getRulesFor($isUpdate);
+
+        if (!$isUpdate || !in_array('required', $rules, true)) {
+            return $rules;
+        }
+
+        // array_filter, not array_diff: a rule can be a Closure
+        $rules = array_values(array_filter($rules, fn ($rule) => $rule !== 'required'));
+
+        return in_array('nullable', $rules, true) ? $rules : ['nullable', ...$rules];
+    }
+
+    /**
+     * Whether `clear` may remove the stored file: not when the field is required on update. Read from
+     * the declared rules, before getRulesFor() relaxes `required` for the stored file.
+     */
+    public function isClearable(): bool
+    {
+        $rules = parent::getRulesFor(true);
+
+        return !in_array('required', $rules, true) || in_array('nullable', $rules, true);
+    }
+
+    /**
      * Rules applied to the uploaded file itself.
      */
     protected function getUploadRules(): array
@@ -489,6 +520,8 @@ class File extends Field
             'signUrl' => $this->signUrl,
             'storedAsUrl' => $this->storedAsUrl,
             'cacheUrl' => $this->cacheUrl,
+            // Whether the form may offer to remove the stored file (`clear`)
+            'clearable' => $this->isClearable(),
         ]);
     }
 
@@ -506,7 +539,7 @@ class File extends Field
      */
     public function normalizeInput(mixed $value): mixed
     {
-        $this->clearRequested = $value === self::CLEAR_VALUE && !$this->isRequired(true);
+        $this->clearRequested = $value === self::CLEAR_VALUE && $this->isClearable();
 
         return $value;
     }
@@ -526,7 +559,7 @@ class File extends Field
         if ($request->input($requestAttribute) === self::CLEAR_VALUE) {
             $oldPath = $model->getOriginal($this->getAttribute());
 
-            if (!$this->isRequired(true)) {
+            if ($this->isClearable()) {
                 if ($oldPath) {
                     $this->pendingReplacedFiles[] = [$this->disk ?? config('filesystems.default', 'local'), $oldPath];
                 }

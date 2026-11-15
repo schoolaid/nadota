@@ -333,8 +333,25 @@ class ActionEventService
     /**
      * Sanitize fields to remove sensitive data
      */
+    /**
+     * An uploaded file cannot be stored as JSON (the whole event failed to save): keep its name and size.
+     */
+    protected function describeUploads(array $fields): array
+    {
+        foreach ($fields as $key => $value) {
+            if ($value instanceof \Illuminate\Http\UploadedFile) {
+                $fields[$key] = ['file' => $value->getClientOriginalName(), 'size' => $value->getSize()];
+            } elseif (is_array($value)) {
+                $fields[$key] = $this->describeUploads($value);
+            }
+        }
+
+        return $fields;
+    }
+
     protected function sanitizeFields(array $fields): array
     {
+        $fields = $this->describeUploads($fields);
         $sensitiveKeys = $this->getSensitiveKeys();
 
         foreach ($fields as $key => $value) {

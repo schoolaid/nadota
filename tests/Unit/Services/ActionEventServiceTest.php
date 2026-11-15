@@ -156,6 +156,24 @@ it('redacts sensitive keys from the fields array', function () {
         ->and($event->fields['api_key'])->toBe('***REDACTED***');
 });
 
+// With an uploaded file in the request, encoding `fields` failed ("Type is not supported"): the
+// event was not stored and only an error was logged, so every save that uploaded a file was lost.
+it('records an uploaded file in fields by its name and size', function () {
+    $model = TestModel::create(['name' => 'John', 'email' => 'john@test.com']);
+    $upload = \Illuminate\Http\UploadedFile::fake()->create('contrato.pdf', 12, 'application/pdf');
+
+    $event = $this->service->logUpdate($model, $this->resource, $this->request, [
+        'name' => 'John',
+        'doc' => $upload,
+        'gallery' => [$upload],
+    ]);
+
+    expect($event->exists)->toBeTrue()
+        ->and($event->fresh()->fields['doc'])->toBe(['file' => 'contrato.pdf', 'size' => 12288])
+        ->and($event->fresh()->fields['gallery'][0])->toBe(['file' => 'contrato.pdf', 'size' => 12288])
+        ->and($event->fresh()->fields['name'])->toBe('John');
+});
+
 it('redacts sensitive keys from original and changes data', function () {
     $model = TestModel::create(['name' => 'Test']);
     $originalData = ['name' => 'Test', 'password' => 'old_password', 'token' => 'abc'];
