@@ -87,3 +87,25 @@ it('serializes to array correctly', function () {
         ->toHaveKey('filterable', true)
         ->toHaveKey('searchable', true);
 });
+/** @return array<int, string> */
+function emailErrors(Email $field, mixed $value, bool $isUpdate = false): array
+{
+    return \Illuminate\Support\Facades\Validator::make(['email' => $value], ['email' => $field->getRulesFor($isUpdate)])
+        ->errors()->get('email');
+}
+
+// Same as URL: `email` went before `required`, and an optional email could not be cleared.
+it('reports only required when a required email is left empty', function () {
+    $field = Email::make('Email', 'email')->required();
+
+    expect(emailErrors($field, null))->toHaveCount(1)
+        ->and($field->getRules())->toBe(['required', 'email']);
+});
+
+it('lets an optional email be left empty', function (mixed $empty) {
+    expect(emailErrors(Email::make('Email', 'email'), $empty))->toBe([]);
+})->with([null, '']);
+
+it('does not add email when the field declares its own', function () {
+    expect(Email::make('Email', 'email')->required()->rules(['email:rfc'])->getRules())->toBe(['required', 'email:rfc']);
+});
