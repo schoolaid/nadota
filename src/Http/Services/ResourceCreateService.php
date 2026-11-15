@@ -12,6 +12,12 @@ class ResourceCreateService implements ResourceCreateInterface
     {
         $request->authorized('create');
 
+        // The create form comes from this endpoint without `action`: serialize the fields in the
+        // store context, so creationRules() reach `required` and `rules` (Field::toArray()).
+        if (!$request->has('action')) {
+            $request->merge(['action' => 'create']);
+        }
+
         $resource = $request->getResource();
 
         $fields = $resource->fieldsForForm($request);
