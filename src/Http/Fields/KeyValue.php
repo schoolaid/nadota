@@ -7,7 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 use SchoolAid\Nadota\Contracts\ResourceInterface;
 use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
 
-class KeyValue extends Field
+/**
+ * Implements FillableFieldInterface so the persist service calls fill() (FLD-002): without it the input
+ * was assigned as is (an emptied form's '{}' stored as the string "{}", readonly and hidden keys
+ * overwritable, keys outside the schema kept).
+ */
+class KeyValue extends Field implements \SchoolAid\Nadota\Http\Fields\Contracts\FillableFieldInterface
 {
     /**
      * The key-value pairs schema
@@ -259,6 +264,13 @@ class KeyValue extends Field
         }
 
         $requestAttribute = $this->getAttribute();
+
+        // A request without the key (a partial update, a field hidden by a dependency) keeps the
+        // stored pairs, as the generic fill did; only an explicit empty value clears them.
+        if (!$request->exists($requestAttribute)) {
+            return;
+        }
+
         $data = $request->get($requestAttribute);
         $isNullable = in_array('nullable', $this->rules);
 
