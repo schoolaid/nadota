@@ -2,7 +2,10 @@
 
 namespace SchoolAid\Nadota\Http\Fields;
 
+use Illuminate\Database\Eloquent\Model;
+use SchoolAid\Nadota\Contracts\ResourceInterface;
 use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
+use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 
 class CustomComponent extends Field
 {
@@ -25,6 +28,14 @@ class CustomComponent extends Field
      */
     protected string $position = 'inside';
 
+    /**
+     * withData() result of the serialization in progress, as [model, data]. The same data goes out
+     * as `value`, `props.data` and `props.componentData`; it is computed once per toArray().
+     */
+    private ?array $serializedData = null;
+
+    private bool $serializing = false;
+
     public function __construct(string $name, string $componentPath)
     {
         // Use a dummy attribute since this field doesn't map to a database column
@@ -45,7 +56,9 @@ class CustomComponent extends Field
     public function component(string $path): static
     {
         $this->componentPath = $path;
-        return $this;
+
+        // Keep the top-level `component` in sync with `props.componentPath`.
+        return parent::component($path);
     }
 
     /**
@@ -130,9 +143,9 @@ class CustomComponent extends Field
         // Add any additional component props
         $props['componentProps'] = $this->componentProps;
 
-        // If there's a data callback, execute it and add the result
+        // The data callback's result (computed once per serialization, see evaluateDataCallback())
         if ($this->dataCallback !== null && $model !== null) {
-            $props['componentData'] = call_user_func($this->dataCallback, $model, $resource);
+            $props['componentData'] = $this->evaluateDataCallback($model, $resource);
         }
 
         return $props;
@@ -145,10 +158,41 @@ class CustomComponent extends Field
     {
         // Return null or component data if the callback is defined
         if ($this->dataCallback !== null) {
-            return call_user_func($this->dataCallback, $model, $resource);
+            return $this->evaluateDataCallback($model, $resource);
         }
 
         return null;
+    }
+
+    public function toArray(NadotaRequest $request, ?Model $model = null, ?ResourceInterface $resource = null): array
+    {
+        $this->serializing = true;
+
+        try {
+            return parent::toArray($request, $model, $resource);
+        } finally {
+            $this->serializing = false;
+            $this->serializedData = null;
+        }
+    }
+
+    /**
+     * Within one toArray() the callback runs once for `props.data`, `props.componentData` and
+     * `value`; outside of it (export, a direct resolve()) every call runs it again.
+     */
+    protected function evaluateDataCallback(Model $model, ?ResourceInterface $resource): mixed
+    {
+        if ($this->serializedData !== null && $this->serializedData[0] === $model) {
+            return $this->serializedData[1];
+        }
+
+        $data = parent::evaluateDataCallback($model, $resource);
+
+        if ($this->serializing) {
+            $this->serializedData = [$model, $data];
+        }
+
+        return $data;
     }
 
     public function shouldSkipFill(): bool

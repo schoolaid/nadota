@@ -213,6 +213,15 @@ abstract class Field implements FieldInterface
         return $this;
     }
 
+    /**
+     * Run the withData() callback for a model. Fields that expose the result under more than one
+     * key override this to compute it once (see CustomComponent).
+     */
+    protected function evaluateDataCallback(Model $model, ?ResourceInterface $resource): mixed
+    {
+        return call_user_func($this->dataCallback, $model, $resource);
+    }
+
     protected function getProps(Request $request, ?Model $model, ?ResourceInterface $resource): array
     {
         $props = [];
@@ -234,7 +243,7 @@ abstract class Field implements FieldInterface
         }
 
         if ($this->dataCallback !== null && $model !== null) {
-            $props['data'] = call_user_func($this->dataCallback, $model, $resource);
+            $props['data'] = $this->evaluateDataCallback($model, $resource);
         }
 
         // Custom field properties
