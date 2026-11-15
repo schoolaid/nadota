@@ -145,7 +145,7 @@ describe('to-many options', function () {
             ->assertJsonPath('meta.fieldType', 'belongsToMany');
 
         expect(fieldOptionsControllerValues($response))->toBe([$art->id]);
-    })->skip('ISSUE OPS-006: resourceId auto-exclusion plucks an unqualified id, ambiguous with the pivot id column, and silently excludes nothing');
+    });
 
     it('lists every BelongsToMany option without resourceId', function () {
         $student = Student::create(['name' => 'Ana']);
@@ -166,7 +166,7 @@ describe('to-many options', function () {
         $response = $this->getJson($this->apiUrl('student', "field/labels/options?resourceId={$student->id}"))->assertOk();
 
         expect(collect($response->json('options'))->pluck('label')->all())->toBe(['Blue']);
-    })->skip('ISSUE OPS-006: resourceId auto-exclusion plucks an unqualified id, ambiguous with the pivot id column, and silently excludes nothing');
+    });
 
     it('lists MorphedByMany options from the inverse side', function () {
         $label = Label::create(['name' => 'Red']);
@@ -177,7 +177,7 @@ describe('to-many options', function () {
         $response = $this->getJson($this->apiUrl('label', "field/students/options?resourceId={$label->id}"))->assertOk();
 
         expect(fieldOptionsControllerValues($response))->toBe([$ben->id]);
-    })->skip('ISSUE OPS-006: resourceId auto-exclusion plucks an unqualified id, ambiguous with the pivot id column, and silently excludes nothing');
+    });
 });
 
 describe('morph-options', function () {
@@ -312,7 +312,7 @@ describe('paginated options', function () {
         $response = $this->getJson($this->apiUrl('student', "field/courses/options/paginated?resourceId={$student->id}"))->assertOk();
 
         expect(collect($response->json('data'))->pluck('value')->all())->toBe([$art->id]);
-    })->skip('ISSUE OPS-006: resourceId auto-exclusion plucks an unqualified id, ambiguous with the pivot id column, and silently excludes nothing');
+    });
 
     it('caps per_page at 100', function () {
         DB::table('fx_grades')->insert(array_map(fn ($i) => ['name' => "G{$i}", 'level' => 1], range(1, 105)));

@@ -234,6 +234,7 @@ the validated value, so the custom `fill()` of `Signature`, `KeyValue`, `Json`, 
 - **Severity:** low. **Kind:** bug.
 
 ### FLD-019 — `CustomComponent` runs its `withData()` callback three times per serialization
+- **Status:** ✅ fixed by `5bed5c0`; the regression tests are un-skipped.
 - **Location:** `src/Http/Fields/CustomComponent.php:120-152` + `Field::getProps()` (`Field.php:236-238`).
 - **Observed:** the same callback fills `props.data`, `props.componentData` and `value` (3 calls per row);
   costly or side-effecting callbacks run three times and the payload carries the data three times.
@@ -242,6 +243,7 @@ the validated value, so the custom `fill()` of `Signature`, `KeyValue`, `Json`, 
 - **Severity:** low. **Kind:** bug.
 
 ### FLD-020 — `CustomComponent::component()` does not change the serialized component
+- **Status:** ✅ fixed by `5bed5c0`; the regression tests are un-skipped.
 - **Location:** `src/Http/Fields/CustomComponent.php:45-49` (overrides `FieldDataAccessorsTrait::component()`).
 - **Observed:** after `->component('NewChart')`, `props.componentPath` is `NewChart` but the top-level
   `component` keeps the constructor path. The derived attribute (`custom_component_` + lower-cased

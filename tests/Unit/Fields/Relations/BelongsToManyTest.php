@@ -272,7 +272,7 @@ it('serializes metadata, pivot props and the resolved value', function () {
         ->and($array['value']['data'][0]['label'])->toBe('Laravel');
 });
 
-it('builds options, attach, sync and detach urls for an existing parent', function () {
+it('builds options, attachable, attach, sync and detach urls for an existing parent', function () {
     $student = Student::create(['name' => 'Ana']);
 
     $props = BelongsToMany::make('Courses', 'courses', CourseResource::class)
@@ -280,6 +280,7 @@ it('builds options, attach, sync and detach urls for an existing parent', functi
 
     expect($props['urls'])->toBe([
         'options' => "/nadota-api/student/resource/field/courses/options?resourceId={$student->id}",
+        'attachable' => "/nadota-api/student/resource/{$student->id}/attachable/courses",
         'attach' => "/nadota-api/student/resource/{$student->id}/attach/courses",
         'sync' => "/nadota-api/student/resource/{$student->id}/sync/courses",
         'detach' => "/nadota-api/student/resource/{$student->id}/detach/courses",

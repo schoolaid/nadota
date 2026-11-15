@@ -173,7 +173,7 @@ describe('attach', function () {
             ->assertStatus(422);
 
         expect(DB::table('fx_course_student')->count())->toBe(0);
-    })->skip('ISSUE OPS-005: attach inserts a pivot row for a related id that does not exist (dangling row, 200 count=1)');
+    });
 
     it('writes the pivot row for the parent of the URL, whatever the pivot payload says', function (array $pivot) {
         $this->postJson($this->apiUrl('student', "{$this->ana->id}/attach/courses"), [
@@ -235,7 +235,7 @@ describe('attach', function () {
         $this->postJson($this->apiUrl('grade', "{$first->id}/attach/students"), ['items' => [$this->ben->id]])
             ->assertStatus(422)
             ->assertJsonPath('rejected', [$this->ben->id]);
-    })->skip('ISSUE OPS-028: OwnedChildrenAttachmentService returns rejected ids as strings ("2") while attached ids are integers');
+    });
 
     it('attaches MorphMany children by setting the morph columns', function () {
         $note = Note::create(['body' => 'Loose']);

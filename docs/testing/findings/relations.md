@@ -117,6 +117,8 @@ Related core findings: CORE-001 (api prefix keys used to build relation URLs), C
 - **Severity:** low · **Kind:** bug
 
 ### REL-009 — Validation of empty-attribute relation fields never reaches the request key
+- **Status:** ◐ partly fixed by `3e462bc`: `BelongsToMany` checks the submitted ids against its candidates and answers
+  422 under the field key (test un-skipped). Rules keyed by `""` (so `required()` never passes) are still open.
 - **Location:** `src/Http/Services/Traits/ProcessesFields.php:75` keys rules by `$field->getAttribute()`, which is
   `''` for `HasMany`, `BelongsToMany`, `MorphToMany`, … (their request key is the relation name);
   `BelongsToMany.php:919` / `MorphToMany.php:677` sync from `$request->input()` (unvalidated).

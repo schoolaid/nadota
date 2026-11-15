@@ -85,6 +85,8 @@ cosmetic, documentation.
 - **Severity:** medium (any client can run destructive actions without the inputs they require). **Kind:** bug / doc contradiction.
 
 ### OPS-005 — Attaching an id that matches no related record inserts a dangling pivot row
+- **Status:** ✅ fixed by `3e462bc`: attach/sync answer 422 with `rejected` and write nothing; test un-skipped.
+  MorphToMany/MorphedByMany still do not validate the ids (they do not use `candidatesQuery()`).
 - **Location:** `BelongsToManyAttachmentService::attach()` — `items` are only diffed against the attached ids,
   never checked against the related table.
 - **Observed:** `POST /student/resource/1/attach/courses {"items":[999]}` → `200 attached:[999], count:1` and a
@@ -95,6 +97,7 @@ cosmetic, documentation.
 - **Severity:** medium (data integrity). **Kind:** bug.
 
 ### OPS-006 — `resourceId` auto-exclusion silently does nothing when the pivot table has an `id` column
+- **Status:** ✅ fixed by `3e462bc` (`FieldOptionsService::getAttachedIds()` plucks the qualified column); tests un-skipped.
 - **Location:** `src/Http/Services/FieldOptionsService.php::getAttachedIds()` (line ~604):
   `$model->{$relationName}()->pluck($relatedKeyName)`.
 - **Observed:** for BelongsToMany / MorphToMany / MorphedByMany the pluck runs
@@ -351,6 +354,7 @@ cosmetic, documentation.
 - **Kind:** doubt / cosmetic.
 
 ### OPS-028 — HasMany / MorphMany attach answers `rejected` ids as strings
+- **Status:** ✅ fixed by `96fa4bf` (also in `BelongsToMany::rejectedIds()`); test un-skipped.
 - **Location:** `src/Http/Services/Attachments/OwnedChildrenAttachmentService.php:99` (introduced by `dfdb766`):
   `array_diff()` over the requested ids and the candidates' keys cast to `(string)`.
 - **Observed:** `POST grade/1/attach/students {items:[2]}` for a student of another grade answers

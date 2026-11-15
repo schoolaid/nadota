@@ -374,4 +374,4 @@ it('rejects course ids that do not exist instead of attaching them', function ()
     $this->postJson($this->apiUrl('rel-student'), ['name' => 'Ana', 'courses' => [999]])->assertUnprocessable();
 
     expect(DB::table('fx_course_student')->count())->toBe(0);
-})->skip('ISSUE REL-009: pivot sync reads the raw request (no exists check) and field rules never reach the "courses" key');
+});

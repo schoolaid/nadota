@@ -5,15 +5,22 @@ extending the test suite. The audit itself fixed none of them — `src/`, `confi
 and `routes/` were left untouched. They are here to be re-evaluated and fixed in
 later sessions.
 
-**Fixed since the audit (3):**
+**Fixed since the audit (8, plus REL-009 in part):**
 
 | ID | Fixed by | Regression tests |
 |----|----------|------------------|
 | [FLD-003](findings/fields.md) | `9e7292c` fix(json): el Json del form ya no se guarda encodado dos veces | `JsonTest`, `StudentFieldsRoundTripTest`, un-skipped |
 | [OPS-001](findings/ops.md) | `dfdb766` fix(has-many): agregar/quitar hijos en HasMany y MorphMany es opt-in y solo toma huérfanos | `AttachmentControllerTest` (MorphMany attach / attachable), un-skipped |
 | [OPS-025](findings/ops.md) | `dfdb766` (same commit) — attach is opt-in (`->attachable()`) and only adopts children without a parent unless `->reassignable()` | `AttachmentControllerTest` › "lists only HasMany children without a parent", "refuses to move a HasMany child away from another parent" |
+| [OPS-005](findings/ops.md) | `3e462bc` fix(belongs-to-many): el form y attach/sync validan los ids y el edit trae la lista entera | `AttachmentControllerTest` › "refuses ids that do not belong to any related record", un-skipped |
+| [OPS-006](findings/ops.md) | `3e462bc` (same commit) — `getAttachedIds()` plucks the qualified column | `FieldOptionsControllerTest` (4 auto-exclusion tests), un-skipped |
+| [REL-009](findings/relations.md) (part) | `3e462bc` (same commit) — form ids are checked against the candidates; `required()` on an empty-attribute field still never passes | `StudentRelationsTest` › "rejects course ids that do not exist", un-skipped; the `required()` test stays skipped |
+| [OPS-028](findings/ops.md) | `96fa4bf` — `rejected` ids come back as they were sent | `AttachmentControllerTest` › "reports rejected ids with the same type as attached ids", un-skipped |
+| [FLD-019](findings/fields.md) | `5bed5c0` — `withData()` runs once per serialization | `CustomComponentTest`, un-skipped |
+| [FLD-020](findings/fields.md) | `5bed5c0` (same commit) — `component()` changes the serialized component | `CustomComponentTest`, un-skipped |
 
-Found while checking those fixes: OPS-028 (low).
+Found while checking those fixes: OPS-028 (low), fixed since; and a regression of `3e462bc` (the
+MorphToMany/MorphedByMany attachable list answered 500), fixed by `96fa4bf` in the same push.
 
 How to read this file:
 
@@ -22,7 +29,7 @@ How to read this file:
   [core](findings/core.md) · [fields](findings/fields.md) · [relations](findings/relations.md) ·
   [filters](findings/filters.md) · [traits](findings/traits.md) · [http](findings/http.md) ·
   [ops](findings/ops.md) (options, attachments, actions, export routes) · [audit](findings/audit.md) (menu, exports, actions, configuration).
-- **159 open issues have a regression test** that asserts the correct behaviour and is
+- **154 open issues have a regression test** that asserts the correct behaviour and is
   skipped with `->skip('ISSUE <ID>: …')`. Every skipped test was run once without
   its skip and failed for the stated reason. When you fix an issue, remove the
   skip and the test becomes the regression test:
@@ -133,8 +140,8 @@ cause closes several IDs at once.
 | [FLD-016](findings/fields.md) | medium | fields | `MultiImage::maxFiles()` only limits one request; the stored list grows without bound |  |
 | [FLD-017](findings/fields.md) | medium | fields | `KeyValue` per-key rules (`schema[...]['rules']`, `keyRules()`) are never applied |  |
 | [FLD-018](findings/fields.md) | low | fields | Every `ArrayField` reports itself as sortable |  |
-| [FLD-019](findings/fields.md) | low | fields | `CustomComponent` runs its `withData()` callback three times per serialization |  |
-| [FLD-020](findings/fields.md) | low | fields | `CustomComponent::component()` does not change the serialized component |  |
+| [FLD-019](findings/fields.md) | low | fields | ✅ **Fixed** (`5bed5c0`) — `CustomComponent` runs its `withData()` callback three times per serialization |  |
+| [FLD-020](findings/fields.md) | low | fields | ✅ **Fixed** (`5bed5c0`) — `CustomComponent::component()` does not change the serialized component |  |
 | [FLD-021](findings/fields.md) | low | fields | `DateTime` with a custom display format stores the current time of day and rolls invalid dates over |  |
 | [FLD-022](findings/fields.md) | low | fields | `VariableText` validation gaps |  |
 | [FLD-023](findings/fields.md) | low | fields | Option fields accept values outside their options |  |
@@ -156,7 +163,7 @@ cause closes several IDs at once.
 | [REL-006](findings/relations.md) | medium | relations | Through relations select an intermediate-table column from the far table |  |
 | [REL-007](findings/relations.md) | low | relations | `MorphTo::resolveForExport()` labels the target with the parent resource |  |
 | [REL-008](findings/relations.md) | low | relations | Export of `HasManyThrough`, `HasOneThrough`, `MorphOne`, `MorphedByMany` |  |
-| [REL-009](findings/relations.md) | medium | relations | Validation of empty-attribute relation fields never reaches the request key |  |
+| [REL-009](findings/relations.md) | medium | relations | ◐ **Partly fixed** (`3e462bc`: ids are validated; `required()` still broken) — Validation of empty-attribute relation fields never reaches the request key |  |
 | [REL-010](findings/relations.md) | medium | relations | Sorting the index by a `BelongsTo` drops `Count`/`Exists` columns |  |
 | [REL-011](findings/relations.md) | medium | relations | Unknown morph type on store is a 500, not a validation error |  |
 | [REL-012](findings/relations.md) | low | relations | Attach/create affordances are not gated consistently across relation fields |  |
@@ -242,8 +249,8 @@ cause closes several IDs at once.
 | [OPS-002](findings/ops.md) | low | ops | Attaching to a non-to-many field is a 500, not 422 |  |
 | [OPS-003](findings/ops.md) | high | ops | Pivot payload can override the pivot foreign key: attach/sync write rows for another parent |  |
 | [OPS-004](findings/ops.md) | medium | ops | Action fields are never validated | AUD-021 |
-| [OPS-005](findings/ops.md) | medium | ops | Attaching an id that matches no related record inserts a dangling pivot row |  |
-| [OPS-006](findings/ops.md) | medium | ops | `resourceId` auto-exclusion silently does nothing when the pivot table has an `id` column |  |
+| [OPS-005](findings/ops.md) | medium | ops | ✅ **Fixed** (`3e462bc`) — Attaching an id that matches no related record inserts a dangling pivot row |  |
+| [OPS-006](findings/ops.md) | medium | ops | ✅ **Fixed** (`3e462bc`) — `resourceId` auto-exclusion silently does nothing when the pivot table has an `id` column |  |
 | [OPS-007](findings/ops.md) | high | ops | Options `filters[]` accept any column and operator: oracle on hidden columns |  |
 | [OPS-008](findings/ops.md) | high | ops | Field options ignore the target resource's `getQuery()` |  |
 | [OPS-009](findings/ops.md) | high | ops | Denying `viewAny` never protects options when the policy has no `viewOptions()` |  |
@@ -265,7 +272,7 @@ cause closes several IDs at once.
 | [OPS-025](findings/ops.md) | medium | ops | ✅ **Fixed** (`dfdb766`) — HasMany / MorphMany attach moves children away from their current parent |  |
 | [OPS-026](findings/ops.md) | low | ops | Global options endpoint is public and runs resource code for anonymous callers |  |
 | [OPS-027](findings/ops.md) | low | ops | Minor behaviours worth a decision (low, no fix required) |  |
-| [OPS-028](findings/ops.md) | low | ops | HasMany / MorphMany attach answers `rejected` ids as strings while `attached` ids are integers |  |
+| [OPS-028](findings/ops.md) | low | ops | ✅ **Fixed** (`96fa4bf`) — HasMany / MorphMany attach answers `rejected` ids as strings while `attached` ids are integers |  |
 | [AUD-001](findings/audit.md) | medium | audit | Resources sharing a title collapse into one menu item |  |
 | [AUD-002](findings/audit.md) | medium | audit | Top-level custom `MenuSection`s overwrite each other |  |
 | [AUD-003](findings/audit.md) | medium | audit | Section placement loses resources in three edge cases |  |
