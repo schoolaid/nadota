@@ -971,7 +971,8 @@ class BelongsToMany extends Field
      */
     public function rejectedIds(Request $request, Model $model, array $ids): array
     {
-        $ids = array_values(array_unique(array_map('strval', array_filter($ids, fn ($id) => is_numeric($id) || is_string($id)))));
+        $sent = array_filter($ids, fn ($id) => is_numeric($id) || is_string($id));
+        $ids = array_values(array_unique(array_map('strval', $sent)));
 
         if (empty($ids)) {
             return [];
@@ -990,7 +991,14 @@ class BelongsToMany extends Field
             ->map(fn ($id) => (string) $id)
             ->all();
 
-        return array_values(array_diff($ids, $attached, $candidates));
+        $rejected = array_diff($ids, $attached, $candidates);
+
+        // Compared as strings, returned as the client sent them (an int stays an int).
+        return collect($sent)
+            ->unique(fn ($id) => (string) $id)
+            ->filter(fn ($id) => in_array((string) $id, $rejected, true))
+            ->values()
+            ->all();
     }
 
     /**

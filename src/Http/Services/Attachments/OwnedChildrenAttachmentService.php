@@ -96,7 +96,7 @@ abstract class OwnedChildrenAttachmentService extends AbstractAttachmentService
             ->whereIn($qualifiedKey, $items)
             ->get();
 
-        $rejected = array_values(array_diff($items, $alreadyAttached, $children->map(fn (Model $child) => (string) $child->getKey())->all()));
+        $rejected = $this->asSent($request, array_diff($items, $alreadyAttached, $children->map(fn (Model $child) => (string) $child->getKey())->all()));
 
         if (!empty($rejected)) {
             return $this->errorResponse('Some items cannot be attached: they belong to another record or are not available', 422, [
@@ -226,6 +226,21 @@ abstract class OwnedChildrenAttachmentService extends AbstractAttachmentService
     protected function requestedIds(NadotaRequest $request): array
     {
         return array_values(array_unique(array_map('strval', $this->getItemsFromRequest($request) ?? [])));
+    }
+
+    /**
+     * The ids are compared as strings; the response gives them back as the client sent them, so
+     * `rejected` has the same type as `attached`.
+     *
+     * @param  array<int, string>  $ids
+     */
+    protected function asSent(NadotaRequest $request, array $ids): array
+    {
+        return collect($this->getItemsFromRequest($request) ?? [])
+            ->unique(fn ($id) => (string) $id)
+            ->filter(fn ($id) => in_array((string) $id, $ids, true))
+            ->values()
+            ->all();
     }
 
     /**

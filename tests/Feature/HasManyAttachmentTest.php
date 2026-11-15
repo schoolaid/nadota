@@ -127,7 +127,7 @@ it('does not take a child from another parent, nor offer it', function () {
     // One bad id rejects the whole request: the orphan is not attached either
     $response = attachEndpoint('attach', $this->user, $this->parent, 'relatedModels', [$orphan->id, $foreign->id]);
     expect($response->getStatusCode())->toBe(422)
-        ->and($response->getData(true)['rejected'])->toBe([(string) $foreign->id])
+        ->and($response->getData(true)['rejected'])->toBe([$foreign->id])
         ->and((int) $foreign->fresh()->test_model_id)->toBe($this->other->id)
         ->and($orphan->fresh()->test_model_id)->toBeNull();
 });

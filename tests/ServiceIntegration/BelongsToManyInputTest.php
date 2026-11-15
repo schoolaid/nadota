@@ -148,7 +148,7 @@ describe('attach and sync endpoints', function () {
         $response = (new BelongsToManyAttachmentService())->attach(btmAttachRequest(['items' => [$this->visible->id, $id]]), $this->model, btmField());
 
         expect($response->getStatusCode())->toBe(422)
-            ->and($response->getData(true)['rejected'])->toBe([(string) $id])
+            ->and($response->getData(true)['rejected'])->toBe([$id])
             ->and(tagIds($this->model))->toBe([]);
     })->with(['hidden', 'missing']);
 

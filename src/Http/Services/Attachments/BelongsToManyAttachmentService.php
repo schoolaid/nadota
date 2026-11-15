@@ -31,8 +31,12 @@ class BelongsToManyAttachmentService extends AbstractAttachmentService
         // Get IDs of already attached items (qualify column to avoid ambiguity)
         $attachedIds = $parentModel->{$relationName}()->pluck("{$relatedTable}.{$relatedKeyName}")->toArray();
 
-        // Candidates (optionsQuery() + attachableQuery(), the same ones attach accepts) not attached yet
-        $query = $field->candidatesQuery($request, $parentModel);
+        // Candidates (optionsQuery() + attachableQuery(), the same ones attach accepts) not attached yet.
+        // MorphToMany and MorphedByMany also come here (they report `belongsToMany`) but do not extend
+        // BelongsToMany: for them, the related query with the related resource's optionsQuery().
+        $query = $field instanceof BelongsToMany
+            ? $field->candidatesQuery($request, $parentModel)
+            : $this->relatedOptionsQuery($request, $relatedModel, $field);
 
         if (!empty($attachedIds)) {
             $query->whereNotIn($relatedModel->qualifyColumn($relatedKeyName), $attachedIds);
@@ -75,6 +79,26 @@ class BelongsToManyAttachmentService extends AbstractAttachmentService
                 'attached_count' => count($attachedIds),
             ]
         ]);
+    }
+
+    /**
+     * The related query filtered by the related resource's optionsQuery(), for the fields this
+     * service takes that are not a BelongsToMany (MorphToMany, MorphedByMany).
+     */
+    protected function relatedOptionsQuery(NadotaRequest $request, Model $relatedModel, Field $field): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = $relatedModel->newQuery();
+        $resourceClass = method_exists($field, 'getResource') ? $field->getResource() : null;
+
+        if ($resourceClass) {
+            $resource = new $resourceClass;
+
+            if (method_exists($resource, 'optionsQuery')) {
+                $query = $resource->optionsQuery($query, $request, []);
+            }
+        }
+
+        return $query;
     }
 
     /**
