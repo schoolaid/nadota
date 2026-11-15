@@ -6,6 +6,14 @@ use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
 
 class Time extends Field
 {
+    use Traits\AppendsFormatRuleTrait;
+
+    /**
+     * Added last by getRules() (AppendsFormatRuleTrait): without it a value that is not a time
+     * reached the database and failed there (500 on a TIME column). The form sends `HH:MM`.
+     */
+    protected string $formatRule = 'date_format:H:i,H:i:s';
+
     protected string $format = 'H:i:s';
     protected ?string $minTime = null;
     protected ?string $maxTime = null;

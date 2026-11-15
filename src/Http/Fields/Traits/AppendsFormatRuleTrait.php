@@ -3,9 +3,9 @@
 namespace SchoolAid\Nadota\Http\Fields\Traits;
 
 /**
- * For fields that add a format rule of their own (`url`, `email`): the rule goes last, after the
- * field's rules, and only if the field does not declare one already (`url:http,https`,
- * `email:rfc,dns`).
+ * For fields that add a format rule of their own (`url`, `email`, Time's `date_format`): the rule
+ * goes last, after the field's rules, and only if the field does not declare one with the same name
+ * already (`url:http,https`, `email:rfc,dns`, `date_format:H:i`).
  *
  * After `required`: Laravel skips the rules that follow a failed `required`, so an empty value
  * reports only that it is required (with the format rule first it also said it was not valid). A
@@ -26,7 +26,8 @@ trait AppendsFormatRuleTrait
             array_unshift($rules, 'nullable');
         }
 
-        $declared = (bool) array_filter($strings, fn (string $rule) => $rule === $this->formatRule || str_starts_with($rule, $this->formatRule . ':'));
+        $name = explode(':', $this->formatRule, 2)[0];
+        $declared = (bool) array_filter($strings, fn (string $rule) => $rule === $name || str_starts_with($rule, $name . ':'));
 
         return $declared ? $rules : [...$rules, $this->formatRule];
     }
