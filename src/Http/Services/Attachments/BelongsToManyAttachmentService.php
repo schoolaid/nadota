@@ -23,30 +23,19 @@ class BelongsToManyAttachmentService extends AbstractAttachmentService
         $relationName = $field->getRelation();
         $relation = $parentModel->{$relationName}();
 
-        // Get the related model class
+        // The related model
         $relatedModel = $relation->getRelated();
-        $relatedClass = get_class($relatedModel);
         $relatedTable = $relatedModel->getTable();
         $relatedKeyName = $relatedModel->getKeyName();
 
         // Get IDs of already attached items (qualify column to avoid ambiguity)
         $attachedIds = $parentModel->{$relationName}()->pluck("{$relatedTable}.{$relatedKeyName}")->toArray();
 
-        // Build query for attachable items (items not already attached)
-        $query = $relatedClass::query();
+        // Candidates (optionsQuery() + attachableQuery(), the same ones attach accepts) not attached yet
+        $query = $field->candidatesQuery($request, $parentModel);
 
         if (!empty($attachedIds)) {
-            $query->whereNotIn($relatedKeyName, $attachedIds);
-        }
-
-        // Apply resource's optionsQuery if available
-        if ($field->getResource()) {
-            $resourceClass = $field->getResource();
-            $resource = new $resourceClass;
-
-            if (method_exists($resource, 'optionsQuery')) {
-                $query = $resource->optionsQuery($query, $request, []);
-            }
+            $query->whereNotIn($relatedModel->qualifyColumn($relatedKeyName), $attachedIds);
         }
 
         // Get pagination params
@@ -106,6 +95,10 @@ class BelongsToManyAttachmentService extends AbstractAttachmentService
 
         $relationName = $field->getRelation();
         $relation = $parentModel->{$relationName}();
+
+        if ($rejected = $this->rejectedResponse($request, $parentModel, $field, $items)) {
+            return $rejected;
+        }
 
         // Check attachment limit
         if (method_exists($field, 'getAttachableLimit')) {
@@ -238,6 +231,10 @@ class BelongsToManyAttachmentService extends AbstractAttachmentService
         $relationName = $field->getRelation();
         $relation = $parentModel->{$relationName}();
 
+        if ($rejected = $this->rejectedResponse($request, $parentModel, $field, $items)) {
+            return $rejected;
+        }
+
         // Capture currently attached IDs before sync for audit trail
         $relatedModel = $relation->getRelated();
         $relatedKeyName = $relatedModel->getKeyName();
@@ -302,6 +299,23 @@ class BelongsToManyAttachmentService extends AbstractAttachmentService
             'detached' => $changes['detached'] ?? [],
             'updated' => $changes['updated'] ?? [],
         ]);
+    }
+
+    /**
+     * 422 when an id is neither an option of the field nor already attached (or does not exist):
+     * before, an unknown id was a foreign key 500 and a hidden one was attached anyway.
+     */
+    protected function rejectedResponse(NadotaRequest $request, Model $parentModel, Field $field, array $items): ?JsonResponse
+    {
+        if (!$field instanceof BelongsToMany) {
+            return null;
+        }
+
+        $rejected = $field->rejectedIds($request, $parentModel, $items);
+
+        return empty($rejected)
+            ? null
+            : $this->errorResponse('Some items cannot be attached: they are not available', 422, ['rejected' => $rejected]);
     }
 
     /**

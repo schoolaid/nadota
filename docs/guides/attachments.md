@@ -128,7 +128,7 @@ Behavior by type:
 - **MorphMany** — sets the foreign key and morph-type columns (same rule).
 - **BelongsToMany / MorphToMany / MorphedByMany** — inserts pivot rows (with pivot data).
 
-Already-attached items are skipped. On HasMany/MorphMany an id that is not a candidate rejects the request (`422`, `rejected`). Response:
+Already-attached items are skipped. An id that is not a candidate rejects the request (`422`, `rejected`) and nothing is written: on HasMany/MorphMany the candidates are described above; on BelongsToMany they are the related resource's `optionsQuery()` plus the field's `attachableQuery()` (sync uses the same check, and keeps ids that are already attached). Response:
 
 ```json
 {

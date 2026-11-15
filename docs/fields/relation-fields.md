@@ -167,7 +167,7 @@ GET /{api-prefix}/{resourceKey}/resource/field/{fieldName}/morph-options/{morphT
 
 Default `api-prefix` is `nadota-api`. See [API routes](../api/routes.md).
 
-When a model context is present (detail/edit views) the field appends `?resourceId={id}` to the options URL. The service then auto-excludes records already attached to that parent (for collection relations), so the dropdown only offers attachable items. The same URL without `resourceId` (used in create forms) returns all candidates.
+When a model context is present (detail/edit views) the field appends `?resourceId={id}` to the options URL. The service then auto-excludes records already attached to that parent (for collection relations), so the dropdown only offers attachable items. The same URL without `resourceId` (used in create forms) returns all candidates. A form that keeps its own unsaved list (like a `BelongsToMany` being edited) should drop `resourceId` and send `exclude=1,2,3` with the items it holds, so a record removed in the form but still attached in the database is offered again.
 
 ### Query parameters
 
@@ -338,9 +338,9 @@ BelongsToMany::make('Roles', 'roles', RoleResource::class)
     ]);
 ```
 
-Form submission accepts either a flat ID array (`[1, 2, 3]`) or pivot-bearing entries (`[{ "id": 1, "expires_at": "..." }]`); the latter is detected and synced with pivot attributes.
+Form submission accepts either a flat ID array (`[1, 2, 3]`) or pivot-bearing entries (`[{ "id": 1, "expires_at": "..." }]`); the latter is detected and synced with pivot attributes. The relation is synced to exactly what is sent (an empty list, `'[]'` in multipart, detaches all; a request without the key leaves it alone). Every id must be an option of the field (the related resource's `optionsQuery()` plus the field's `attachableQuery()`) or already attached; otherwise the request fails with a `422` on the field's key and the record is not saved. On `action=update` the value always carries every related record, regardless of `limit()` or `paginated()`, because the form sends it back.
 
-Props add `pivotColumns`, `withPivot`, `withTimestamps`, `pivotDefaults`, `autoAttach`, plus `canCreate`/`canAttach`/`canDetach`. The `urls` object always carries `options`; with a model it adds `attach`, `sync`, `detach`, optional `paginationUrl`, and a `createContext` when `canCreate`. `toArray()` adds a top-level `pivotFields` array.
+Props add `pivotColumns`, `withPivot`, `withTimestamps`, `pivotDefaults`, `autoAttach`, plus `canCreate`/`canAttach`/`canDetach`. The `urls` object always carries `options`; with a model it adds `attachable`, `attach` and `sync` (when it can attach), `detach` (when it can detach), optional `paginationUrl`, and a `createContext` when `canCreate`. `toArray()` adds a top-level `pivotFields` array.
 
 Response items include a `pivot` object; see [collection shape](#collection-relations-hasmany-belongstomany-morphmany-morphtomany-morphedbymany-hasmanythrough). For attach/detach/sync semantics see the [attachments guide](../guides/attachments.md).
 

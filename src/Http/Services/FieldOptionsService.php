@@ -597,11 +597,11 @@ class FieldOptionsService
             // Get the relation
             $relation = $model->{$relationName}();
 
-            // Get the related model's key name
-            $relatedKeyName = $relation->getRelated()->getKeyName();
+            // Qualified: on a BelongsToMany the pivot joins in and may have its own `id`, and the
+            // ambiguous column fell into the catch below, so nothing was excluded.
+            $related = $relation->getRelated();
 
-            // Pluck the IDs
-            return $model->{$relationName}()->pluck($relatedKeyName)->toArray();
+            return $relation->pluck($related->qualifyColumn($related->getKeyName()))->toArray();
         } catch (\Throwable $e) {
             // Silently fail - don't break the options request
             return [];

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use SchoolAid\Nadota\Contracts\ResourceInterface;
 use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
 use SchoolAid\Nadota\Http\Fields\Field;
@@ -359,19 +360,40 @@ class BelongsToMany extends Field
      */
     public function resolve(Request $request, Model $model, ?ResourceInterface $resource): mixed
     {
+        $relationName = $this->getRelation();
+        $isForm = $this->isEditFormRequest($request);
+
         // If paginated, return empty structure - data will be loaded via pagination endpoint
-        if ($this->paginated) {
+        if ($this->paginated && !$isForm) {
             return $this->getEmptyPaginatedResponse();
         }
-
-        $relationName = $this->getRelation();
 
         if (!method_exists($model, $relationName)) {
             return [];
         }
 
-        // Eager-loaded relation when available (avoids N+1), trimmed to limit()
-        $relatedItems = $this->resolveInlineItems($model, $relationName);
+        if ($isForm) {
+            // The edit form sends the list back and afterSave() syncs it: a list cut by limit()
+            // or paginated() would detach everything left out. The form always gets every item.
+            $this->hasMoreItems = false;
+            $query = $model->{$relationName}();
+
+            if (!empty($pivotColumns = $this->getPivotColumns())) {
+                $query->withPivot($pivotColumns);
+            }
+
+            if ($this->orderBy !== null) {
+                $query->orderBy(
+                    str_contains($this->orderBy, '.') ? $this->orderBy : $query->getRelated()->qualifyColumn($this->orderBy),
+                    $this->orderDirection
+                );
+            }
+
+            $relatedItems = $query->get();
+        } else {
+            // Eager-loaded relation when available (avoids N+1), trimmed to limit()
+            $relatedItems = $this->resolveInlineItems($model, $relationName);
+        }
 
         // Ensure we have a collection
         if (!$relatedItems instanceof Collection) {
@@ -676,6 +698,9 @@ class BelongsToMany extends Field
                 $props['urls']['options'] = "/{$apiPrefix}/{$resourceKey}/resource/field/{$fieldKey}/options?resourceId={$modelId}";
 
                 if ($canAttach) {
+                    // The show dialog lists this one (only what is not attached yet); without it
+                    // it fell back to `options`, which also offers the attached records.
+                    $props['urls']['attachable'] = "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/attachable/{$fieldKey}";
                     $props['urls']['attach'] = "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/attach/{$fieldKey}";
                     $props['urls']['sync'] = "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/sync/{$fieldKey}";
                 }
@@ -905,6 +930,70 @@ class BelongsToMany extends Field
     }
 
     /**
+     * Whether the field is being resolved for the edit form (`?action=update`), whose list is
+     * synced back on save.
+     */
+    protected function isEditFormRequest(Request $request): bool
+    {
+        return in_array($request->get('action'), ['update', 'edit'], true);
+    }
+
+    /**
+     * The records this field may attach: the related resource's options (`optionsQuery()`) and
+     * the field's `attachableQuery()`. Same candidates the attachable list offers.
+     */
+    public function candidatesQuery(Request $request, Model $model): Builder
+    {
+        $query = $model->{$this->getRelation()}()->getRelated()->newQuery();
+
+        $resourceClass = $this->getResource();
+        if ($resourceClass && $request instanceof NadotaRequest) {
+            $resource = new $resourceClass;
+
+            if (method_exists($resource, 'optionsQuery')) {
+                $query = $resource->optionsQuery($query, $request, []);
+            }
+        }
+
+        if ($callback = $this->getAttachableQueryCallback()) {
+            $callback($query);
+        }
+
+        return $query;
+    }
+
+    /**
+     * The ids that are neither candidates nor already attached (a record that stopped being an
+     * option can stay). Ids that do not exist are rejected too.
+     *
+     * @param array<int, mixed> $ids
+     * @return string[]
+     */
+    public function rejectedIds(Request $request, Model $model, array $ids): array
+    {
+        $ids = array_values(array_unique(array_map('strval', array_filter($ids, fn ($id) => is_numeric($id) || is_string($id)))));
+
+        if (empty($ids)) {
+            return [];
+        }
+
+        $relation = $model->{$this->getRelation()}();
+        $relatedKey = $relation->getRelated()->qualifyColumn($relation->getRelatedKeyName());
+
+        $attached = $model->exists
+            ? $relation->whereIn($relatedKey, $ids)->pluck($relatedKey)->map(fn ($id) => (string) $id)->all()
+            : [];
+
+        $candidates = $this->candidatesQuery($request, $model)
+            ->whereIn($relatedKey, $ids)
+            ->pluck($relatedKey)
+            ->map(fn ($id) => (string) $id)
+            ->all();
+
+        return array_values(array_diff($ids, $attached, $candidates));
+    }
+
+    /**
      * Sync the relationship after the model is saved.
      *
      * @param Request $request
@@ -924,6 +1013,16 @@ class BelongsToMany extends Field
 
         if (!is_array($values)) {
             $values = [];
+        }
+
+        // Only options of the field (or already attached): an unknown id was a foreign key 500,
+        // and one the related resource does not offer was attached anyway. Runs inside the
+        // persist transaction, so the record is not saved either.
+        $ids = array_map(fn ($item) => is_array($item) ? ($item['id'] ?? null) : $item, $values);
+        if (!empty($this->rejectedIds($request, $model, $ids))) {
+            throw ValidationException::withMessages([
+                $key => [trans('validation.exists', ['attribute' => $key])],
+            ]);
         }
 
         // Check if values include pivot data
