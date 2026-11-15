@@ -6,12 +6,17 @@ use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
 
 class Code extends Field
 {
+    use Traits\CastsJsonAttributeTrait;
+
     protected string $language = 'javascript';
     protected ?string $theme = 'light';
     protected bool $showLineNumbers = true;
     protected bool $editable = true;
     protected bool $syntaxHighlighting = true;
     protected bool $wordWrap = false;
+
+    /** normalizeInput() got text that is not JSON for a JSON-cast attribute (see getRules()). */
+    private bool $invalidJsonInput = false;
 
     public function __construct(string $name, string $attribute)
     {
@@ -110,6 +115,49 @@ class Code extends Field
     public function shell(): static
     {
         return $this->language('shell');
+    }
+
+    /**
+     * The form sends the code as text. Over an attribute the model casts to JSON (e.g. a request
+     * payload shown as JSON) the text is decoded before validation, so the cast encodes it once:
+     * assigned as is, the cast encoded the text again and the model read back a string. Empty text
+     * is null; text that is not JSON fails validation. Plain code in a text column is left alone,
+     * and so is everything outside a save (no model).
+     */
+    public function normalizeInput(mixed $value, ?\Illuminate\Database\Eloquent\Model $model = null): mixed
+    {
+        $this->invalidJsonInput = false;
+
+        if (!is_string($value) || $model === null || !$this->modelCastsAttributeToJson($model)) {
+            return $value;
+        }
+
+        if (trim($value) === '') {
+            return null;
+        }
+
+        try {
+            return json_decode($value, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            $this->invalidJsonInput = true;
+
+            return $value;
+        }
+    }
+
+    public function getRules(): array
+    {
+        $rules = parent::getRules();
+
+        // Only after normalizeInput() saw text that is not JSON, so the rules sent to the frontend
+        // stay plain strings.
+        if ($this->invalidJsonInput) {
+            $rules[] = static function (string $attribute, mixed $value, \Closure $fail): void {
+                $fail('validation.json')->translate();
+            };
+        }
+
+        return $rules;
     }
 
     protected function getProps(\Illuminate\Http\Request $request, ?\Illuminate\Database\Eloquent\Model $model, ?\SchoolAid\Nadota\Contracts\ResourceInterface $resource): array

@@ -48,7 +48,7 @@ abstract class AbstractResourcePersistService
 
         $this->normalizeEmptyArrayInputs($fields, $request);
 
-        $this->normalizeFieldInputs($fields, $request);
+        $this->normalizeFieldInputs($fields, $request, $model);
 
         $rules = $this->buildValidationRules($fields, $this->isUpdate() ? $model : null);
 
@@ -139,7 +139,7 @@ abstract class AbstractResourcePersistService
      * @param NadotaRequest $request
      * @return void
      */
-    protected function normalizeFieldInputs(Collection $fields, NadotaRequest $request): void
+    protected function normalizeFieldInputs(Collection $fields, NadotaRequest $request, ?Model $model = null): void
     {
         foreach ($fields as $field) {
             if (! method_exists($field, 'normalizeInput')) {
@@ -149,7 +149,8 @@ abstract class AbstractResourcePersistService
             $attribute = $field->getAttribute();
 
             if ($request->exists($attribute)) {
-                $request->merge([$attribute => $field->normalizeInput($request->input($attribute))]);
+                // The model (new on store) lets a field decide by its cast (Code over a JSON column)
+                $request->merge([$attribute => $field->normalizeInput($request->input($attribute), $model)]);
             }
         }
     }

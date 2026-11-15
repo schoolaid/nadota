@@ -6,6 +6,8 @@ use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
 
 class Json extends Field
 {
+    use \SchoolAid\Nadota\Http\Fields\Traits\CastsJsonAttributeTrait;
+
     protected bool $prettyPrint = true;
     protected bool $editable = true;
     protected ?int $indentSize = 2;
@@ -151,24 +153,5 @@ class Json extends Field
         }
 
         return json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    }
-
-    protected function modelCastsAttributeToJson(\Illuminate\Database\Eloquent\Model $model): bool
-    {
-        $cast = $model->getCasts()[$this->getAttribute()] ?? null;
-
-        if (!is_string($cast)) {
-            return false;
-        }
-
-        // `encrypted:array` is one cast; `AsCollection:Foo` is the class plus an argument.
-        $base = explode(':', $cast, 2)[0];
-        $base = $base === 'encrypted' ? $cast : $base;
-
-        return in_array(strtolower($base), ['array', 'json', 'object', 'collection', 'encrypted:array', 'encrypted:json', 'encrypted:object', 'encrypted:collection'], true)
-            || is_a($base, \Illuminate\Database\Eloquent\Casts\AsArrayObject::class, true)
-            || is_a($base, \Illuminate\Database\Eloquent\Casts\AsCollection::class, true)
-            || is_a($base, \Illuminate\Database\Eloquent\Casts\AsEncryptedArrayObject::class, true)
-            || is_a($base, \Illuminate\Database\Eloquent\Casts\AsEncryptedCollection::class, true);
     }
 }
