@@ -47,6 +47,12 @@ class File extends Field
      */
     protected array $pendingReplacedFiles = [];
 
+    /**
+     * Set by normalizeInput() when the request asks to remove the stored file (CLEAR_VALUE) and the
+     * field is not required: the upload rules (`file`, `mimes:`…) do not apply to that value.
+     */
+    protected bool $clearRequested = false;
+
     public function __construct(string $name, string $attribute)
     {
         parent::__construct($name, $attribute, FieldType::FILE->value, static::safeConfig('nadota.fields.file.component', 'FieldFile'));
@@ -240,7 +246,7 @@ class File extends Field
     public function getRules(): array
     {
         $rules = parent::getRules();
-        $uploadRules = $this->getUploadRules();
+        $uploadRules = $this->clearRequested ? [] : $this->getUploadRules();
 
         if (empty($uploadRules)) {
             return $rules;
@@ -493,6 +499,18 @@ class File extends Field
      * @param Model $model
      * @return void
      */
+    /**
+     * Called by the persist service before validation. The value is kept as is: this only notes a
+     * removal (CLEAR_VALUE on a field that is not required), so getRules() leaves the upload rules
+     * out and fill() can clear the file.
+     */
+    public function normalizeInput(mixed $value): mixed
+    {
+        $this->clearRequested = $value === self::CLEAR_VALUE && !$this->isRequired(true);
+
+        return $value;
+    }
+
     public function fill(Request $request, Model $model): void
     {
         // Don't fill if the field is readonly or disabled
