@@ -5,10 +5,12 @@ namespace SchoolAid\Nadota\Http\Fields\Relations;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphMany as EloquentMorphMany;
 use Illuminate\Http\Request;
 use SchoolAid\Nadota\Contracts\ResourceInterface;
 use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
 use SchoolAid\Nadota\Http\Fields\Field;
+use SchoolAid\Nadota\Http\Fields\Traits\AttachesOwnedChildren;
 use SchoolAid\Nadota\Http\Fields\Traits\ManagesAttachments;
 use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 use SchoolAid\Nadota\Http\Resources\RelationResource;
@@ -17,6 +19,8 @@ use SchoolAid\Nadota\Http\Fields\Traits\LimitsInlineRelation;
 class MorphMany extends Field
 {
     use ManagesAttachments, LimitsInlineRelation;
+    use AttachesOwnedChildren;
+
     /**
      * Maximum number of related items to show (when not paginated); null shows all.
      */
@@ -73,6 +77,9 @@ class MorphMany extends Field
         // Don't apply in index query
         $this->applyInIndexQuery = false;
         $this->applyInShowQuery = true;
+
+        // Attaching moves the child's owner columns: opt in with ->attachable() (see AttachesOwnedChildren)
+        $this->attachable = false;
 
         if ($resource) {
             $this->resource($resource);
@@ -449,6 +456,9 @@ class MorphMany extends Field
     {
         $props = parent::getProps($request, $model, $resource);
 
+        $canAttach = $this->resolveCanAttach($request, $resource, $model);
+        $canDetach = $this->resolveCanDetach($request, $resource, $model);
+
         $props = array_merge($props, [
             'limit' => $this->limit,
             'paginated' => $this->paginated,
@@ -457,11 +467,13 @@ class MorphMany extends Field
             'relationType' => 'morphMany',
             'resource' => $this->getResource() ? $this->getResource()::getKey() : null,
             'isPolymorphic' => true,
+            'canAttach' => $canAttach,
+            'canDetach' => $canDetach,
         ]);
 
         // Add attachment configuration
         if ($this->attachable) {
-            $props['attachment'] = $this->getAttachmentConfig();
+            $props['attachment'] = $this->ownedChildrenAttachmentConfig($canAttach, $canDetach);
         }
 
         // Add URLs when we have resource context
@@ -482,9 +494,15 @@ class MorphMany extends Field
 
                 // Update options URL with resource ID context
                 $props['urls']['options'] = "/{$apiPrefix}/{$resourceKey}/resource/field/{$fieldKey}/options?resourceId={$modelId}";
-                $props['urls']['attachable'] = "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/attachable/{$fieldKey}";
-                $props['urls']['attach'] = "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/attach/{$fieldKey}";
-                $props['urls']['detach'] = "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/detach/{$fieldKey}";
+                // Only when allowed: the frontend shows the buttons from these URLs
+                if ($canAttach) {
+                    $props['urls']['attachable'] = "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/attachable/{$fieldKey}";
+                    $props['urls']['attach'] = "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/attach/{$fieldKey}";
+                }
+
+                if ($canDetach) {
+                    $props['urls']['detach'] = "/{$apiPrefix}/{$resourceKey}/resource/{$modelId}/detach/{$fieldKey}";
+                }
 
                 // Add pagination URL if paginated
                 if ($this->paginated) {
@@ -528,6 +546,16 @@ class MorphMany extends Field
         }
 
         return $props;
+    }
+
+    /**
+     * Attach/detach write the child's morph type and id, which needs an Eloquent MorphMany on the
+     * parent. Without a record (the create form) there is nothing to attach to.
+     */
+    public static function supportsAttachment(Model $parent, string $relationName): bool
+    {
+        return method_exists($parent, $relationName)
+            && $parent->{$relationName}() instanceof EloquentMorphMany;
     }
 
     /**

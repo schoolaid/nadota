@@ -5,10 +5,12 @@ namespace SchoolAid\Nadota\Http\Fields\Relations;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany as EloquentHasMany;
 use Illuminate\Http\Request;
 use SchoolAid\Nadota\Contracts\ResourceInterface;
 use SchoolAid\Nadota\Http\Fields\Enums\FieldType;
 use SchoolAid\Nadota\Http\Fields\Field;
+use SchoolAid\Nadota\Http\Fields\Traits\AttachesOwnedChildren;
 use SchoolAid\Nadota\Http\Fields\Traits\ManagesAttachments;
 use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 use SchoolAid\Nadota\Http\Resources\RelationResource;
@@ -17,6 +19,8 @@ use SchoolAid\Nadota\Http\Fields\Traits\LimitsInlineRelation;
 class HasMany extends Field
 {
     use ManagesAttachments, LimitsInlineRelation;
+    use AttachesOwnedChildren;
+
     /**
      * Maximum number of related items to show (when not paginated); null shows all.
      */
@@ -78,6 +82,9 @@ class HasMany extends Field
         // Don't apply in index query
         $this->applyInIndexQuery = false;
         $this->applyInShowQuery = true;
+
+        // Attaching moves the child's foreign key: opt in with ->attachable() (see AttachesOwnedChildren)
+        $this->attachable = false;
 
         if ($resource) {
             $this->resource($resource);
@@ -498,10 +505,7 @@ class HasMany extends Field
         ]);
 
         if ($this->attachable) {
-            $props['attachment'] = array_merge($this->getAttachmentConfig(), [
-                'canAttach' => $canAttach,
-                'canDetach' => $canDetach,
-            ]);
+            $props['attachment'] = $this->ownedChildrenAttachmentConfig($canAttach, $canDetach);
         }
 
         if ($resource) {
@@ -585,47 +589,15 @@ class HasMany extends Field
     }
 
     /**
-     * Resolve whether the current user can attach items to this relation.
-     * Uses the parent resource's policy with field context so policies can
-     * implement field-specific methods like attachImages().
+     * Attach/detach move the child's foreign key, which only works for an Eloquent HasMany. A
+     * morphMany declared as HasMany (e.g. `attachments`) would get the id without the type: the
+     * attachable list would offer rows of every owner, and attaching one would leave it pointing at
+     * a record of its own type. Without a record (the create form) there is nothing to attach to.
      */
-    protected function resolveCanAttach(Request $request, ?ResourceInterface $resource, ?Model $model): bool
+    public static function supportsAttachment(Model $parent, string $relationName): bool
     {
-        if (!$this->attachable) {
-            return false;
-        }
-
-        if (!$resource || !$request instanceof NadotaRequest) {
-            return true;
-        }
-
-        return $resource->authorizedTo(
-            $request,
-            'attach',
-            $model,
-            ['field' => $this->key()]
-        );
-    }
-
-    /**
-     * Resolve whether the current user can detach items from this relation.
-     */
-    protected function resolveCanDetach(Request $request, ?ResourceInterface $resource, ?Model $model): bool
-    {
-        if (!$this->attachable) {
-            return false;
-        }
-
-        if (!$resource || !$request instanceof NadotaRequest) {
-            return true;
-        }
-
-        return $resource->authorizedTo(
-            $request,
-            'detach',
-            $model,
-            ['field' => $this->key()]
-        );
+        return method_exists($parent, $relationName)
+            && $parent->{$relationName}() instanceof EloquentHasMany;
     }
 
     /**

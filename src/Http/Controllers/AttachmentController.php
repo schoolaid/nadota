@@ -235,10 +235,11 @@ class AttachmentController extends Controller
         return match ($type) {
             FieldType::HAS_MANY->value => $this->hasManyService,
             FieldType::BELONGS_TO_MANY->value => $this->belongsToManyService,
-            FieldType::MORPH_TO_MANY->value => $this->morphToManyService,
             FieldType::MORPH_MANY->value => $this->morphManyService,
-            // MorphedByMany uses the same service as MorphToMany
-            'morphedByMany' => $this->morphToManyService,
+            // FieldType has no MORPH_TO_MANY case: referencing it threw for every type below
+            // belongsToMany (a MorphMany attach was a 500). MorphToMany and MorphedByMany fields
+            // report `belongsToMany`, so these two arms are only for a field that says so.
+            'morphToMany', 'morphedByMany' => $this->morphToManyService,
             default => null,
         };
     }

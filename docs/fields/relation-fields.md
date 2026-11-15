@@ -114,7 +114,7 @@ Available on `BelongsToMany`, `MorphToMany`, `MorphedByMany`:
 | `autoAttach(bool $value = true)` | `BelongsToMany` | After creating, attach the new record automatically (default `true`). |
 | `pivotDefaults(array $defaults)` | `BelongsToMany` | Default pivot values per related ID, or a `'*' => fn($item) => [...]` callback for dynamic resolution. |
 
-Attach/detach configuration (the `attachable()` builder, search fields, button label, etc.) comes from the `ManagesAttachments` trait — see [attachments guide](../guides/attachments.md). Fields using it: `HasMany`, `BelongsToMany`, `MorphMany`, `MorphToMany`, `MorphedByMany`.
+Attach/detach configuration (the `attachable()` builder, search fields, button label, etc.) comes from the `ManagesAttachments` trait — see [attachments guide](../guides/attachments.md). Fields using it: `HasMany`, `BelongsToMany`, `MorphMany`, `MorphToMany`, `MorphedByMany`. On `HasMany` and `MorphMany` it is **off by default** (`->attachable()` turns it on, `->reassignable()` also lets attach take children of other records) and detach is only offered when the owner columns are nullable; see [one-to-many fields](../guides/attachments.md#one-to-many-fields-hasmany-morphmany).
 
 ## Response Shapes
 
@@ -314,7 +314,7 @@ HasMany::make('Comments', 'comments', CommentResource::class)
     ->exceptFields(['post']);
 ```
 
-Props: `limit`, `paginated`, `orderBy`, `orderDirection`, `relationType`, `resource`, `canCreate`, `canAttach`, `canDetach`, and a `urls` object. `urls.options` is always present; with a model it gains `?resourceId=` and (when authorized) `attachable`, `attach`, `detach`, and — if `paginated` — a top-level `paginationUrl`. When `canCreate` and the FK resolve, a `createContext` is emitted. An `export` URL is added when the field is exportable.
+Props: `limit`, `paginated`, `orderBy`, `orderDirection`, `relationType`, `resource`, `canCreate`, `canAttach`, `canDetach`, and a `urls` object. `urls.options` is always present; with a model it gains `?resourceId=` and (when `attachable()` and authorized; `detach` also needs a nullable foreign key) `attachable`, `attach`, `detach`, and — if `paginated` — a top-level `paginationUrl`. When `canCreate` and the FK resolve, a `createContext` is emitted. An `export` URL is added when the field is exportable.
 
 ### BelongsToMany
 
@@ -386,7 +386,7 @@ MorphMany::make('Comments', 'comments', CommentResource::class)
     ->paginated();
 ```
 
-Props mirror `HasMany` plus `isPolymorphic: true`. `urls.options` is always present (gaining `?resourceId=` with a model); with a model it adds `attachable`, `attach`, `detach`, optional `paginationUrl`, and a polymorphic `createContext`.
+Props mirror `HasMany` plus `isPolymorphic: true`. `urls.options` is always present (gaining `?resourceId=` with a model); with a model it adds `attachable`, `attach`, `detach` (with the same rules as `HasMany`: `attachable()`, the `attach`/`detach` abilities, nullable morph columns for detach), optional `paginationUrl`, and a polymorphic `createContext`. `canAttach`/`canDetach` are included.
 
 ### MorphToMany
 

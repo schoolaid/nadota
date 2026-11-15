@@ -8,7 +8,8 @@ Attachments power the UI for relationship fields that hold multiple related reco
 
 | Relation | attachable | attach | detach | sync | Pivot data |
 |----------|:---------:|:------:|:------:|:----:|:----------:|
-| HasMany | yes | yes | yes | no | no |
+| HasMany ¹ | yes | yes | yes | no | no |
+| MorphMany ¹ | yes | yes | yes | no | no |
 | BelongsToMany | yes | yes | yes | yes | yes |
 | MorphToMany | yes | yes | yes | yes | yes |
 | MorphedByMany | yes | yes | yes | yes | yes |
@@ -23,6 +24,26 @@ Each type maps to a service (`AttachmentController::getServiceForField()`):
 Only `BelongsToMany`, `MorphToMany`, and `MorphedByMany` override `supportsSync()` to return `true`. `HasMany` and `MorphMany` do not support sync.
 
 > `MorphMany` is supported for attach/detach by setting the foreign key and morph-type columns; sync is not available for it.
+
+### One-to-many fields (HasMany, MorphMany)
+
+¹ On these fields the child row holds its owner, so attaching takes the child for this parent and detaching leaves it without one. The rules are stricter than for a pivot:
+
+- **Off by default.** Turn it on per field with `->attachable()`. Without it the field sends no `attachable`/`attach`/`detach` URLs (the frontend hides the buttons) and the endpoints answer `422 Field is not attachable`.
+- **Attach only adopts orphans** (children whose foreign key is `null`). Taking a child away from another record needs `->reassignable()`, which implies `attachable()`. The attachable list and attach use the same candidates (orphans or, if reassignable, any child not already here), scoped by the related resource's `optionsQuery()` and the field's `attachableQuery()`: if any requested id is outside them the request is rejected as a whole — `422` with `rejected: [ids]` — and nothing changes. Ids already attached are skipped.
+- **Detach needs nullable owner columns.** When the foreign key (or the morph type) is `NOT NULL`, `canDetach` is `false`, no `detach` URL is sent, and the endpoint answers `422`.
+- Each child is saved through its model (events and observers run), all in one transaction.
+- `HasMany` only writes an Eloquent `hasMany` relation: a `morphMany` declared as `HasMany` has neither attach nor detach (it would write the id without the type). Declare it as `MorphMany`.
+
+```php
+// Orphan rows can be adopted; rows of other records are not offered
+HasMany::make('Paragraphs', 'paragraphs', ParagraphResource::class)->attachable();
+
+// Moving a child between parents is the point of the field
+HasMany::make('Students', 'students', StudentResource::class)->reassignable();
+```
+
+**Behavior change (Unreleased):** HasMany and MorphMany fields used to be attachable by default and attach took children from any other record. Fields that really need attach/detach must now call `->attachable()` (or `->reassignable()` to keep moving children between parents).
 
 ## Endpoints
 
@@ -103,11 +124,11 @@ Pivot data is filtered to the field's declared pivot columns (`getPivotColumns()
 
 Behavior by type:
 
-- **HasMany** — sets each child's foreign key to the parent ID.
-- **MorphMany** — sets the foreign key and morph-type columns.
+- **HasMany** — sets each child's foreign key to the parent ID (only orphans unless `reassignable()`; see above).
+- **MorphMany** — sets the foreign key and morph-type columns (same rule).
 - **BelongsToMany / MorphToMany / MorphedByMany** — inserts pivot rows (with pivot data).
 
-Already-attached items are skipped. Response:
+Already-attached items are skipped. On HasMany/MorphMany an id that is not a candidate rejects the request (`422`, `rejected`). Response:
 
 ```json
 {
@@ -129,8 +150,8 @@ Content-Type: application/json
 { "items": [15] }
 ```
 
-- **HasMany** — sets the children's foreign key to `null`.
-- **MorphMany** — nulls the foreign key and morph-type columns.
+- **HasMany** — sets the children's foreign key to `null` (`422` when the column is `NOT NULL`).
+- **MorphMany** — nulls the foreign key and morph-type columns (same rule).
 - **BelongsToMany / MorphToMany** — deletes the pivot rows.
 
 ```json

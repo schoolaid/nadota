@@ -742,7 +742,9 @@ class BelongsToMany extends Field
      */
     protected function resolveCanAttach(Request $request, ?ResourceInterface $resource, ?Model $model): bool
     {
-        if (!$this->attachable) {
+        // Without a record (the create form) there is nothing to attach to, and the policy
+        // fallback to `update` would get the model class instead of an instance.
+        if (!$this->attachable || !$model) {
             return false;
         }
 
@@ -763,7 +765,9 @@ class BelongsToMany extends Field
      */
     protected function resolveCanDetach(Request $request, ?ResourceInterface $resource, ?Model $model): bool
     {
-        if (!$this->attachable) {
+        // Without a record (the create form) there is nothing to detach to, and the policy
+        // fallback to `update` would get the model class instead of an instance.
+        if (!$this->attachable || !$model) {
             return false;
         }
 

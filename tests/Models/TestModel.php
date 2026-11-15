@@ -55,6 +55,39 @@ class TestModel extends Model
         return $this->belongsToMany(Tag::class, 'test_model_tag');
     }
 
+    /**
+     * A morphMany, declared in HasManyAttachTestResource as a HasMany field (like `attachments` in
+     * host apps). The `notes` table is created by the test that uses it.
+     */
+    public function notes()
+    {
+        return $this->morphMany(Note::class, 'notable');
+    }
+
+    /**
+     * The same morphMany, for a MorphMany field (HasManyAttachTestResource).
+     */
+    public function morphNotes()
+    {
+        return $this->morphMany(Note::class, 'notable');
+    }
+
+    /**
+     * A morphMany with NOT NULL morph columns. The `comments` table is created by the test.
+     */
+    public function comments()
+    {
+        return $this->morphMany(Comment::class, 'commentable');
+    }
+
+    /**
+     * The same HasMany as relatedModels, for a field without attachable().
+     */
+    public function plainRelated()
+    {
+        return $this->hasMany(RelatedModel::class);
+    }
+
     protected static function newFactory()
     {
         return TestModelFactory::new();
