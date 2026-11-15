@@ -62,6 +62,25 @@ class RichText extends Field
         return $this;
     }
 
+    /**
+     * An emptied editor still sends markup (`<p></p>`, `<p><br></p>`, spaces): that passed `required`
+     * and stored an empty body. HTML without text or media is null before validation.
+     */
+    public function normalizeInput(mixed $value): mixed
+    {
+        if (!is_string($value)) {
+            return $value;
+        }
+
+        if (preg_match('/<(img|video|audio|iframe|embed|object|hr|table)\b/i', $value)) {
+            return $value;
+        }
+
+        $text = html_entity_decode(strip_tags($value), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        return trim(str_replace("\u{00A0}", ' ', $text)) === '' ? null : $value;
+    }
+
     protected function getProps(\Illuminate\Http\Request $request, ?\Illuminate\Database\Eloquent\Model $model, ?\SchoolAid\Nadota\Contracts\ResourceInterface $resource): array
     {
         return array_merge(parent::getProps($request, $model, $resource), array_filter([
