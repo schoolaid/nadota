@@ -10,9 +10,40 @@ class Time extends Field
 
     /**
      * Added last by getRules() (AppendsFormatRuleTrait): without it a value that is not a time
-     * reached the database and failed there (500 on a TIME column). The form sends `HH:MM`.
+     * reached the database and failed there (500 on a TIME column). One format only: normalizeInput()
+     * turns `H:i` into `H:i:s` first. With two formats (`H:i,H:i:s`) Laravel's after/before read the
+     * other field with the first one and could not compare `08:00:00`.
      */
-    protected string $formatRule = 'date_format:H:i,H:i:s';
+    protected string $formatRule = 'date_format:H:i:s';
+
+    /**
+     * `8:00` / `08:00` / `08:00:00` → `08:00:00`, before validation, so the rule and any after/before
+     * of the app compare the same shape. A value it cannot read stays as is (and fails the rule); a
+     * field that declares its own `date_format` is left alone.
+     */
+    public function normalizeInput(mixed $value): mixed
+    {
+        if (!is_string($value) || $this->declaresOwnDateFormat()) {
+            return $value;
+        }
+
+        if (preg_match('/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/', trim($value), $m)) {
+            return sprintf('%02d:%s:%s', (int) $m[1], $m[2], $m[3] ?? '00');
+        }
+
+        return $value;
+    }
+
+    protected function declaresOwnDateFormat(): bool
+    {
+        foreach (parent::getRules() as $rule) {
+            if (is_string($rule) && str_starts_with($rule, 'date_format:') && $rule !== $this->formatRule) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     protected string $format = 'H:i:s';
     protected ?string $minTime = null;

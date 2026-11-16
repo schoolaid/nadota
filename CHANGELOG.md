@@ -9,6 +9,11 @@ Versions not listed below shipped without changelog entries; see the git tags fo
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-11-15
+
+### Fixed
+- `Time` validated `date_format:H:i,H:i:s`, and Laravel's `after`/`before` read the other field with only the first format: an app rule like `after:start_time` failed whenever a time came with seconds (`08:00:00`, what the form sends back untouched), so every edit failed. `Time::normalizeInput()` now turns `H:i` into `H:i:s` before validation and the rule is `date_format:H:i:s`. A field that declares its own `date_format` is left alone.
+
 ## [1.5.0] - 2026-11-15
 
 ### Added
