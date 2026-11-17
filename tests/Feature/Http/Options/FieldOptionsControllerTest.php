@@ -396,7 +396,7 @@ describe('data isolation', function () {
     })->with([
         'options' => ['field/student/options', 'options'],
         'paginated' => ['field/student/options/paginated', 'data'],
-    ])->skip('ISSUE OPS-008: field options query the target model directly and ignore its resource getQuery()');
+    ]);
 
     it('ignores filters on columns the target resource does not expose', function (string $path, string $key) {
         Student::create(['name' => 'Ana', 'password' => 'hash-ana']);
@@ -412,7 +412,7 @@ describe('data isolation', function () {
     })->with([
         'options' => ['field/student/options', 'options'],
         'paginated' => ['field/student/options/paginated', 'data'],
-    ])->skip('ISSUE OPS-007: filters[] accept any column (password) and any operator, an oracle on hidden columns');
+    ]);
 });
 
 describe('authorization', function () {

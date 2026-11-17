@@ -85,8 +85,8 @@ class MorphToOptionsStrategy implements FieldOptionsStrategy
             ? ($resourceClass::$attributeKey ?? $model->getKeyName())
             : $model->getKeyName();
 
-        // Build the query
-        $query = $modelClass::query();
+        // Base query from the target resource's getQuery(), where apps scope rows (tenant, ownership)
+        $query = $resourceInstance ? $resourceInstance->getQuery($request, $model) : $modelClass::query();
 
         // Apply resource's optionsQuery customization
         $query = $this->applyResourceOptionsQuery($query, $resourceInstance, $request, $params);

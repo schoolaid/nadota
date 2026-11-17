@@ -9,6 +9,7 @@ use SchoolAid\Nadota\Http\Fields\Field;
 use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 use SchoolAid\Nadota\Http\Services\FieldOptions\Contracts\FieldOptionsStrategy;
 use SchoolAid\Nadota\Http\Services\FieldOptions\OptionScopeResolver;
+use SchoolAid\Nadota\Http\Services\FieldOptions\OptionsColumnGuard;
 use SchoolAid\Nadota\Http\Services\FieldOptions\OptionsConfig;
 use SchoolAid\Nadota\Http\Services\FieldOptions\Traits\SearchesOptions;
 use SchoolAid\Nadota\Http\Services\FieldOptions\Traits\SelectsDisplayAttribute;
@@ -132,8 +133,8 @@ abstract class AbstractOptionsStrategy implements FieldOptionsStrategy
         $orderDirection = $commonParams['orderDirection'];
         $filters = $commonParams['filters'] ?? [];
 
-        // Build base query
-        $query = $fieldModel::query();
+        // Base query from the target resource's getQuery(), where apps scope rows (tenant, ownership)
+        $query = $fieldResourceInstance->getQuery($request, new $fieldModel);
 
         // Apply resource's optionsQuery customization
         $query = $this->applyResourceOptionsQuery($query, $fieldResourceInstance, $request, $originalParams);
@@ -218,6 +219,11 @@ abstract class AbstractOptionsStrategy implements FieldOptionsStrategy
         ?string $orderBy,
         string $orderDirection
     ): void {
+        // A client column the guard refuses falls back to the field's own (trusted) ordering
+        if ($orderBy && !OptionsColumnGuard::isSortable($query, $orderBy)) {
+            $orderBy = null;
+        }
+
         // Use provided orderBy or fallback to field config
         $effectiveOrderBy = $orderBy;
         $effectiveDirection = $orderDirection;
@@ -233,7 +239,9 @@ abstract class AbstractOptionsStrategy implements FieldOptionsStrategy
             }
         }
 
-        $this->applyOrdering($query, $effectiveOrderBy, $effectiveDirection);
+        if ($effectiveOrderBy) {
+            $query->orderBy($effectiveOrderBy, $effectiveDirection);
+        }
     }
 
     /**

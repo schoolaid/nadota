@@ -3,6 +3,7 @@
 namespace SchoolAid\Nadota\Http\Services;
 
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use SchoolAid\Nadota\Http\Services\FieldOptions\OptionsColumnGuard;
 use SchoolAid\Nadota\Contracts\ResourceInterface;
 use SchoolAid\Nadota\Http\Fields\Field;
 use SchoolAid\Nadota\Http\Requests\NadotaRequest;
@@ -248,8 +249,8 @@ class FieldOptionsService
         // Get key attribute
         $keyAttribute = $fieldResource::$attributeKey ?? 'id';
 
-        // Build query
-        $query = $fieldModel::query();
+        // Base query from the target resource's getQuery(), where apps scope rows (tenant, ownership)
+        $query = $fieldResourceInstance->getQuery($request, new $fieldModel);
 
         // Apply resource's optionsQuery customization
         if (method_exists($fieldResourceInstance, 'optionsQuery')) {
@@ -289,7 +290,7 @@ class FieldOptionsService
         }
 
         // Apply ordering
-        if ($orderBy) {
+        if ($orderBy && OptionsColumnGuard::isSortable($query, $orderBy)) {
             $query->orderBy($orderBy, $orderDirection);
         }
 
@@ -405,16 +406,13 @@ class FieldOptionsService
      */
     protected function applyFilters($query, array $filters, ResourceInterface $resourceInstance): void
     {
-        // Get allowed filters from resource (if defined)
-        $allowedFilters = method_exists($resourceInstance, 'getAllowedOptionsFilters')
-            ? $resourceInstance->getAllowedOptionsFilters()
-            : null;
+        // Only columns the target resource allows (or, by default, the ones its model does not hide)
+        $allowedFilters = OptionsColumnGuard::filterable($query, $resourceInstance);
 
         $supportedOperators = ['=', '!=', '<>', '>', '<', '>=', '<=', 'like'];
 
         foreach ($filters as $field => $value) {
-            // Skip if allowedFilters is defined and field is not in it
-            if ($allowedFilters !== null && !in_array($field, $allowedFilters)) {
+            if (!array_key_exists($field, $allowedFilters)) {
                 continue;
             }
 

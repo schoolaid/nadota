@@ -3,6 +3,7 @@
 namespace SchoolAid\Nadota\Http\Services;
 
 use Illuminate\Database\Eloquent\Builder;
+use SchoolAid\Nadota\Http\Services\FieldOptions\OptionsColumnGuard;
 use SchoolAid\Nadota\Contracts\ResourceInterface;
 use SchoolAid\Nadota\Http\Requests\NadotaRequest;
 use SchoolAid\Nadota\Http\Services\FieldOptions\OptionsConfig;
@@ -176,14 +177,13 @@ class ResourceOptionsService
      */
     protected function applyFilters(Builder $query, array $filters, ResourceInterface $resource): void
     {
-        $allowedFilters = method_exists($resource, 'getAllowedOptionsFilters')
-            ? $this->normalizeAllowedFilters($resource->getAllowedOptionsFilters())
-            : null;
+        // Only columns the resource allows (or, by default, the ones its model does not hide)
+        $allowedFilters = OptionsColumnGuard::filterable($query, $resource);
 
         $supportedOperators = ['=', '!=', '<>', '>', '<', '>=', '<=', 'like'];
 
         foreach ($filters as $field => $value) {
-            if ($allowedFilters !== null && !array_key_exists($field, $allowedFilters)) {
+            if (!array_key_exists($field, $allowedFilters)) {
                 continue;
             }
 
@@ -208,30 +208,6 @@ class ResourceOptionsService
 
             $query->where($field, $operator, $value);
         }
-    }
-
-    /**
-     * Normalize allowed filters to [field => config] format.
-     *
-     * @param array|null $allowedFilters
-     * @return array|null
-     */
-    protected function normalizeAllowedFilters(?array $allowedFilters): ?array
-    {
-        if ($allowedFilters === null) {
-            return null;
-        }
-
-        $normalized = [];
-        foreach ($allowedFilters as $key => $value) {
-            if (is_int($key)) {
-                $normalized[$value] = [];
-            } else {
-                $normalized[$key] = is_array($value) ? $value : [];
-            }
-        }
-
-        return $normalized;
     }
 
     /**
@@ -284,7 +260,7 @@ class ResourceOptionsService
         }
 
         // Apply ordering
-        if ($orderBy) {
+        if ($orderBy && OptionsColumnGuard::isSortable($query, $orderBy)) {
             $query->orderBy($orderBy, $orderDirection);
         }
 

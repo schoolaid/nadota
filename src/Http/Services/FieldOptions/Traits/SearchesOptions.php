@@ -3,6 +3,7 @@
 namespace SchoolAid\Nadota\Http\Services\FieldOptions\Traits;
 
 use Illuminate\Database\Eloquent\Builder;
+use SchoolAid\Nadota\Http\Services\FieldOptions\OptionsColumnGuard;
 use SchoolAid\Nadota\Contracts\ResourceInterface;
 use SchoolAid\Nadota\Http\Services\FieldOptions\OptionsConfig;
 
@@ -129,7 +130,7 @@ trait SearchesOptions
      */
     protected function applyOrdering(Builder $query, ?string $orderBy = null, string $direction = 'asc'): Builder
     {
-        if ($orderBy) {
+        if ($orderBy && OptionsColumnGuard::isSortable($query, $orderBy)) {
             $query->orderBy($orderBy, $direction);
         }
 
@@ -150,16 +151,13 @@ trait SearchesOptions
             return $query;
         }
 
-        // Get allowed filters from resource (if defined)
-        $allowedFilters = ($resourceInstance && method_exists($resourceInstance, 'getAllowedOptionsFilters'))
-            ? $resourceInstance->getAllowedOptionsFilters()
-            : null;
+        // Only columns the target resource allows (or, by default, the ones its model does not hide)
+        $allowedFilters = OptionsColumnGuard::filterable($query, $resourceInstance);
 
         $supportedOperators = ['=', '!=', '<>', '>', '<', '>=', '<=', 'like'];
 
         foreach ($filters as $field => $value) {
-            // Skip if allowedFilters is defined and field is not in it
-            if ($allowedFilters !== null && !in_array($field, $allowedFilters)) {
+            if (!array_key_exists($field, $allowedFilters)) {
                 continue;
             }
 

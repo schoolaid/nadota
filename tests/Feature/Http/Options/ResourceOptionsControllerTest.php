@@ -117,7 +117,19 @@ it('ignores filters on columns that are not allowed', function () {
     $response = $this->getJson($this->apiUrl('student', 'options?filters[password]=hash-ana'))->assertOk();
 
     expect(resourceOptionsControllerLabels($response))->toBe(['Ana', 'Ben']);
-})->skip('ISSUE OPS-007: filters[] on /options accept any column, an equality oracle on hidden columns');
+});
+
+it('ignores orderBy on a column the model hides, and still sorts by a visible one', function () {
+    Student::create(['name' => 'Ana', 'password' => 'hash-b']);
+    Student::create(['name' => 'Ben', 'password' => 'hash-a']);
+
+    // Sorting by the hidden password column would leak the order of its values.
+    $byPassword = $this->getJson($this->apiUrl('student', 'options?orderBy=password&orderDirection=asc'))->assertOk();
+    $byName = $this->getJson($this->apiUrl('student', 'options?orderBy=name&orderDirection=desc'))->assertOk();
+
+    expect(resourceOptionsControllerLabels($byPassword))->toBe(['Ana', 'Ben'])
+        ->and(resourceOptionsControllerLabels($byName))->toBe(['Ben', 'Ana']);
+});
 
 it('answers 404 for an unknown resource', function () {
     $this->getJson($this->apiUrl('nope', 'options'))->assertNotFound();
