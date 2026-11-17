@@ -61,7 +61,7 @@ it('applies the default api middleware to the protected routes when the config i
     audBootNadota();
 
     expect(app('router')->getRoutes()->getByName('nadota.api.menu')->middleware())->toContain('api');
-})->skip('ISSUE AUD-030: RouteServiceProvider reads nadota.middlewares before ResourceServiceProvider merges the defaults, so the routes get no middleware');
+});
 
 it('loads the action events migrations and registers ActionEventResource while tracking is enabled', function () {
     audBootNadota();

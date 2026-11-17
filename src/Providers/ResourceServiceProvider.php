@@ -20,10 +20,6 @@ class ResourceServiceProvider extends ServiceProvider
 			$this->registerPublishing();
 		}
 
-		if (!$this->app->configurationIsCached()) {
-			$this->mergeConfigFrom(__DIR__ . '/../../config/nadota.php', 'nadota');
-		}
-
 		$this->registerMigrations();
 
 		$this->registerResources();

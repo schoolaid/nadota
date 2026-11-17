@@ -12,6 +12,10 @@ class NadotaServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        // Merged before anything reads the config: the routes read nadota.middlewares while booting,
+        // and an app that did not publish config/nadota.php must still get the defaults there.
+        $this->mergeConfigFrom(__DIR__ . '/../config/nadota.php', 'nadota');
+
         $this->app->register(ServiceBindingServiceProvider::class);
         $this->app->register(McpServiceProvider::class);
     }
