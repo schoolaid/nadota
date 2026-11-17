@@ -186,7 +186,7 @@ describe('attach', function () {
     })->with([
         'flat' => [['student_id' => 2]],
         'keyed by id' => [[1 => ['student_id' => 2, 'score' => 1]]],
-    ])->skip('ISSUE OPS-003: pivot data can override the pivot foreign key, attaching the item to another parent (Ben) under the check made for Ana');
+    ]);
 
     it('attaches MorphToMany and MorphedByMany items with the morph type', function () {
         $red = Label::create(['name' => 'Red']);
@@ -414,7 +414,7 @@ describe('sync', function () {
 
         expect(attachmentControllerCourseIds($this->ana))->toBe([$this->math->id])
             ->and(attachmentControllerCourseIds($this->ben))->toBe([]);
-    })->skip('ISSUE OPS-003: sync passes the pivot payload unfiltered, so it can override the pivot foreign key');
+    });
 
     it('records a sync action event with the changes and the ids attached before', function () {
         $this->ana->courses()->attach($this->math->id);

@@ -944,11 +944,14 @@ class BelongsToMany extends Field
      */
     public function candidatesQuery(Request $request, Model $model): Builder
     {
-        $query = $model->{$this->getRelation()}()->getRelated()->newQuery();
+        $related = $model->{$this->getRelation()}()->getRelated();
+        $query = $related->newQuery();
 
         $resourceClass = $this->getResource();
         if ($resourceClass && $request instanceof NadotaRequest) {
             $resource = new $resourceClass;
+            // The related resource's getQuery() first: records it hides (tenant, ownership) are never candidates
+            $query = $resource->getQuery($request, $related);
 
             if (method_exists($resource, 'optionsQuery')) {
                 $query = $resource->optionsQuery($query, $request, []);

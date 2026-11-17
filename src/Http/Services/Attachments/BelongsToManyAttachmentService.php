@@ -3,6 +3,8 @@
 namespace SchoolAid\Nadota\Http\Services\Attachments;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany as BelongsToManyRelation;
+use Illuminate\Database\Eloquent\Relations\MorphToMany as MorphToManyRelation;
 use Illuminate\Http\JsonResponse;
 use SchoolAid\Nadota\Http\Fields\Field;
 use SchoolAid\Nadota\Http\Fields\Relations\BelongsToMany;
@@ -92,6 +94,8 @@ class BelongsToManyAttachmentService extends AbstractAttachmentService
 
         if ($resourceClass) {
             $resource = new $resourceClass;
+            // The related resource's getQuery() first: records it hides (tenant, ownership) are never candidates
+            $query = $resource->getQuery($request, $relatedModel);
 
             if (method_exists($resource, 'optionsQuery')) {
                 $query = $resource->optionsQuery($query, $request, []);
@@ -136,8 +140,8 @@ class BelongsToManyAttachmentService extends AbstractAttachmentService
         // Get pivot data
         $pivotData = $this->getPivotDataFromRequest($request);
 
-        // Validate pivot data against pivot fields if defined
-        $validatedPivot = $this->validatePivotData($field, $pivotData);
+        // Declared pivot columns only, and never the keys that say which rows these are
+        $validatedPivot = $this->validatePivotData($field, $pivotData, $relation);
 
         // Filter out already attached items (qualify column to avoid ambiguity)
         $relatedModel = $relation->getRelated();
@@ -162,7 +166,7 @@ class BelongsToManyAttachmentService extends AbstractAttachmentService
                 if ($this->isPivotKeyedById($pivotData)) {
                     $attachData = [];
                     foreach ($toAttach as $id) {
-                        $attachData[$id] = $pivotData[$id] ?? $validatedPivot;
+                        $attachData[$id] = $validatedPivot[$id] ?? [];
                     }
                     $relation->attach($attachData);
                 } else {
@@ -278,8 +282,8 @@ class BelongsToManyAttachmentService extends AbstractAttachmentService
             }
         }
 
-        // Get pivot data
-        $pivotData = $this->getPivotDataFromRequest($request);
+        // Declared pivot columns only, and never the keys that say which rows these are
+        $pivotData = $this->validatePivotData($field, $this->getPivotDataFromRequest($request), $relation);
 
         // Check if detaching is enabled (default true for sync)
         $detaching = $request->get('detaching', true);
@@ -368,31 +372,50 @@ class BelongsToManyAttachmentService extends AbstractAttachmentService
      * @param array $pivotData
      * @return array Validated and filtered pivot data
      */
-    protected function validatePivotData(Field $field, array $pivotData): array
+    protected function validatePivotData(Field $field, array $pivotData, ?BelongsToManyRelation $relation = null): array
     {
         if (empty($pivotData)) {
             return [];
         }
 
-        // If field has pivotColumns defined, only allow those
-        if (method_exists($field, 'getPivotColumns')) {
-            $allowedColumns = $field->getPivotColumns();
+        $allowedColumns = method_exists($field, 'getPivotColumns') ? $field->getPivotColumns() : [];
+        $reserved = $relation ? $this->reservedPivotColumns($relation) : [];
 
+        $filter = function (array $row) use ($allowedColumns, $reserved): array {
             if (!empty($allowedColumns)) {
-                // Handle keyed by ID structure
-                if ($this->isPivotKeyedById($pivotData)) {
-                    $validated = [];
-                    foreach ($pivotData as $id => $data) {
-                        $validated[$id] = array_intersect_key($data, array_flip($allowedColumns));
-                    }
-                    return $validated;
-                }
-
-                // Simple structure
-                return array_intersect_key($pivotData, array_flip($allowedColumns));
+                $row = array_intersect_key($row, array_flip($allowedColumns));
             }
+
+            return array_diff_key($row, array_flip($reserved));
+        };
+
+        if ($this->isPivotKeyedById($pivotData)) {
+            return array_map(fn ($row) => is_array($row) ? $filter($row) : [], $pivotData);
         }
 
-        return $pivotData;
+        return $filter($pivotData);
+    }
+
+    /**
+     * Pivot columns a payload may never set: the parent and related keys (and the morph type),
+     * which come from the URL and `items` (otherwise `{"student_id": 2}` writes a row for another
+     * parent, past the check made for this one), and the timestamps Eloquent manages.
+     *
+     * @return string[]
+     */
+    protected function reservedPivotColumns(BelongsToManyRelation $relation): array
+    {
+        $columns = [
+            $relation->getForeignPivotKeyName(),
+            $relation->getRelatedPivotKeyName(),
+            $relation->createdAt(),
+            $relation->updatedAt(),
+        ];
+
+        if ($relation instanceof MorphToManyRelation) {
+            $columns[] = $relation->getMorphType();
+        }
+
+        return array_values(array_filter($columns));
     }
 }

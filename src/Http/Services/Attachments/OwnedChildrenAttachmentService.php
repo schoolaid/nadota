@@ -190,7 +190,11 @@ abstract class OwnedChildrenAttachmentService extends AbstractAttachmentService
             ->mapWithKeys(fn ($value, $column) => [$related->qualifyColumn($column) => $value])
             ->all();
 
-        $query = $related->newQuery();
+        $resourceClass = $field->getResource();
+        $resource = $resourceClass ? new $resourceClass : null;
+
+        // The related resource's getQuery() first: records it hides (tenant, ownership) are never candidates
+        $query = $resource ? $resource->getQuery($request, $related) : $related->newQuery();
 
         if (method_exists($field, 'isReassignable') && $field->isReassignable()) {
             $query->where(fn (Builder $q) => $q->whereNull($foreignKey)->orWhereNot(fn (Builder $w) => $w->where($owner)));
@@ -198,9 +202,7 @@ abstract class OwnedChildrenAttachmentService extends AbstractAttachmentService
             $query->whereNull($foreignKey);
         }
 
-        if ($resourceClass = $field->getResource()) {
-            $resource = new $resourceClass;
-
+        if ($resource) {
             if (method_exists($resource, 'optionsQuery')) {
                 $query = $resource->optionsQuery($query, $request, []);
             }
