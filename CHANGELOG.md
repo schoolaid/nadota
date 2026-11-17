@@ -9,6 +9,8 @@ Versions not listed below shipped without changelog entries; see the git tags fo
 
 ## [Unreleased]
 
+## [1.5.2] - 2026-11-17
+
 ### Added
 - Test suite normalised and audited (tests and docs only, no change under `src/`): 2853 passing tests over every field, relation, filter, trait, action and route, including real HTTP requests through `tests/Concerns/InteractsWithNadotaApi.php` and the `tests/Fixtures/` school domain. 198 bugs and contradictions are documented in [docs/testing/ISSUES.md](docs/testing/ISSUES.md) with root causes and a fix order. Each open issue has a skipped regression test named `ISSUE <ID>`: un-skip it in the commit that fixes the issue. Functional audits of the menu, exports, actions and configuration are in [docs/audit/](docs/audit/).
 
