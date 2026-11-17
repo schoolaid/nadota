@@ -37,11 +37,12 @@ class RelationIndexService
     {
         $resource = $request->getResource();
 
-        // Find the parent model
-        $parentModel = $resource->model::findOrFail($modelId);
+        // The parent goes through getQuery() and the view ability, like the show page that embeds this relation
+        $parentModel = $resource->getQuery($request)->findOrFail($modelId);
+        $request->authorized('view', $parentModel);
 
-        // Find the relation field
-        $field = $this->findRelationField($resource, $request, $fieldKey);
+        // Only a field the parent's detail or edit view shows can be served
+        $field = $this->findRelationField($resource, $request, $fieldKey, $parentModel);
 
         if (!$field) {
             return response()->json(['error' => 'Field not found', 'field' => $fieldKey], 404);
@@ -79,9 +80,10 @@ class RelationIndexService
     /**
      * Find a relation field by key.
      */
-    protected function findRelationField(ResourceInterface $resource, NadotaRequest $request, string $fieldKey): ?Field
+    protected function findRelationField(ResourceInterface $resource, NadotaRequest $request, string $fieldKey, $parentModel = null): ?Field
     {
-        $fields = $resource->flattenFields($request);
+        $fields = $resource->fieldsForShow($request, 'show', $parentModel)
+            ->merge($resource->fieldsForShow($request, 'update', $parentModel));
 
         // Try to find by key
         $field = $fields->first(fn($f) => $f->key() === $fieldKey);

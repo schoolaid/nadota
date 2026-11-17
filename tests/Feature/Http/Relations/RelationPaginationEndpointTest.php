@@ -330,7 +330,7 @@ it('denies the relation of a parent the user may not view', function () {
 
     $this->getJson($this->apiUrl('student', (string) $ana->id))->assertForbidden();
     $this->getJson($this->apiUrl('student', "{$ana->id}/relation/courses"))->assertForbidden();
-})->skip('ISSUE REL-005: RelationController/RelationIndexService never authorize the parent (view) or the related resource (viewAny)');
+});
 
 it('does not serve a parent excluded by the resource query scope', function () {
     RelStudentResource::using(fn () => [
@@ -342,12 +342,13 @@ it('does not serve a parent excluded by the resource query scope', function () {
 
     $this->getJson($this->apiUrl('rel-student', (string) $ana->id))->assertNotFound();
     $this->getJson($this->apiUrl('rel-student', "{$ana->id}/relation/courses"))->assertNotFound();
-})->skip('ISSUE REL-005: the parent is loaded with $resource->model::findOrFail(), bypassing getQuery()');
+});
 
-it('does not serve a relation field hidden from the detail view', function () {
+it('does not serve a relation field hidden from the detail and edit views', function () {
     RelStudentResource::using(fn () => [
         Input::make('Name', 'name'),
-        BelongsToMany::make('Courses', 'courses', CourseResource::class)->paginated()->showOnDetail(fn () => false),
+        BelongsToMany::make('Courses', 'courses', CourseResource::class)->paginated()
+            ->showOnDetail(fn () => false)->showOnUpdate(fn () => false),
     ]);
     ['ana' => $ana] = relationEndpointSeed();
 
@@ -355,7 +356,18 @@ it('does not serve a relation field hidden from the detail view', function () {
 
     expect(collect($show)->pluck('key'))->not->toContain('courses');
     $this->getJson($this->apiUrl('rel-student', "{$ana->id}/relation/courses"))->assertNotFound();
-})->skip('ISSUE REL-005: findRelationField() searches flattenFields() and ignores field visibility');
+});
+
+// The edit form pages its attach lists through the same URL, without saying which view it is.
+it('still serves a relation field the edit view shows', function () {
+    RelStudentResource::using(fn () => [
+        Input::make('Name', 'name'),
+        BelongsToMany::make('Courses', 'courses', CourseResource::class)->paginated()->showOnDetail(fn () => false),
+    ]);
+    ['ana' => $ana] = relationEndpointSeed();
+
+    $this->getJson($this->apiUrl('rel-student', "{$ana->id}/relation/courses"))->assertOk();
+});
 
 class RelationEndpointDenyViewPolicy
 {
