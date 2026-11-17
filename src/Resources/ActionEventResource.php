@@ -20,6 +20,7 @@ use SchoolAid\Nadota\Http\Filters\DefaultFilter;
 use SchoolAid\Nadota\Http\Filters\DateFilter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Gate;
 
 class ActionEventResource extends Resource
 {
@@ -59,9 +60,32 @@ class ActionEventResource extends Resource
 
     public array $with = ['user'];
 
+    /**
+     * The abilities the audit log can grant. Everything else (create, update, delete, restore,
+     * forceDelete, attach…) is refused whatever the policy says: the log is read-only.
+     */
+    protected const READ_ABILITIES = ['viewAny', 'view', 'viewOptions', 'export'];
+
     public function displayInMenu(NadotaRequest $request): bool
     {
         return false;
+    }
+
+    /**
+     * Read-only, and closed unless the app registers a policy for the event model: the log holds
+     * field snapshots of every resource, so "no policy means allowed" would hand it to every user.
+     */
+    public function authorizedTo(NadotaRequest $request, string $action, $model = null, array $context = []): bool
+    {
+        if (!in_array($action, self::READ_ABILITIES, true)) {
+            return false;
+        }
+
+        if (Gate::getPolicyFor($this->model) === null) {
+            return false;
+        }
+
+        return parent::authorizedTo($request, $action, $model, $context);
     }
 
     /**

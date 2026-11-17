@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\Gate;
 use SchoolAid\Nadota\Models\ActionEvent;
 use SchoolAid\Nadota\Resources\ActionEventResource;
 use SchoolAid\Nadota\Tests\Concerns\InteractsWithNadotaApi;
@@ -34,7 +35,9 @@ beforeEach(function () {
     ]);
 });
 
-it('is routable under the action-event key', function () {
+it('is routable under the action-event key once the app grants it a policy', function () {
+    Gate::policy(ActionEvent::class, ActionEventResourceAllowAllPolicy::class);
+
     $this->getJson('/nadota-api/action-event/resource/info')
         ->assertOk()
         ->assertJsonPath('data.key', 'action-event')
@@ -43,19 +46,53 @@ it('is routable under the action-event key', function () {
 
 it('does not list the global audit log to a user without an ActionEvent policy', function () {
     $this->getJson('/nadota-api/action-event/resource')->assertForbidden();
-})->skip('ISSUE AUD-028: no policy means allowed, so any authenticated user lists every event (with field snapshots) of every resource');
+});
 
 it('does not let a user without an ActionEvent policy delete an audit event', function () {
     $this->deleteJson('/nadota-api/action-event/resource/' . $this->event->id)->assertForbidden();
 
     expect(ActionEvent::whereKey($this->event->id)->exists())->toBeTrue();
-})->skip('ISSUE AUD-028: DELETE answers 200 and removes the audit row');
+});
 
 it('does not let a user without an ActionEvent policy update an audit event', function () {
     $this->putJson('/nadota-api/action-event/resource/' . $this->event->id, ['name' => 'tampered'])->assertForbidden();
-})->skip('ISSUE AUD-028: PUT answers 200 "Resource updated successfully" (the fields are readonly, so only updated_at changes)');
+});
 
 it('searches the audit log by the columns it declares in $search', function () {
     expect((new ActionEventResource())->isSearchable())->toBeTrue()
         ->and((new ActionEventResource())->getSearchableAttributes())->toContain('name', 'batch_id');
 })->skip('ISSUE AUD-029: ActionEventResource declares static $search (and $softDelete, $with), which the base Resource never reads');
+
+it('lists the audit log when the app policy allows it, but never lets it be written', function () {
+    Gate::policy(ActionEvent::class, ActionEventResourceAllowAllPolicy::class);
+
+    $this->getJson('/nadota-api/action-event/resource')->assertOk()->assertJsonPath('data.0.id', $this->event->id);
+    $this->putJson('/nadota-api/action-event/resource/' . $this->event->id, ['name' => 'tampered'])->assertForbidden();
+    $this->deleteJson('/nadota-api/action-event/resource/' . $this->event->id)->assertForbidden();
+
+    expect(ActionEvent::whereKey($this->event->id)->value('name'))->toBe('update');
+});
+
+/** A policy that allows reading and writing, to show the resource refuses writes on its own. */
+class ActionEventResourceAllowAllPolicy
+{
+    public function viewAny($user): bool
+    {
+        return true;
+    }
+
+    public function view($user, $event): bool
+    {
+        return true;
+    }
+
+    public function update($user, $event): bool
+    {
+        return true;
+    }
+
+    public function delete($user, $event): bool
+    {
+        return true;
+    }
+}
