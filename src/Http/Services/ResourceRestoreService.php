@@ -31,6 +31,9 @@ class ResourceRestoreService implements ResourceRestoreInterface
         // Check authorization
         $request->authorized('restore', $model);
 
+        // $canRestore / canRestore() switch restoring off regardless of the policy
+        abort_unless($resource->canRestore($model, $request), 403);
+
         try {
             DB::beginTransaction();
 

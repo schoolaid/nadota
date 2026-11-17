@@ -71,7 +71,7 @@ describe('restore', function () {
         $this->postJson($this->apiUrl('locked-student', $this->trashed->id . '/restore'))->assertForbidden();
 
         expect(Student::withTrashed()->find($this->trashed->id)->trashed())->toBeTrue();
-    })->skip('ISSUE HTTP-007: $canRestore / canRestore() only feed the permissions block; ResourceRestoreService checks the policy alone');
+    });
 });
 
 describe('force delete', function () {
@@ -124,5 +124,5 @@ describe('force delete', function () {
         $this->deleteJson($this->apiUrl('locked-student', $this->active->id . '/force'))->assertForbidden();
 
         expect(Student::find($this->active->id))->not->toBeNull();
-    })->skip('ISSUE HTTP-007: $canForceDelete / canForceDelete() only feed the permissions block; ResourceForceDeleteService checks the policy alone');
+    });
 });

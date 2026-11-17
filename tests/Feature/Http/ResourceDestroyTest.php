@@ -91,4 +91,4 @@ it('refuses to delete when the resource disables deletion', function () {
     $this->deleteJson($this->apiUrl('locked-student', $student->id))->assertForbidden();
 
     expect($student->fresh()->trashed())->toBeFalse();
-})->skip('ISSUE HTTP-007: $canDelete / canDelete() only feed the permissions block; ResourceDestroyService checks the policy alone');
+});

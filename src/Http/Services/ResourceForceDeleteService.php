@@ -31,6 +31,9 @@ class ResourceForceDeleteService implements ResourceForceDeleteInterface
         // Check authorization
         $request->authorized('forceDelete', $model);
 
+        // $canForceDelete / canForceDelete() switch force deleting off regardless of the policy
+        abort_unless($resource->canForceDelete($model, $request), 403);
+
         try {
             DB::beginTransaction();
 

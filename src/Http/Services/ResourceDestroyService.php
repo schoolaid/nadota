@@ -20,6 +20,9 @@ class ResourceDestroyService implements ResourceDestroyInterface
 
         $request->authorized('delete', $model);
 
+        // $canDelete / canDelete() switch deletion off regardless of the policy
+        abort_unless($resource->canDelete($model, $request), 403);
+
         try {
             DB::beginTransaction();
 
