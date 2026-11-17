@@ -9,6 +9,12 @@ Versions not listed below shipped without changelog entries; see the git tags fo
 
 ## [Unreleased]
 
+### Added
+- Test suite normalised and audited (tests and docs only, no change under `src/`): 2853 passing tests over every field, relation, filter, trait, action and route, including real HTTP requests through `tests/Concerns/InteractsWithNadotaApi.php` and the `tests/Fixtures/` school domain. 198 bugs and contradictions are documented in [docs/testing/ISSUES.md](docs/testing/ISSUES.md) with root causes and a fix order. Each open issue has a skipped regression test named `ISSUE <ID>`: un-skip it in the commit that fixes the issue. Functional audits of the menu, exports, actions and configuration are in [docs/audit/](docs/audit/).
+
+### Security
+- `composer.lock` (development and CI only) moves PhpSpreadsheet from 3.10.5 to 3.10.9, past seven advisories (XXE and denial of service in its readers, and an SSRF in external image loading). The package constraint `^1.30|^2.0|^3.0` is unchanged, so apps still resolve their own version.
+
 ## [1.5.1] - 2026-11-15
 
 ### Fixed
