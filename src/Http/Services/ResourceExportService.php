@@ -28,6 +28,9 @@ class ResourceExportService implements ResourceExportInterface
     public function handle(NadotaRequest $request): Response
     {
         $request->authorized('viewAny');
+        // The same ability /export/config reports as `enabled`: without it the button is hidden,
+        // so the endpoint must refuse too. A policy without export() allows it.
+        $request->authorized('export');
 
         $resource = $request->getResource();
 

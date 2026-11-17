@@ -118,7 +118,7 @@ it('refuses the export when the policy refuses the export ability', function () 
 
     expect($request->getResource()->getExportConfig($request)['enabled'])->toBeFalse()
         ->and(audExportStatus(fn () => app(ResourceExportService::class)->handle($request)))->toBe(403);
-})->skip('ISSUE AUD-013: /export/config reports enabled=false for the export ability, but /export only checks viewAny');
+});
 
 it('refuses every export while export.enabled is false', function () {
     config()->set('nadota.export.enabled', false);

@@ -226,7 +226,7 @@ describe('csv', function () {
 
         expect($names)->toContain('Ana')
             ->and(array_filter($names, fn ($name) => str_starts_with($name, '=')))->toBe([]);
-    })->skip('ISSUE OPS-021: exported cells starting with = + - @ are written raw (CSV/formula injection)');
+    });
 });
 
 describe('excel', function () {
@@ -259,7 +259,7 @@ describe('excel', function () {
         } finally {
             @unlink($path);
         }
-    })->skip('ISSUE OPS-021: ExcelExporter uses setValue(), so "=1+1" is stored as a real formula');
+    });
 });
 
 describe('refusals', function () {
@@ -298,7 +298,7 @@ describe('refusals', function () {
         config(['nadota-tests.ops_denied' => ['export']]);
 
         $this->getJson($this->apiUrl('student', 'export?format=csv'))->assertForbidden();
-    })->skip('ISSUE OPS-022: the export endpoint only checks viewAny; the export ability only hides the button (config.enabled)');
+    });
 
     it('answers 422, not 500, when columns is not a list', function () {
         $this->getJson($this->apiUrl('student', 'export?format=csv&columns=name'))->assertStatus(422);

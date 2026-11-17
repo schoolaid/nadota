@@ -60,4 +60,17 @@ abstract class AbstractExporter implements ExporterInterface
 
         return $formatted;
     }
+
+    /**
+     * Whether a spreadsheet would evaluate the cell as a formula when the file is opened
+     * (CSV/formula injection): a string starting with = + - @, a tab or a carriage return.
+     * Numbers written as text ("-5", "+3.2") are left alone.
+     */
+    protected function looksLikeFormula(mixed $value): bool
+    {
+        return is_string($value)
+            && $value !== ''
+            && in_array($value[0], ['=', '+', '-', '@', "\t", "\r"], true)
+            && !is_numeric($value);
+    }
 }

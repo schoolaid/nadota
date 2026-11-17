@@ -30,7 +30,7 @@ it('writes a cell starting with "=" as text in the xlsx file, not as a formula',
     @unlink($path);
 
     expect($cell->getDataType())->not->toBe(DataType::TYPE_FORMULA);
-})->skip('ISSUE AUD-017: ExcelExporter uses setValue(), which turns any string starting with "=" into a live formula');
+});
 
 it('neutralises cells that a spreadsheet would evaluate as a formula in the csv file', function () {
     $response = (new CsvExporter())->withoutBom()->export(LazyCollection::make([['name' => '=1+1'], ['name' => '@SUM(A1)']]), ['name' => 'Name'], 'students');
@@ -39,7 +39,7 @@ it('neutralises cells that a spreadsheet would evaluate as a formula in the csv 
 
     expect($rows[1][0])->not->toStartWith('=')
         ->and($rows[2][0])->not->toStartWith('@');
-})->skip('ISSUE AUD-017: CsvExporter writes =, +, -, @ prefixed values verbatim (CSV injection)');
+});
 
 it('keeps a filename containing quotes inside one Content-Disposition filename parameter', function (string $exporter) {
     $response = (new $exporter())->export(LazyCollection::make([]), ['name' => 'Name'], 'a"; filename=evil.exe');

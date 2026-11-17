@@ -3,6 +3,7 @@
 namespace SchoolAid\Nadota\Http\Services\Exporters;
 
 use Illuminate\Support\LazyCollection;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\Response;
@@ -86,7 +87,14 @@ class ExcelExporter extends AbstractExporter
             $formattedRow = $this->formatRow($row, $headers);
             foreach ($formattedRow as $colIndex => $value) {
                 $columnLetter = $this->getColumnLetter($colIndex + 1);
-                $sheet->getCell("{$columnLetter}{$rowIndex}")->setValue($value);
+                $cell = $sheet->getCell("{$columnLetter}{$rowIndex}");
+
+                // setValue() stores any string starting with "=" as a live formula; data is never a formula
+                if ($this->looksLikeFormula($value)) {
+                    $cell->setValueExplicit($value, DataType::TYPE_STRING);
+                } else {
+                    $cell->setValue($value);
+                }
             }
             $rowIndex++;
         }

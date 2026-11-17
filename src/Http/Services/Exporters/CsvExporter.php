@@ -67,7 +67,11 @@ class CsvExporter extends AbstractExporter
 
             // Write data rows
             foreach ($data as $row) {
-                $formattedRow = $this->formatRow($row, $headers);
+                // A leading ' makes the spreadsheet show the value as text instead of running it (OWASP)
+                $formattedRow = array_map(
+                    fn ($value) => $this->looksLikeFormula($value) ? "'" . $value : $value,
+                    $this->formatRow($row, $headers)
+                );
                 fputcsv($handle, $formattedRow, $this->delimiter, $this->enclosure);
             }
 
