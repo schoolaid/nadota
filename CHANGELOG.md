@@ -13,7 +13,7 @@ Versions not listed below shipped without changelog entries; see the git tags fo
 - Test suite normalised and audited (tests and docs only, no change under `src/`): 2853 passing tests over every field, relation, filter, trait, action and route, including real HTTP requests through `tests/Concerns/InteractsWithNadotaApi.php` and the `tests/Fixtures/` school domain. 198 bugs and contradictions are documented in [docs/testing/ISSUES.md](docs/testing/ISSUES.md) with root causes and a fix order. Each open issue has a skipped regression test named `ISSUE <ID>`: un-skip it in the commit that fixes the issue. Functional audits of the menu, exports, actions and configuration are in [docs/audit/](docs/audit/).
 
 ### Security
-- `composer.lock` (development and CI only) moves PhpSpreadsheet from 3.10.5 to 3.10.9, past seven advisories (XXE and denial of service in its readers, and an SSRF in external image loading). The package constraint `^1.30|^2.0|^3.0` is unchanged, so apps still resolve their own version.
+- PhpSpreadsheet now requires a release past seven advisories (XXE and denial of service in its readers, and an SSRF in external image loading): the constraint goes from `^1.30|^2.0|^3.0` to `^1.30.7|~2.1.19|^2.4.8|^3.10.8`. It keeps the same major lines but drops 2.0, 2.2, 2.3 and 3.3–3.10.7, whose releases are all affected. **Upgrade note:** an app locked to one of those versions must update PhpSpreadsheet together with Nadota (`composer update schoolaid/nadota phpoffice/phpspreadsheet`). The development lock moves from 3.10.5 to 3.10.9.
 
 ## [1.5.1] - 2026-11-15
 
