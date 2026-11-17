@@ -90,9 +90,9 @@ Controls CSV/Excel exports. See the [Exports guide](../guides/exports.md).
 | Key | Default | Description |
 |-----|---------|-------------|
 | `enabled` | `true` | Global export switch. |
-| `formats` | `['excel', 'csv']` | Available formats. PDF/async are **not** implemented in `1.5.2`. |
+| `formats` | `['excel', 'csv']` | Available formats. PDF/async are **not** implemented in `1.6.0`. |
 | `default_format` | `excel` | Format used when the request omits one. |
-| `sync_limit` | `1000` | Surfaced in the export config payload; not enforced server-side in `1.5.2` (exports stream synchronously). |
+| `sync_limit` | `1000` | Surfaced in the export config payload; not enforced server-side in `1.6.0` (exports stream synchronously). |
 | `chunk_size` | `500` | Chunk size used when iterating large datasets. |
 
 ## Related

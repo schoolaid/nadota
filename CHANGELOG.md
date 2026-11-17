@@ -9,6 +9,8 @@ Versions not listed below shipped without changelog entries; see the git tags fo
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-11-17
+
 ### Security
 Data isolation and authorization gaps from the P0 list of [docs/testing/ISSUES.md](docs/testing/ISSUES.md). `Resource::getQuery()` — where apps scope rows by tenant or owner — now applies on every route that loads records, not only the main CRUD:
 - `/data` (compact) builds on `getQuery()` + `queryIndex()` like the index, and returns only the key when no requested column is valid; it used to return every column of every row (CORE-004).
