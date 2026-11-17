@@ -53,7 +53,8 @@ it('leaves the built-in ActionEventResource out of the menu while keeping it rou
     $this->bootNadotaApi([MenuAlphaResource::class, ActionEventResource::class]);
 
     expect(array_column($this->getJson('/nadota-api/menu')->json('data'), 'key'))->toBe(['menu-alpha']);
-    $this->getJson('/nadota-api/action-event/resource/info')->assertOk();
+    // Routable (403, not 404): closed until the app registers an ActionEvent policy (AUD-028)
+    $this->getJson('/nadota-api/action-event/resource/info')->assertForbidden();
 });
 
 it('hands the HTTP request to displayInMenu()', function () {
@@ -87,13 +88,15 @@ it('returns the prepareMenuUsing() payload as the response body', function () {
     $this->getJson('/nadota-api/menu')->assertOk()->assertExactJson(['menu' => 'custom']);
 });
 
-it('serves the menu to guests under the default middleware stack', function () {
-    // Pins the insecure default described in AUD-012: middlewares = ['api'] has no auth,
-    // and resources without a policy are allowed, so a guest receives the full menu.
+it('does not serve the menu to guests under the default middleware stack (AUD-012)', function () {
+    // middlewares = ['api', 'auth'] by default: a guest is turned away before any resource runs.
+    // The suite's TestCase sets ['api']; load the package default and register the routes with it.
+    config()->set('nadota.middlewares', (require dirname(__DIR__, 4) . '/config/nadota.php')['middlewares']);
+    $this->bootNadotaApi();
     $this->app['auth']->forgetGuards();
 
     expect(auth()->check())->toBeFalse();
 
     $this->useRealAuthorization();
-    $this->getJson('/nadota-api/menu')->assertOk()->assertJsonCount(7, 'data');
+    $this->getJson('/nadota-api/menu')->assertUnauthorized();
 });

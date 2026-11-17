@@ -47,7 +47,7 @@ it('merges the package defaults under the keys the application did not set', fun
         ->and(config('nadota.export.formats'))->toBe(['csv'])   // the app's block wins as a whole (shallow merge)
         ->and(config('nadota.export.default_format'))->toBeNull()
         ->and(config('nadota.api.prefix'))->toBe('nadota-api')
-        ->and(config('nadota.middlewares'))->toBe(['api']);
+        ->and(config('nadota.middlewares'))->toBe(['api', 'auth']);
 });
 
 it('mounts the API routes under nadota-api', function () {

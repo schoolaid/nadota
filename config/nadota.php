@@ -5,8 +5,12 @@ return [
     'namespace' => 'said',
     'key_resources_cache' => 'said_nadota_class_file_map',
     'path_resources' => 'app/Nadota',
+    // Middleware for every API route. `auth` (the app's default guard) keeps guests out: without it
+    // the menu and the CRUD of every resource without a policy are served to anyone. Replace it with
+    // your guard (e.g. 'auth:sanctum') or your own stack when you publish this file.
     'middlewares' => [
         'api',
+        'auth',
     ],
     'filters' => [
         // Labels for the true/false options of a boolean/checkbox filter.
