@@ -449,7 +449,7 @@ describe('authorization', function () {
         config(['nadota-tests.ops_denied' => ['viewAny']]);
 
         $this->getJson($this->apiUrl('student', 'field/grade/options'))->assertForbidden();
-    })->skip('ISSUE OPS-009: viewOptions is granted whenever the policy lacks the method, so denying viewAny never protects options');
+    });
 
     it('authorizes against the resource that owns the field, not the related one', function () {
         // Grades are not listable by this user, but student/field/grade still lists them.

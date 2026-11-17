@@ -22,7 +22,7 @@ class ResourceOptionsController extends Controller
     /**
      * Get options for a resource.
      *
-     * Authorizes using viewAny first, falls back to viewOptions if viewAny is denied.
+     * Authorized when viewAny or viewOptions allows it; a policy without viewOptions() decides by viewAny.
      *
      * @param NadotaRequest $request
      * @return JsonResponse

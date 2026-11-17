@@ -15,6 +15,15 @@ class ResourceAuthorizationService implements ResourceAuthorizationInterface
      */
     private const PARENT_UPDATE_FALLBACK_ACTIONS = ['attach', 'detach'];
 
+    /**
+     * Actions that, when the policy does not define them, are decided by another ability of the
+     * same policy instead of being allowed. A policy that denies viewAny and says nothing about
+     * viewOptions must not hand out the whole list through the options endpoints.
+     *
+     * @var array<string, string>
+     */
+    private const SILENT_POLICY_FALLBACKS = ['viewOptions' => 'viewAny'];
+
     public $model;
 
     public function setModel($model): self
@@ -50,6 +59,10 @@ class ResourceAuthorizationService implements ResourceAuthorizationInterface
             // Relation changes are an update of the parent when the policy is silent on them
             if (in_array($action, self::PARENT_UPDATE_FALLBACK_ACTIONS, true)) {
                 return $this->authorizedTo($request, 'update');
+            }
+
+            if (isset(self::SILENT_POLICY_FALLBACKS[$action])) {
+                return $this->authorizedTo($request, self::SILENT_POLICY_FALLBACKS[$action], $context);
             }
         }
 

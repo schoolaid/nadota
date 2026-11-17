@@ -22,7 +22,7 @@ class FieldOptionsController extends Controller
     /**
      * Get options for a specific field.
      *
-     * Authorizes using viewAny first, falls back to viewOptions if viewAny is denied.
+     * Authorized when viewAny or viewOptions allows it; a policy without viewOptions() decides by viewAny.
      *
      * @param NadotaRequest $request
      * @param string $resourceKey
@@ -45,7 +45,7 @@ class FieldOptionsController extends Controller
     /**
      * Get paginated options for a specific field.
      *
-     * Authorizes using viewAny first, falls back to viewOptions if viewAny is denied.
+     * Authorized when viewAny or viewOptions allows it; a policy without viewOptions() decides by viewAny.
      *
      * @param NadotaRequest $request
      * @param string $resourceKey
@@ -68,7 +68,7 @@ class FieldOptionsController extends Controller
     /**
      * Get options for a specific morph type of morph field.
      *
-     * Authorizes using viewAny first, falls back to viewOptions if viewAny is denied.
+     * Authorized when viewAny or viewOptions allows it; a policy without viewOptions() decides by viewAny.
      *
      * @param NadotaRequest $request
      * @param string $resourceKey
@@ -98,7 +98,11 @@ class FieldOptionsController extends Controller
      * Authorize options access.
      *
      * Checks viewAny first, falls back to viewOptions if viewAny is denied.
-     * viewOptions returns true by default if not defined in the policy.
+     * A policy without viewOptions() decides by viewAny (ResourceAuthorizationService).
+     *
+     * Authorized against the resource that owns the field, not the related one: picking a grade
+     * for a student does not require browsing grades. The related resource's getQuery() and
+     * optionsQuery() still limit what is offered (OPS-024).
      */
     protected function authorizeOptions(NadotaRequest $request): void
     {

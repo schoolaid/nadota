@@ -160,5 +160,5 @@ describe('authorization', function () {
         config(['nadota-tests.ops_denied' => ['viewAny']]);
 
         $this->getJson($this->apiUrl('student', 'options'))->assertForbidden();
-    })->skip('ISSUE OPS-009: a policy without viewOptions() lets anyone denied viewAny enumerate the records');
+    });
 });
