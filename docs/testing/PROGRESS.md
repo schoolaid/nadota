@@ -116,6 +116,26 @@ events for uploads, Code over a JSON cast, create-form context, Toggle labels, e
 - Result: 2853 passed, 323 skipped (153 open issue IDs), 0 failed on three random seeds; every skipped test still fails
   without its skip.
 
+### Follow-up 2026-11-17 — P0 fixes (branch `fix/p0-data-isolation`)
+
+First fixes made from this file rather than by another session: every P0 ID of
+[ISSUES.md](./ISSUES.md#suggested-fix-order), with its skipped tests un-skipped in the same commit.
+
+- **Fixed:** CORE-004, REL-005, OPS-003, OPS-007, OPS-008, OPS-010/AUD-025, OPS-022/AUD-013, OPS-021/AUD-017,
+  HTTP-007, AUD-030; HTTP-005 in part (the no-fields case of `/data`).
+- **Decided with the maintainer and fixed:** OPS-009 (a policy without `viewOptions()` decides by `viewAny`),
+  AUD-028 (built-in audit log read-only and closed without an `ActionEvent` policy), AUD-012 (default
+  middlewares `['api', 'auth']`). **Closed by decision, unchanged:** OPS-024 (options stay authorized against the
+  owning resource; documented in `docs/guides/authorization.md`).
+- **Tests changed with the contract:** the `/relation/{field}` visibility test hides the field from detail *and*
+  edit (the edit form pages its attach lists through that URL); the menu test that pinned guest access now asserts a
+  401 under the package default; two tests that reached `action-event/resource/info` without a policy expect 403.
+- **New tests:** `AttachCandidatesScopeTest` (attachable lists and attach honour the related `getQuery()`, HasMany and
+  BelongsToMany; new fixture `RelCourseResource`), sorting options by a hidden column, a policy that allows writes on
+  the audit log is still refused, a relation field shown only on edit is still served.
+- Result: 2892 passed, 291 skipped (138 open issue IDs), 0 failed on three random seeds; every skipped test still fails
+  without its skip.
+
 ---
 
 ## Pending (and why)

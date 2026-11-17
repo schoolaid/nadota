@@ -34,6 +34,7 @@ Found while reading the package before writing tests. IDs use the `CORE-` prefix
   opposite condition (to be confirmed by the HTTP tests).
 - Marked `TODO: New service` in the code.
 - Severity: high if a resource relies on `getQuery()` for data isolation.
+- **Status:** ✅ fixed by `ac69d7f` (2026-11-17): `compact()` builds on `getQuery()` + `queryIndex()` like the index and falls back to the key alone, never to every column. The regression tests are un-skipped.
 
 ### CORE-005 — `ResourceManager::getModelByResource()` cannot work
 - Calls `array_search($resource, $resources)` on a `Collection` of `['class' => …, 'model' => …]`

@@ -184,6 +184,7 @@ Kind: bug · security · contradiction (code vs docs) · doubt (needs a decision
 - **Verified:** `MenuEndpointTest` › "serves the menu to guests under the default middleware stack"
   (passing test that pins the current behaviour); probe: guest `GET /nadota-api/student/resource` → 200.
 - **Severity / kind:** medium · security, doubt.
+- **Status:** ✅ fixed by `c12db48` (2026-11-17): decided 2026-11-17: the default `middlewares` is `['api', 'auth']`, so an app that does not publish the config requires its default guard. Apps that publish it keep their own stack. No deny-by-default when a resource has no policy. The regression tests are un-skipped.
 
 ## Exports
 
@@ -197,6 +198,7 @@ Kind: bug · security · contradiction (code vs docs) · doubt (needs a decision
 - **Verified:** `tests/Unit/Export/ResourceExportServiceTest.php` › "refuses the export when the policy
   refuses the export ability" (skipped); HTTP probe → 200.
 - **Severity / kind:** high · security.
+- **Status:** ✅ fixed by `af36502` (2026-11-17): same fix as OPS-022. The regression tests are un-skipped.
 
 ### AUD-014 — `export.enabled`, `export.sync_limit`, `export.chunk_size` are never read
 - **Location:** `config/nadota.php:200-213`; `src/Http/Traits/ResourceExportable.php:33`
@@ -241,6 +243,7 @@ Kind: bug · security · contradiction (code vs docs) · doubt (needs a decision
   starting with `= + - @` (and tab/CR) with `'` in CSV (OWASP CSV-injection guidance).
 - **Verified:** `tests/Unit/Export/ExporterHardeningTest.php` (two skipped tests); probe read the XLSX back.
 - **Severity / kind:** medium · security.
+- **Status:** ✅ fixed by `af36502` (2026-11-17): same fix as OPS-021. The regression tests are un-skipped.
 
 ### AUD-018 — `filename` is put into `Content-Disposition` unescaped
 - **Location:** `src/Http/Services/Exporters/AbstractExporter.php:43`, `ExcelExporter.php:118`.
@@ -330,6 +333,7 @@ Kind: bug · security · contradiction (code vs docs) · doubt (needs a decision
 - **Expected:** load through `getQuery($request)` with `whereKey($ids)`.
 - **Verified:** two skipped tests in `ActionExecutionTest`.
 - **Severity / kind:** high · security.
+- **Status:** ✅ fixed by `d6f7437` (2026-11-17): same fix as OPS-010: `whereKey()` uses the model's key name and the query comes from `getQuery()`. The regression tests are un-skipped.
 
 ### AUD-026 — `ActionInterface` misses methods the service and controller call
 - **Location:** `src/Contracts/ActionInterface.php` vs `ActionExecutionService.php:55` and
@@ -363,6 +367,7 @@ Kind: bug · security · contradiction (code vs docs) · doubt (needs a decision
   (a shipped policy, or `canDelete = false` + an explicit opt-in).
 - **Verified:** `tests/Feature/Http/BuiltIn/ActionEventResourceTest.php` (three skipped tests); HTTP probe.
 - **Severity / kind:** high · security.
+- **Status:** ✅ fixed by `20942f9` (2026-11-17): decided 2026-11-17: `ActionEventResource::authorizedTo()` refuses every ability except `viewAny`, `view`, `viewOptions` and `export`, and those only when the app registers a policy for the `ActionEvent` model. The regression tests are un-skipped.
 
 ### AUD-029 — `ActionEventResource` declares properties the base `Resource` never reads
 - **Location:** `src/Resources/ActionEventResource.php:45-60`.
@@ -385,6 +390,7 @@ Kind: bug · security · contradiction (code vs docs) · doubt (needs a decision
 - **Expected:** merge in `register()`, so every reader sees the defaults.
 - **Verified:** `tests/Unit/Config/NadotaServiceProviderTest.php` (skipped test); probe.
 - **Severity / kind:** medium · bug.
+- **Status:** ✅ fixed by `0bb193d` (2026-11-17): `NadotaServiceProvider::register()` merges the package config before any provider reads it. The regression tests are un-skipped.
 
 ### AUD-031 — Boot crashes when `path_resources` is missing or absolute
 - **Location:** `src/ResourceManager.php:19-24`.

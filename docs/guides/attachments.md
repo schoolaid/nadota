@@ -120,7 +120,9 @@ Content-Type: application/json
 }
 ```
 
-Pivot data is filtered to the field's declared pivot columns (`getPivotColumns()`) when defined.
+Pivot data is filtered to the field's declared pivot columns (`getPivotColumns()`) when defined. Whatever is declared, the payload can never set the columns that identify the row — the parent and related pivot keys and the morph type, which come from the URL and `items` — nor the timestamps, which Eloquent manages.
+
+The records offered by `attachable` and accepted by `attach`/`sync` start from the related resource's `getQuery()`, so rows it hides (tenant, ownership) can be neither listed nor attached.
 
 Behavior by type:
 

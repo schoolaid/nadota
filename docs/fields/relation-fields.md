@@ -178,7 +178,7 @@ When a model context is present (detail/edit views) the field appends `?resource
 | `exclude` | `[]` | IDs to exclude (CSV string or array). Merged with auto-excluded attached IDs. |
 | `resourceId` | – | Parent model id; enables auto-exclusion of already-attached records. |
 | `orderBy` / `orderDirection` | – / `asc` | Ordering; falls back to the field's `orderBy()` config. |
-| `filters` | `[]` | Column filters (`whereIn` for arrays, `like` for scalars, `{value,operator}` objects, `null`). Restricted by the resource's `getAllowedOptionsFilters()` if defined. |
+| `filters` | `[]` | Column filters (`whereIn` for arrays, `like` for scalars, `{value,operator}` objects, `null`). Restricted to the resource's `getAllowedOptionsFilters()` if defined, otherwise to the table's columns minus the model's `$hidden` ones. |
 | `scope` | `[]` | Values for the field's declared `scopedBy()` scopes, keyed by observed field name (`scope[owner]=5`). See [Lookup Fields and Scoped Options](lookup.md). |
 
 ### `options` response
@@ -215,7 +215,7 @@ Used for large option sets. `per_page` defaults to `15` (max `100`), with `page`
 }
 ```
 
-Both endpoints authorize via the resource policy: `viewAny` is checked first, falling back to `viewOptions` (which defaults to allowed if undefined).
+Both endpoints authorize via the policy of the resource that owns the field: `viewAny` is checked first, falling back to `viewOptions`. A policy without `viewOptions()` decides by `viewAny` (see [Authorization](../guides/authorization.md#options-endpoints)).
 
 Resources may customize the options query by implementing `optionsQuery($query, $request, $params)`.
 

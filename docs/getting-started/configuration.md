@@ -9,7 +9,7 @@ Reference for `config/nadota.php`. Publish it with `--tag="nadota-config"` (see 
 'namespace'           => 'said',          // panel namespace identifier
 'key_resources_cache' => 'said_nadota_class_file_map', // cache key for the discovered resource map
 'path_resources'      => 'app/Nadota',    // directory scanned for Resource classes
-'middlewares'         => ['api'],         // middleware applied to Nadota routes
+'middlewares'         => ['api', 'auth'], // middleware applied to Nadota routes
 ```
 
 | Key | Default | Description |
@@ -18,7 +18,7 @@ Reference for `config/nadota.php`. Publish it with `--tag="nadota-config"` (see 
 | `namespace` | `said` | Panel namespace identifier. |
 | `key_resources_cache` | `said_nadota_class_file_map` | Cache key for the class→file resource map (used in production). |
 | `path_resources` | `app/Nadota` | Directory auto-scanned for `Resource` classes. |
-| `middlewares` | `['api']` | Middleware stack applied to the generated routes. |
+| `middlewares` | `['api', 'auth']` | Middleware stack applied to the generated routes. `auth` uses the app's default guard; replace it with yours (e.g. `auth:sanctum`) when you publish the config. Without an auth middleware the menu and the CRUD of every resource without a policy are served to guests. *(Default `['api']` before 1.6.0.)* |
 
 ## API & frontend prefixes
 

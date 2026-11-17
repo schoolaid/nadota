@@ -155,7 +155,7 @@ Nadota ships `SchoolAid\Nadota\Resources\ActionEventResource`, a read-only resou
 - Eager-loads `user`. Soft deletes disabled.
 - Filters: action name, status, model type, model ID, user ID, created-at date.
 
-Because it is a normal resource, it is reachable through the standard resource endpoints once registered/discovered — you simply won't see it in the navigation [menu](menu.md).
+It is reachable through the standard resource endpoints once registered, but **closed by default**: it answers only read abilities (`viewAny`, `view`, `viewOptions`, `export`), and only when the app registers a policy for `SchoolAid\Nadota\Models\ActionEvent` (`Gate::policy(ActionEvent::class, YourPolicy::class)`). Create, update, delete, restore and force delete are always refused, whatever the policy says. *(Since 1.6.0; before that, without a policy any user could list every event with its field snapshots, and update or delete it.)*
 
 ## Endpoints
 

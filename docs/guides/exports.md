@@ -78,7 +78,7 @@ Headers come from `getExportHeaders()`, which runs each field name through `tran
 
 ## Endpoints
 
-Routes live under the API prefix (`nadota-api` by default) within the `{resourceKey}/resource` group. Both require the `viewAny` ability. See [API routes](../api/routes.md).
+Routes live under the API prefix (`nadota-api` by default) within the `{resourceKey}/resource` group. Both require the `viewAny` ability; the export itself also requires the `export` ability (a policy without `export()` allows it), the same one `/export/config` reports as `enabled`. See [API routes](../api/routes.md).
 
 ### Export config
 
@@ -124,7 +124,9 @@ Plus any index query parameters (`search`, filters, sorting) — they flow throu
 
 Error responses:
 
-- `403` — export not enabled for the resource (`Export is not enabled for this resource.`) or the `viewAny` ability is denied.
+- `403` — export not enabled for the resource (`Export is not enabled for this resource.`), or the `viewAny` or `export` ability is denied.
+
+Cell values that a spreadsheet would evaluate as a formula are neutralised: in XLSX a string starting with `=` is written as text, and in CSV a cell starting with `=`, `+`, `-`, `@`, a tab or a carriage return gets a leading `'` (numbers such as `-5` are kept).
 - `422` — disallowed format (`Export format '<format>' is not allowed. Allowed formats: ...`).
 
 ## Memory efficiency

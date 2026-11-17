@@ -5,7 +5,7 @@ extending the test suite. The audit itself fixed none of them — `src/`, `confi
 and `routes/` were left untouched. They are here to be re-evaluated and fixed in
 later sessions.
 
-**Fixed since the audit (9, plus REL-009 and FLD-029 in part):**
+**Fixed since the audit (25; OPS-024 closed by decision; REL-009, FLD-029 and HTTP-005 in part):**
 
 | ID | Fixed by | Regression tests |
 |----|----------|------------------|
@@ -20,6 +20,24 @@ later sessions.
 | [FLD-020](findings/fields.md) | `5bed5c0` (same commit) — `component()` changes the serialized component | `CustomComponentTest`, un-skipped |
 | [FLD-002](findings/fields.md) | `785ccae` fix(key-value): KeyValue::fill() corre al guardar (v1.5.0) | `StudentShowcaseRoundTripTest` › "protects readonly and hidden keys…", `StudentFieldsRoundTripTest` › "decodes a JSON string sent to a KeyValue field…", un-skipped |
 | [FLD-029](findings/fields.md) (part) | `28451c6` fix(time): valida que el valor sea una hora (v1.5.0), `c86ec9f` normalizes to `H:i:s` (v1.5.1) — a value that is not a time is rejected; `min()`/`max()` are still frontend-only | `TimeTest` › "validates the submitted value against the time limits" stays skipped, narrowed to the limits |
+| [CORE-004](findings/core.md) | `ac69d7f` (P0, branch `fix/p0-data-isolation`) — `/data` builds on `getQuery()` + `queryIndex()` and returns only the key when no requested column is valid | the `ISSUE CORE-004` tests, un-skipped |
+| [REL-005](findings/relations.md) | `7958fd8` (P0, branch `fix/p0-data-isolation`) — the parent comes from `getQuery()`, needs `view`, and only fields shown on detail or edit are served | the `ISSUE REL-005` tests, un-skipped |
+| [OPS-003](findings/ops.md) | `6ad6fee` (P0, branch `fix/p0-data-isolation`) — attach/sync drop the pivot keys, morph type and timestamps from the payload; attach uses the filtered rows when keyed by id | the `ISSUE OPS-003` tests, un-skipped |
+| [OPS-007](findings/ops.md) | `9eb3725` (P0, branch `fix/p0-data-isolation`) — `OptionsColumnGuard`: filters and client `orderBy` limited to `getAllowedOptionsFilters()` or the non-`$hidden` columns | the `ISSUE OPS-007` tests, un-skipped |
+| [OPS-008](findings/ops.md) | `9eb3725` (P0, branch `fix/p0-data-isolation`) — field options (plain, paginated, MorphTo) start from the target resource's `getQuery()` | the `ISSUE OPS-008` tests, un-skipped |
+| [OPS-009](findings/ops.md) | `cc260d5` (P0, branch `fix/p0-data-isolation`) — a policy without `viewOptions()` decides by `viewAny` (decision 2026-11-17) | the `ISSUE OPS-009` tests, un-skipped |
+| [OPS-010](findings/ops.md) | `d6f7437` (P0, branch `fix/p0-data-isolation`) — actions load their targets with `getQuery()->whereKey()` | the `ISSUE OPS-010` tests, un-skipped |
+| [AUD-025](findings/audit.md) | `d6f7437` (P0, branch `fix/p0-data-isolation`) — same fix as OPS-010 (key name and `getQuery()`) | the `ISSUE AUD-025` tests, un-skipped |
+| [OPS-022](findings/ops.md) | `af36502` (P0, branch `fix/p0-data-isolation`) — `/export` requires the `export` ability | the `ISSUE OPS-022` tests, un-skipped |
+| [AUD-013](findings/audit.md) | `af36502` (P0, branch `fix/p0-data-isolation`) — same fix as OPS-022 | the `ISSUE AUD-013` tests, un-skipped |
+| [OPS-021](findings/ops.md) | `af36502` (P0, branch `fix/p0-data-isolation`) — XLSX writes `=`-strings as text; CSV prefixes `= + - @`/tab/CR cells with `'` (numbers kept) | the `ISSUE OPS-021` tests, un-skipped |
+| [AUD-017](findings/audit.md) | `af36502` (P0, branch `fix/p0-data-isolation`) — same fix as OPS-021 | the `ISSUE AUD-017` tests, un-skipped |
+| [AUD-028](findings/audit.md) | `20942f9` (P0, branch `fix/p0-data-isolation`) — `ActionEventResource` answers only read abilities, and only with a registered `ActionEvent` policy (decision 2026-11-17) | the `ISSUE AUD-028` tests, un-skipped |
+| [AUD-012](findings/audit.md) | `c12db48` (P0, branch `fix/p0-data-isolation`) — default `middlewares` is `['api', 'auth']` (decision 2026-11-17) | the `ISSUE AUD-012` tests, un-skipped |
+| [AUD-030](findings/audit.md) | `0bb193d` (P0, branch `fix/p0-data-isolation`) — the config is merged in `NadotaServiceProvider::register()` | the `ISSUE AUD-030` tests, un-skipped |
+| [HTTP-007](findings/http.md) | `c03a612` (P0, branch `fix/p0-data-isolation`) — destroy/restore/force delete answer 403 when `canDelete()`/`canRestore()`/`canForceDelete()` is false | the `ISSUE HTTP-007` tests, un-skipped |
+| [OPS-024](findings/ops.md) | closed by decision (2026-11-17): field options stay authorized against the resource that owns the field; the related resource's `getQuery()` limits what is offered (OPS-008) | `FieldOptionsControllerTest` › "authorizes against the resource that owns the field" (passing, unchanged) |
+| [HTTP-005](findings/http.md) (part) | `ac69d7f` — without `?fields` the empty attribute of relation fields is no longer selected; scalar columns are still not selectable | `ResourceMetaEndpointsTest` › "selects real columns when no fields are requested", un-skipped; "returns the requested index columns" stays skipped |
 
 Found while checking those fixes: OPS-028 (low), fixed since; and a regression of `3e462bc` (the
 MorphToMany/MorphedByMany attachable list answered 500), fixed by `96fa4bf` in the same push.
@@ -31,7 +49,7 @@ How to read this file:
   [core](findings/core.md) · [fields](findings/fields.md) · [relations](findings/relations.md) ·
   [filters](findings/filters.md) · [traits](findings/traits.md) · [http](findings/http.md) ·
   [ops](findings/ops.md) (options, attachments, actions, export routes) · [audit](findings/audit.md) (menu, exports, actions, configuration).
-- **153 open issues have a regression test** that asserts the correct behaviour and is
+- **138 open issues have a regression test** that asserts the correct behaviour and is
   skipped with `->skip('ISSUE <ID>: …')`. Every skipped test was run once without
   its skip and failed for the stated reason. When you fix an issue, remove the
   skip and the test becomes the regression test:
@@ -105,7 +123,7 @@ cause closes several IDs at once.
 
 | Priority | What | IDs |
 |----------|------|-----|
-| P0 — security / data isolation | scoping + authorization on every route; audit-log resource; pivot FK override; options oracle; export ability; default middleware | CORE-004, REL-005, OPS-003, OPS-007, OPS-008, OPS-009, OPS-010/AUD-025, OPS-022/AUD-013, OPS-024, AUD-028, AUD-012/AUD-030, HTTP-007, OPS-021/AUD-017 |
+| P0 — security / data isolation ✅ done 2026-11-17 (`fix/p0-data-isolation`) | scoping + authorization on every route; audit-log resource; pivot FK override; options oracle; export ability; default middleware | CORE-004, REL-005, OPS-003, OPS-007, OPS-008, OPS-009, OPS-010/AUD-025, OPS-022/AUD-013, OPS-024, AUD-028, AUD-012/AUD-030, HTTP-007, OPS-021/AUD-017 |
 | P1 — documented features that do not work | persist pipeline + validation (root causes 2 and 3), MorphMany attach, filters key space, pagination meta, invalid SQL on MySQL | FLD-001…007, FLD-010, REL-002, REL-009, OPS-001, OPS-004/AUD-021, FLT-001, FLT-004, FLT-025, HTTP-001, TRT-001, TRT-002, AUD-031 |
 | P2 — robustness | 4xx instead of 500, hidden messages | root cause 4 |
 | P3 — consistency, docs, dead code | everything else | — |
@@ -117,7 +135,7 @@ cause closes several IDs at once.
 | [CORE-001](findings/core.md) | medium | core | Three different config keys for the API prefix |  |
 | [CORE-002](findings/core.md) | low | core | `/lens` route points to a method that does not exist |  |
 | [CORE-003](findings/core.md) | medium | core | `permissions` endpoint types `$id` as `int` | OPS-017 |
-| [CORE-004](findings/core.md) | high | core | `/data` (compact) bypasses `getQuery()`/`queryIndex()` and authorization scoping | HTTP-005 |
+| [CORE-004](findings/core.md) | high | core | ✅ **Fixed** (`ac69d7f`) — `/data` (compact) bypasses `getQuery()`/`queryIndex()` and authorization scoping | HTTP-005 |
 | [CORE-005](findings/core.md) | low | core | `ResourceManager::getModelByResource()` cannot work |  |
 | [CORE-006](findings/core.md) | low | core | Default resource title keeps the word "Resource" |  |
 | [CORE-007](findings/core.md) | low | core | `config/nadota.php` `fields.*` entries are partly unused and partly missing |  |
@@ -161,7 +179,7 @@ cause closes several IDs at once.
 | [REL-002](findings/relations.md) | high | relations | `MorphTo::fill()` wipes the association on partial updates and ignores readonly/disabled |  |
 | [REL-003](findings/relations.md) | medium | relations | `/relation/{field}` ignores the direction of the field's `orderBy()` |  |
 | [REL-004](findings/relations.md) | medium | relations | `/relation/{field}` sorting is neither validated nor qualified |  |
-| [REL-005](findings/relations.md) | high | relations | `/relation/{field}` performs no authorization and bypasses resource scoping and field visibility |  |
+| [REL-005](findings/relations.md) | high | relations | ✅ **Fixed** (`7958fd8`) — `/relation/{field}` performs no authorization and bypasses resource scoping and field visibility |  |
 | [REL-006](findings/relations.md) | medium | relations | Through relations select an intermediate-table column from the far table |  |
 | [REL-007](findings/relations.md) | low | relations | `MorphTo::resolveForExport()` labels the target with the parent resource |  |
 | [REL-008](findings/relations.md) | low | relations | Export of `HasManyThrough`, `HasOneThrough`, `MorphOne`, `MorphedByMany` |  |
@@ -234,9 +252,9 @@ cause closes several IDs at once.
 | [HTTP-002](findings/http.md) | medium | http | `perPage` is not validated: `allowedPerPage` is never enforced, bad values are 500s | OPS-011 |
 | [HTTP-003](findings/http.md) | low | http | An invalid `sortDirection` is a 500 |  |
 | [HTTP-004](findings/http.md) | low | http | Global search term handling |  |
-| [HTTP-005](findings/http.md) | medium | http | `/data` (compact): the column allow-list is inverted, and no `fields` selects `""` | CORE-004 |
+| [HTTP-005](findings/http.md) | medium | http | ◐ **Partly fixed** (`ac69d7f`: no-fields case) — `/data` (compact): the column allow-list is inverted, and no `fields` selects `""` | CORE-004 |
 | [HTTP-006](findings/http.md) | medium | http | CRUD services mishandle exceptions thrown inside hooks |  |
-| [HTTP-007](findings/http.md) | high | http | `$canDelete` / `$canRestore` / `$canForceDelete` are not enforced by the endpoints |  |
+| [HTTP-007](findings/http.md) | high | http | ✅ **Fixed** (`c03a612`) — `$canDelete` / `$canRestore` / `$canForceDelete` are not enforced by the endpoints |  |
 | [HTTP-008](findings/http.md) | medium | http | `disabled()` fields are written on store and update |  |
 | [HTTP-009](findings/http.md) | medium | http | Field defaults on store: omitted attributes get none, falsy values get overwritten |  |
 | [HTTP-010](findings/http.md) | low | http | PATCH is a PUT: a partial update must resend every required field |  |
@@ -249,14 +267,14 @@ cause closes several IDs at once.
 | [HTTP-017](findings/http.md) | low | http | The edit envelope always includes `id` |  |
 | [OPS-001](findings/ops.md) | high | ops | ✅ **Fixed** (`dfdb766`) — Every MorphMany attachment call is a 500 (`FieldType::MORPH_TO_MANY` does not exist) |  |
 | [OPS-002](findings/ops.md) | low | ops | Attaching to a non-to-many field is a 500, not 422 |  |
-| [OPS-003](findings/ops.md) | high | ops | Pivot payload can override the pivot foreign key: attach/sync write rows for another parent |  |
+| [OPS-003](findings/ops.md) | high | ops | ✅ **Fixed** (`6ad6fee`) — Pivot payload can override the pivot foreign key: attach/sync write rows for another parent |  |
 | [OPS-004](findings/ops.md) | medium | ops | Action fields are never validated | AUD-021 |
 | [OPS-005](findings/ops.md) | medium | ops | ✅ **Fixed** (`3e462bc`) — Attaching an id that matches no related record inserts a dangling pivot row |  |
 | [OPS-006](findings/ops.md) | medium | ops | ✅ **Fixed** (`3e462bc`) — `resourceId` auto-exclusion silently does nothing when the pivot table has an `id` column |  |
-| [OPS-007](findings/ops.md) | high | ops | Options `filters[]` accept any column and operator: oracle on hidden columns |  |
-| [OPS-008](findings/ops.md) | high | ops | Field options ignore the target resource's `getQuery()` |  |
-| [OPS-009](findings/ops.md) | high | ops | Denying `viewAny` never protects options when the policy has no `viewOptions()` |  |
-| [OPS-010](findings/ops.md) | high | ops | Actions can target records outside the resource's `getQuery()` | AUD-025 |
+| [OPS-007](findings/ops.md) | high | ops | ✅ **Fixed** (`9eb3725`) — Options `filters[]` accept any column and operator: oracle on hidden columns |  |
+| [OPS-008](findings/ops.md) | high | ops | ✅ **Fixed** (`9eb3725`) — Field options ignore the target resource's `getQuery()` |  |
+| [OPS-009](findings/ops.md) | high | ops | ✅ **Fixed** (`cc260d5`) — Denying `viewAny` never protects options when the policy has no `viewOptions()` |  |
+| [OPS-010](findings/ops.md) | high | ops | ✅ **Fixed** (`d6f7437`) — Actions can target records outside the resource's `getQuery()` | AUD-025 |
 | [OPS-011](findings/ops.md) | medium | ops | Page-size / limit clamps can be bypassed (unbounded rows or 500) | HTTP-002 |
 | [OPS-012](findings/ops.md) | low | ops | Field options `meta.limit` reports the requested value, not the applied one |  |
 | [OPS-013](findings/ops.md) | low | ops | Invalid `orderDirection` on options is a 500 |  |
@@ -267,10 +285,10 @@ cause closes several IDs at once.
 | [OPS-018](findings/ops.md) | medium | ops | An `exportable()` field hidden from index is always exported empty | AUD-015 |
 | [OPS-019](findings/ops.md) | medium | ops | `nadota.export.enabled`, `sync_limit` and `chunk_size` are never read | AUD-014 |
 | [OPS-020](findings/ops.md) | low | ops | Export filename is pasted unescaped into `Content-Disposition` | AUD-018 |
-| [OPS-021](findings/ops.md) | medium | ops | CSV / formula injection in exports | AUD-017 |
-| [OPS-022](findings/ops.md) | high | ops | The export endpoint does not check the `export` ability | AUD-013 |
+| [OPS-021](findings/ops.md) | medium | ops | ✅ **Fixed** (`af36502`) — CSV / formula injection in exports | AUD-017 |
+| [OPS-022](findings/ops.md) | high | ops | ✅ **Fixed** (`af36502`) — The export endpoint does not check the `export` ability | AUD-013 |
 | [OPS-023](findings/ops.md) | low | ops | Documentation contradictions found while testing these routes |  |
-| [OPS-024](findings/ops.md) | medium | ops | Field options are authorized against the owning resource, never the related one |  |
+| [OPS-024](findings/ops.md) | medium | ops | ☑️ **Closed by decision** (kept, documented) — Field options are authorized against the owning resource, never the related one |  |
 | [OPS-025](findings/ops.md) | medium | ops | ✅ **Fixed** (`dfdb766`) — HasMany / MorphMany attach moves children away from their current parent |  |
 | [OPS-026](findings/ops.md) | low | ops | Global options endpoint is public and runs resource code for anonymous callers |  |
 | [OPS-027](findings/ops.md) | low | ops | Minor behaviours worth a decision (low, no fix required) |  |
@@ -286,12 +304,12 @@ cause closes several IDs at once.
 | [AUD-009](findings/audit.md) | low | audit | Menu section definitions are cached forever after the first read |  |
 | [AUD-010](findings/audit.md) | low | audit | Menu docs contradict the endpoint |  |
 | [AUD-011](findings/audit.md) | low | audit | `Resource::canSee()` has no effect on the menu |  |
-| [AUD-012](findings/audit.md) | medium | audit | Default install serves the menu and CRUD to guests | AUD-030 |
-| [AUD-013](findings/audit.md) | high | audit | `/export` ignores the `export` ability that `/export/config` reports | OPS-022 |
+| [AUD-012](findings/audit.md) | medium | audit | ✅ **Fixed** (`c12db48`) — Default install serves the menu and CRUD to guests | AUD-030 |
+| [AUD-013](findings/audit.md) | high | audit | ✅ **Fixed** (`af36502`) — `/export` ignores the `export` ability that `/export/config` reports | OPS-022 |
 | [AUD-014](findings/audit.md) | medium | audit | `export.enabled`, `export.sync_limit`, `export.chunk_size` are never read | OPS-019 |
 | [AUD-015](findings/audit.md) | medium | audit | Fields hidden from index but `exportable()` are exported empty | OPS-018 |
 | [AUD-016](findings/audit.md) | medium | audit | Export evaluates index visibility without the request | TRT-003 |
-| [AUD-017](findings/audit.md) | medium | audit | Spreadsheet formula injection in XLSX and CSV exports | OPS-021 |
+| [AUD-017](findings/audit.md) | medium | audit | ✅ **Fixed** (`af36502`) — Spreadsheet formula injection in XLSX and CSV exports | OPS-021 |
 | [AUD-018](findings/audit.md) | low | audit | `filename` is put into `Content-Disposition` unescaped | OPS-020 |
 | [AUD-019](findings/audit.md) | medium | audit | No size guard; XLSX built fully in memory; offset paging without a tiebreaker |  |
 | [AUD-020](findings/audit.md) | low | audit | To-many exportable relations query once per row and drop falsy values |  |
@@ -299,12 +317,12 @@ cause closes several IDs at once.
 | [AUD-022](findings/audit.md) | medium | audit | `ActionController` turns every exception into a 500 with the raw message | OPS-015, HTTP-014 |
 | [AUD-023](findings/audit.md) | low | audit | Action keys are pluralised and can collide; docs describe FQCN keys |  |
 | [AUD-024](findings/audit.md) | medium | audit | Action runs are logged even with `action_events.enabled = false` |  |
-| [AUD-025](findings/audit.md) | high | audit | Action targets are loaded by raw `id`, bypassing the key name and `getQuery()` scoping | OPS-010 |
+| [AUD-025](findings/audit.md) | high | audit | ✅ **Fixed** (`d6f7437`) — Action targets are loaded by raw `id`, bypassing the key name and `getQuery()` scoping | OPS-010 |
 | [AUD-026](findings/audit.md) | low | audit | `ActionInterface` misses methods the service and controller call |  |
 | [AUD-027](findings/audit.md) | low | audit | Action API naming doubts |  |
-| [AUD-028](findings/audit.md) | high | audit | Built-in `ActionEventResource` exposes and lets anyone delete the audit log |  |
+| [AUD-028](findings/audit.md) | high | audit | ✅ **Fixed** (`20942f9`) — Built-in `ActionEventResource` exposes and lets anyone delete the audit log |  |
 | [AUD-029](findings/audit.md) | low | audit | `ActionEventResource` declares properties the base `Resource` never reads |  |
-| [AUD-030](findings/audit.md) | medium | audit | Routes read `nadota.middlewares` before the package config is merged | AUD-012 |
+| [AUD-030](findings/audit.md) | medium | audit | ✅ **Fixed** (`0bb193d`) — Routes read `nadota.middlewares` before the package config is merged | AUD-012 |
 | [AUD-031](findings/audit.md) | high | audit | Boot crashes when `path_resources` is missing or absolute |  |
 | [AUD-032](findings/audit.md) | medium | audit | Discovery derives class names from paths and wipes earlier registrations |  |
 | [AUD-033](findings/audit.md) | low | audit | `key_resources_cache` is checked but never written |  |

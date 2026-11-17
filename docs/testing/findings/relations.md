@@ -80,6 +80,7 @@ Related core findings: CORE-001 (api prefix keys used to build relation URLs), C
 - **Verified by:** `RelationPaginationEndpointTest` › *denies the relation of a parent the user may not view*,
   *does not serve a parent excluded by the resource query scope*, *does not serve a relation field hidden from the detail view*.
 - **Severity:** high (data exposure) · **Kind:** bug
+- **Status:** ✅ fixed by `7958fd8` (2026-11-17): the parent is loaded through `getQuery()` and authorized with `view`; only a field the detail or the edit view shows is served (the edit form pages its attach lists through the same URL). No `viewAny` check on the related resource, as on the show page that embeds the relation. The regression tests are un-skipped.
 
 ### REL-006 — Through relations select an intermediate-table column from the far table
 - **Location:** `src/Http/Fields/Relations/HasManyThrough.php:304-354` (line 346), `HasOneThrough.php:189-236` (line 228).

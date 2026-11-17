@@ -90,6 +90,7 @@ Environment: Laravel 11.54, SQLite `:memory:`, PHP 8.4.
 - **Verified:** probes; `ResourceMetaEndpointsTest` › data (compact) (2 skipped for HTTP-005,
   2 skipped for CORE-004).
 - **Severity:** medium. **Kind:** bug.
+- **Status:** ◐ partly fixed by `ac69d7f`: the empty attribute of relation fields is no longer a selectable column, so a request without `?fields` returns the key. The inverted allow-list (scalar columns such as `name` are not selectable) is still open.
 
 ### HTTP-006 — CRUD services mishandle exceptions thrown inside hooks
 - **Location:** `AbstractResourcePersistService::handle()`, `ResourceDestroyService`,
@@ -123,6 +124,7 @@ Environment: Laravel 11.54, SQLite `:memory:`, PHP 8.4.
   resource regardless of policy, set the property".
 - **Verified:** `ResourceDestroyTest`, `ResourceRestoreForceDeleteTest` (3 skipped).
 - **Severity:** high (authorization bypass of a documented control). **Kind:** bug / security.
+- **Status:** ✅ fixed by `c03a612` (2026-11-17): the destroy, restore and force-delete services answer 403 when `canDelete()`/`canRestore()`/`canForceDelete()` is false, after the policy check. The regression tests are un-skipped.
 
 ### HTTP-008 — `disabled()` fields are written on store and update
 - **Location:** `src/Http/Services/Traits/ProcessesFields.php::filterFieldsForStore()/

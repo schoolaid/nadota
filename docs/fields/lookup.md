@@ -140,8 +140,8 @@ observed field has a value.
 ## Why not `filters[]`
 
 The generic `filters[]` parameter turns a scalar into `where(column, 'like', '%5%')`,
-which for a foreign key also matches 5, 15, 51 and 105. It also accepts any column
-name from the client unless the target resource defines `getAllowedOptionsFilters()`.
+which for a foreign key also matches 5, 15, 51 and 105. The client picks the column too, limited to
+the target resource's `getAllowedOptionsFilters()` or, by default, to the columns its model does not hide.
 
 Option scopes are the opposite: the column comes from the server-side declaration and
 the request only supplies the value, compared with `=` (or `whereIn` for arrays). Any

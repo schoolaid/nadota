@@ -9,6 +9,24 @@ Versions not listed below shipped without changelog entries; see the git tags fo
 
 ## [Unreleased]
 
+### Security
+Data isolation and authorization gaps from the P0 list of [docs/testing/ISSUES.md](docs/testing/ISSUES.md). `Resource::getQuery()` — where apps scope rows by tenant or owner — now applies on every route that loads records, not only the main CRUD:
+- `/data` (compact) builds on `getQuery()` + `queryIndex()` like the index, and returns only the key when no requested column is valid; it used to return every column of every row (CORE-004).
+- `/relation/{field}` loads the parent through `getQuery()`, requires the `view` ability on it and only serves a relation field the detail or edit view shows (REL-005).
+- Actions load their targets with `getQuery()->whereKey()`: hidden ids behave as unknown ids, and models whose key is not `id` are found (OPS-010, AUD-025).
+- Field options (plain, paginated, MorphTo), the attachable lists and the ids `attach`/`sync` accept start from the related resource's `getQuery()` (OPS-008).
+- Options `filters[...]` and `orderBy` are limited to the resource's `getAllowedOptionsFilters()` when declared and, by default, to the table's columns minus the model's `$hidden` attributes; `filters[password][operator]=like` was an oracle on the hash (OPS-007).
+- A pivot payload can no longer set the pivot's parent or related key, morph type or timestamps: `{"pivot": {"student_id": 2}}` wrote the row for another parent past the check made for this one. `sync` now filters the payload too (OPS-003).
+- `/export` requires the `export` ability that `/export/config` reports (OPS-022, AUD-013), and cells a spreadsheet would run as a formula are neutralised in XLSX and CSV (OPS-021, AUD-017).
+- `DELETE`, restore and force delete answer `403` when `$canDelete` / `$canRestore` / `$canForceDelete` (or the `can*()` methods) say no; only the permissions block honoured them (HTTP-007).
+- The package config is merged in `register()`: an app that did not publish `config/nadota.php` got the API routes with no middleware at all (AUD-030).
+
+### Changed
+- **Default middleware is `['api', 'auth']`** (was `['api']`), so guests are refused even when the config is not published (AUD-012). Apps that publish `config/nadota.php` keep their own stack. **Upgrade note:** an app relying on the default must publish the config if it needs another guard (e.g. `auth:sanctum`).
+- **A policy without `viewOptions()` decides the options endpoints by `viewAny`** (OPS-009). It used to allow them. **Upgrade note:** a role that may pick records in a select without listing them needs a `viewOptions()` method on that policy.
+- **The built-in `ActionEventResource` is read-only and closed without a policy** (AUD-028): it answers only `viewAny`, `view`, `viewOptions` and `export`, and only when the app registers a policy for `SchoolAid\Nadota\Models\ActionEvent`. The per-record `/{id}/action-events` endpoints are unchanged.
+- Field options stay authorized against the resource that owns the field, now documented in `docs/guides/authorization.md` (OPS-024).
+
 ## [1.5.2] - 2026-11-17
 
 ### Added

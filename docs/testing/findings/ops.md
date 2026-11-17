@@ -72,6 +72,7 @@ cosmetic, documentation.
   payload" (sync, skipped).
 - **Severity:** high (cross-record write that bypasses the parent's authorization). **Kind:** security bug.
   Extends audit A6 (which only names the keyed-by-id allow-list bypass).
+- **Status:** ✅ fixed by `6ad6fee` (2026-11-17): attach and sync filter the pivot payload: declared pivot columns only (when declared), and never the parent/related pivot keys, the morph type or the timestamps. attach uses the filtered rows when keyed by id; sync filters at all. The regression tests are un-skipped.
 
 ### OPS-004 — Action fields are never validated
 - **Location:** `src/Http/Controllers/ActionController.php::execute()` / `ActionExecutionService::execute()`.
@@ -121,6 +122,7 @@ cosmetic, documentation.
 - **Verified:** HTTP, `FieldOptionsControllerTest` › data isolation (skipped ×2), `ResourceOptionsControllerTest`
   › "ignores filters on columns that are not allowed" (skipped). Same as audit **A8**.
 - **Severity:** high. **Kind:** security.
+- **Status:** ✅ fixed by `9eb3725` (2026-11-17): `OptionsColumnGuard` limits `filters[]` to the resource's `getAllowedOptionsFilters()` when declared and, by default, to the table's columns minus the model's `$hidden` ones; client `orderBy` follows the same default (plain, paginated, MorphTo and resource options). The regression tests are un-skipped.
 
 ### OPS-008 — Field options ignore the target resource's `getQuery()`
 - **Location:** `AbstractOptionsStrategy::buildAndExecuteQuery()` (`$fieldModel::query()`),
@@ -133,6 +135,7 @@ cosmetic, documentation.
 - **Expected:** base query from the target resource's `getQuery($request)`, then `optionsQuery()`.
 - **Verified:** HTTP, `FieldOptionsControllerTest` › "leaves out the records the target resource getQuery() hides" (skipped ×2). Audit **A8**.
 - **Severity:** high for apps that scope in `getQuery()` (documented place for row-level scoping). **Kind:** security.
+- **Status:** ✅ fixed by `9eb3725` (2026-11-17): field options (plain, paginated, MorphTo) start from the target resource's `getQuery()` before `optionsQuery()`. The attachable lists and the ids attach/sync accept do the same (`6ad6fee`, `AttachCandidatesScopeTest`). The regression tests are un-skipped.
 
 ### OPS-009 — Denying `viewAny` never protects options when the policy has no `viewOptions()`
 - **Location:** `FieldOptionsController::authorizeOptions()`, `ResourceOptionsController::index()`
@@ -147,6 +150,7 @@ cosmetic, documentation.
 - **Verified:** HTTP, `FieldOptionsControllerTest` and `ResourceOptionsControllerTest` › "denies … when viewAny is
   denied and the policy says nothing about viewOptions" (skipped). Audit **A2**.
 - **Severity:** high (record enumeration by users who cannot list). **Kind:** security / design.
+- **Status:** ✅ fixed by `cc260d5` (2026-11-17): decided 2026-11-17: a policy that does not define `viewOptions()` decides by `viewAny` (`ResourceAuthorizationService::SILENT_POLICY_FALLBACKS`). Policies that define it are unchanged. The regression tests are un-skipped.
 
 ### OPS-010 — Actions can target records outside the resource's `getQuery()`
 - **Location:** `ActionExecutionService::getModels()` — `$modelClass::query()->whereIn('id', $modelIds)`
@@ -156,6 +160,7 @@ cosmetic, documentation.
 - **Expected:** records loaded through `getQuery($request)->whereKey($ids)`; hidden ids behave as unknown ids.
 - **Verified:** HTTP, `ActionControllerTest` › "cannot reach records the resource getQuery() hides" (skipped). Audit **A5**.
 - **Severity:** high. **Kind:** security.
+- **Status:** ✅ fixed by `d6f7437` (2026-11-17): `ActionExecutionService::getModels()` loads the targets with `getQuery($request)->whereKey($ids)`; hidden ids behave as unknown ids. The regression tests are un-skipped.
 
 ### OPS-011 — Page-size / limit clamps can be bypassed (unbounded rows or 500)
 - **Locations and observed behaviour:**
@@ -271,6 +276,7 @@ cosmetic, documentation.
 - **Expected:** cells starting with `= + - @` (and tab/CR) neutralised (prefix `'`) / `setValueExplicit(..., TYPE_STRING)`.
 - **Verified:** HTTP + CSV/XLSX parse, two skipped tests in `ExportControllerTest`. Audit **M11**.
 - **Severity:** medium. **Kind:** security.
+- **Status:** ✅ fixed by `af36502` (2026-11-17): `ExcelExporter` writes strings starting with `=` with `setValueExplicit(…, TYPE_STRING)`; `CsvExporter` prefixes cells starting with `= + - @`, tab or CR with `'` (numeric values such as `-5` are kept). The regression tests are un-skipped.
 
 ### OPS-022 — The export endpoint does not check the `export` ability
 - **Location:** `ResourceExportService::handle()` only calls `$request->authorized('viewAny')`;
@@ -281,6 +287,7 @@ cosmetic, documentation.
   ability" and that `enabled` "reflects … the `export` ability" — i.e. it documents the gap rather than closing it.
 - **Verified:** HTTP, `ExportControllerTest` › "answers 403 when the policy denies the export ability" (skipped). Audit **A9**.
 - **Severity:** high (the only control the UI exposes is client-side). **Kind:** security.
+- **Status:** ✅ fixed by `af36502` (2026-11-17): `ResourceExportService::handle()` authorizes `export` after `viewAny`, so the endpoint agrees with `/export/config`. The regression tests are un-skipped.
 
 ### OPS-023 — Documentation contradictions found while testing these routes
 - `docs/guides/actions.md` "Action key and name": says the key is derived from the **fully-qualified** class name
@@ -312,6 +319,7 @@ cosmetic, documentation.
   Worth an explicit decision and a sentence in `docs/guides/authorization.md`.
 - **Verified:** HTTP, `FieldOptionsControllerTest` › "authorizes against the resource that owns the field, not the related one" (passing, documents today's behaviour).
 - **Severity:** medium if unintended. **Kind:** doubt.
+- **Status:** ☑️ closed by decision (2026-11-17): options stay authorized against the resource that owns the field (picking a grade for a student does not require browsing grades). The related resource's `getQuery()` and `optionsQuery()` limit what is offered since OPS-008. Documented in `docs/guides/authorization.md`.
 
 ### OPS-025 — HasMany / MorphMany attach moves children away from their current parent
 - **Status:** ✅ fixed by `dfdb766` (2026-11-14). Attach/detach on HasMany and MorphMany is off by default

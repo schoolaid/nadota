@@ -16,7 +16,8 @@ That delegates to `ResourceAuthorizationService`, which resolves the Laravel pol
 2. If a `$context['field']` is present, try a **field-specific** method first (e.g. `attachGrades`).
 3. Otherwise (or as fallback) try the **generic** ability method (e.g. `attach`).
 4. For `attach` and `detach` only: if the policy has neither method, decide with the policy's **`update`** ability on the parent model (through the Gate, so a policy `before()` hook runs). A policy without `update` either passes. *(Since 1.3.0; before that a policy without `attach`/`detach` let anyone attach, detach, sync and list attachable items.)*
-5. If no policy exists, or the policy has no matching method, **authorization passes** (permissive fallback).
+5. For `viewOptions` only: if the policy has no `viewOptions` method, decide with the policy's **`viewAny`** ability. *(Since 1.6.0; before that a policy that denied `viewAny` still handed out every record through the options endpoints.)*
+6. If no policy exists, or the policy has no matching method, **authorization passes** (permissive fallback).
 
 ```php
 // src/Http/Services/ResourceAuthorizationService.php
@@ -120,13 +121,21 @@ class InvoiceResource extends Resource
 }
 ```
 
-The final decision is always `can*() AND authorizedTo()`. To disable a destructive action for the whole resource regardless of policy, set the property:
+The final decision is always `can*() AND authorizedTo()`, both in the permissions block and on the endpoints: `DELETE`, restore and force delete answer `403` when the `can*()` method returns `false` *(since 1.6.0; before that only the permissions block honoured it)*. To disable a destructive action for the whole resource regardless of policy, set the property:
 
 ```php
 protected bool $canForceDelete = false;
 ```
 
 `forceDelete` and `restore` additionally require the model to have a `deleted_at` column, and `restore` requires the record to actually be trashed.
+
+## Options endpoints
+
+`GET /{resource}/resource/options` and `GET /{resource}/resource/field/{field}/options` (plain, paginated, morph) are allowed when the policy grants `viewAny` **or** `viewOptions`. A policy without `viewOptions()` decides by `viewAny`, so define `viewOptions()` when a role may pick records in a select without being allowed to list them.
+
+Field options are authorized against the resource **that owns the field** (the one in the URL), not the related one: picking a grade for a student does not require browsing grades. What is offered is still limited by the related resource: its `getQuery()` (row scoping) and `optionsQuery()` apply to the options, to the attachable lists and to the ids `attach`/`sync` accept.
+
+`filters[...]` and `orderBy` sent by the client are limited to the related resource's `getAllowedOptionsFilters()` when it declares one and, by default, to the table's columns minus the model's `$hidden` attributes, so a hidden column can never be filtered or sorted on.
 
 ## Granular per-field authorization (attach / detach)
 
