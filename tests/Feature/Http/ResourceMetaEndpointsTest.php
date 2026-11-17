@@ -151,18 +151,18 @@ describe('data (compact)', function () {
 
         expect($rows[0])->toHaveKey('id')
             ->and($rows[0])->not->toHaveKey('');
-    })->skip('ISSUE HTTP-005: without ?fields the column list is [""] (the empty attribute of a relation field), so SQLite selects a "" literal and MySQL fails');
+    });
 
     it('never returns columns that are not requested index fields', function () {
         $response = $this->getJson($this->apiUrl('student', 'data') . '?fields=signature,avatar')->assertOk();
 
         expect($response->json('0'))->toBe(['id' => 1])
             ->and($response->getContent())->not->toContain('ana@example.com');
-    })->skip('ISSUE CORE-004: when no requested column is valid the query has no select, so every non-$hidden column of every row is returned');
+    });
 
     it('honours the resource getQuery() and queryIndex() scoping', function () {
         $this->getJson($this->apiUrl('index-scoped-student', 'data') . '?fields=id')
             ->assertOk()
             ->assertExactJson([['id' => 1]]);
-    })->skip('ISSUE CORE-004: compact() queries $resource->model::query() directly, bypassing getQuery()/queryIndex()');
+    });
 });

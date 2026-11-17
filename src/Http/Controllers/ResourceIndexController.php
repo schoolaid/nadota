@@ -148,21 +148,21 @@ class ResourceIndexController extends Controller
     public function compact(NadotaRequest $request)
     {
         $request->authorized('viewAny');
-        $resource    = $request->getResource();
-        $model       = $resource->model::query();
-        $validFields = ['id'];
-        $validFields = array_merge($validFields, $resource->flattenFields($request)
+        $resource = $request->getResource();
+
+        // The same base query as the index: getQuery() (tenant/ownership scoping) then queryIndex()
+        $query = $resource->queryIndex($request, $resource->getQuery($request));
+        $keyName = $query->getModel()->getKeyName();
+
+        $validFields = array_merge([$keyName], $resource->flattenFields($request)
                 ->filter(fn($field) => ! $field->isAppliedInIndexQuery())
                 ->map(fn($field) => $field->getAttribute())
+                ->filter(fn($attribute) => is_string($attribute) && $attribute !== '')
                 ->toArray());
-        $fields  = $request->input('fields');
-        $columns = explode(',', $fields);
-        $columns = array_values(array_intersect($columns, $validFields));
-        if ($columns) {
-            $model->select($columns);
-        }
+        $columns = array_values(array_intersect(explode(',', (string) $request->input('fields', '')), $validFields));
 
-        return $model->get();
+        // Never fall back to every column: without a valid requested column only the key is returned
+        return $query->select($columns ?: [$keyName])->get();
 
     }
 }
