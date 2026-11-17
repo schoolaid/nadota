@@ -252,7 +252,7 @@ describe('execute', function () {
             ->assertJsonPath('type', 'danger');
 
         expect($archived->fresh()->is_active)->toBeFalse();
-    })->skip('ISSUE OPS-010: ActionExecutionService loads the records with $model::query()->whereIn(id), ignoring getQuery()');
+    });
 
     it('answers 500 with a danger body and logs a failed event when handle() throws', function () {
         $ana = Student::create(['name' => 'Ana']);

@@ -44,10 +44,9 @@ class ActionExecutionService
         array $modelIds
     ): ActionResponse {
         $resource = $request->getResource();
-        $modelClass = $resource->model;
 
         // Get the models
-        $models = $this->getModels($modelClass, $modelIds, $resource->usesSoftDeletes());
+        $models = $this->getModels($request, $modelIds, $resource->usesSoftDeletes());
 
         // Authorize the action for each model
         $authorizedModels = $this->filterAuthorizedModels($request, $action, $models);
@@ -69,15 +68,16 @@ class ActionExecutionService
     }
 
     /**
-     * Get models by their IDs.
+     * Get the selected models through the resource's getQuery(), so the scoping an app puts there
+     * (tenant, ownership) also limits what an action can touch. Ids outside it behave as unknown ids.
      */
-    protected function getModels(string $modelClass, array $modelIds, bool $withTrashed = false): Collection
+    protected function getModels(NadotaRequest $request, array $modelIds, bool $withTrashed = false): Collection
     {
         if (empty($modelIds)) {
             return collect();
         }
 
-        $query = $modelClass::query()->whereIn('id', $modelIds);
+        $query = $request->getResource()->getQuery($request)->whereKey($modelIds);
 
         if ($withTrashed) {
             $query->withTrashed();
@@ -163,14 +163,13 @@ class ActionExecutionService
         int $batchSize = 100
     ): ActionResponse {
         $resource = $request->getResource();
-        $modelClass = $resource->model;
 
         $chunks = array_chunk($modelIds, $batchSize);
         $processedCount = 0;
         $lastResult = null;
 
         foreach ($chunks as $chunkIds) {
-            $models = $this->getModels($modelClass, $chunkIds, $resource->usesSoftDeletes());
+            $models = $this->getModels($request, $chunkIds, $resource->usesSoftDeletes());
             $authorizedModels = $this->filterAuthorizedModels($request, $action, $models);
 
             if ($authorizedModels->isNotEmpty()) {

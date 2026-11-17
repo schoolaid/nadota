@@ -144,7 +144,7 @@ it('loads the selected models through their own primary key', function () {
     app(ActionExecutionService::class)->execute(audExecutionRequest($token::class), $action, ['ABC']);
 
     expect($action->handled)->toBe(['ABC']);
-})->skip("ISSUE AUD-025: getModels() hard-codes whereIn('id', ...) instead of the model's key name");
+});
 
 it("never hands handle() a model outside the resource's getQuery() scope", function () {
     $mine = Student::create(['name' => 'Mine']);
@@ -158,4 +158,4 @@ it("never hands handle() a model outside the resource's getQuery() scope", funct
     );
 
     expect($action->handled)->toBe([$mine->id]);
-})->skip('ISSUE AUD-025: getModels() queries $modelClass::query() directly, bypassing getQuery()/queryIndex() scoping');
+});
