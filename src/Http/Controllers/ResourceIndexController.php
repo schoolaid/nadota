@@ -154,10 +154,11 @@ class ResourceIndexController extends Controller
         $query = $resource->queryIndex($request, $resource->getQuery($request));
         $keyName = $query->getModel()->getKeyName();
 
-        $validFields = array_merge([$keyName], $resource->flattenFields($request)
-                ->filter(fn($field) => ! $field->isAppliedInIndexQuery())
-                ->map(fn($field) => $field->getAttribute())
-                ->filter(fn($attribute) => is_string($attribute) && $attribute !== '')
+        // Selectable: the key and the columns the index itself selects (index-visible fields)
+        $validFields = array_merge([$keyName], $resource->fieldsForIndex($request)
+                ->filter(fn($field) => $field->isAppliedInIndexQuery())
+                ->flatMap(fn($field) => $field->getColumnsForSelect($resource->model))
+                ->filter(fn($column) => is_string($column) && $column !== '')
                 ->toArray());
         $columns = array_values(array_intersect(explode(',', (string) $request->input('fields', '')), $validFields));
 

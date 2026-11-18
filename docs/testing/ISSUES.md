@@ -5,7 +5,7 @@ extending the test suite. The audit itself fixed none of them — `src/`, `confi
 and `routes/` were left untouched. They are here to be re-evaluated and fixed in
 later sessions.
 
-**Fixed since the audit (25; OPS-024 closed by decision; REL-009, FLD-029 and HTTP-005 in part):**
+**Fixed since the audit (26; OPS-024 closed by decision; REL-009 and FLD-029 in part):**
 
 | ID | Fixed by | Regression tests |
 |----|----------|------------------|
@@ -37,7 +37,7 @@ later sessions.
 | [AUD-030](findings/audit.md) | `0bb193d` (P0, branch `fix/p0-data-isolation`) — the config is merged in `NadotaServiceProvider::register()` | the `ISSUE AUD-030` tests, un-skipped |
 | [HTTP-007](findings/http.md) | `c03a612` (P0, branch `fix/p0-data-isolation`) — destroy/restore/force delete answer 403 when `canDelete()`/`canRestore()`/`canForceDelete()` is false | the `ISSUE HTTP-007` tests, un-skipped |
 | [OPS-024](findings/ops.md) | closed by decision (2026-11-17): field options stay authorized against the resource that owns the field; the related resource's `getQuery()` limits what is offered (OPS-008) | `FieldOptionsControllerTest` › "authorizes against the resource that owns the field" (passing, unchanged) |
-| [HTTP-005](findings/http.md) (part) | `ac69d7f` — without `?fields` the empty attribute of relation fields is no longer selected; scalar columns are still not selectable | `ResourceMetaEndpointsTest` › "selects real columns when no fields are requested", un-skipped; "returns the requested index columns" stays skipped |
+| [HTTP-005](findings/http.md) | `ac69d7f` (no-fields case), then branch `fix/compact-columns` (v1.6.1) — `?fields=` accepts the key and the columns the index selects (`fieldsForIndex()` applied in the index query, via `getColumnsForSelect()`) | `ResourceMetaEndpointsTest` › "selects real columns when no fields are requested" and "returns the requested index columns", un-skipped; new "does not select a field the index hides" |
 
 Found while checking those fixes: OPS-028 (low), fixed since; and a regression of `3e462bc` (the
 MorphToMany/MorphedByMany attachable list answered 500), fixed by `96fa4bf` in the same push.
@@ -49,7 +49,7 @@ How to read this file:
   [core](findings/core.md) · [fields](findings/fields.md) · [relations](findings/relations.md) ·
   [filters](findings/filters.md) · [traits](findings/traits.md) · [http](findings/http.md) ·
   [ops](findings/ops.md) (options, attachments, actions, export routes) · [audit](findings/audit.md) (menu, exports, actions, configuration).
-- **138 open issues have a regression test** that asserts the correct behaviour and is
+- **137 open issues have a regression test** that asserts the correct behaviour and is
   skipped with `->skip('ISSUE <ID>: …')`. Every skipped test was run once without
   its skip and failed for the stated reason. When you fix an issue, remove the
   skip and the test becomes the regression test:
@@ -252,7 +252,7 @@ cause closes several IDs at once.
 | [HTTP-002](findings/http.md) | medium | http | `perPage` is not validated: `allowedPerPage` is never enforced, bad values are 500s | OPS-011 |
 | [HTTP-003](findings/http.md) | low | http | An invalid `sortDirection` is a 500 |  |
 | [HTTP-004](findings/http.md) | low | http | Global search term handling |  |
-| [HTTP-005](findings/http.md) | medium | http | ◐ **Partly fixed** (`ac69d7f`: no-fields case) — `/data` (compact): the column allow-list is inverted, and no `fields` selects `""` | CORE-004 |
+| [HTTP-005](findings/http.md) | medium | http | ✅ **Fixed** (`ac69d7f`, `fix/compact-columns`) — `/data` (compact): the column allow-list is inverted, and no `fields` selects `""` | CORE-004 |
 | [HTTP-006](findings/http.md) | medium | http | CRUD services mishandle exceptions thrown inside hooks |  |
 | [HTTP-007](findings/http.md) | high | http | ✅ **Fixed** (`c03a612`) — `$canDelete` / `$canRestore` / `$canForceDelete` are not enforced by the endpoints |  |
 | [HTTP-008](findings/http.md) | medium | http | `disabled()` fields are written on store and update |  |

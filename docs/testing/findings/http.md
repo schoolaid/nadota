@@ -90,7 +90,7 @@ Environment: Laravel 11.54, SQLite `:memory:`, PHP 8.4.
 - **Verified:** probes; `ResourceMetaEndpointsTest` › data (compact) (2 skipped for HTTP-005,
   2 skipped for CORE-004).
 - **Severity:** medium. **Kind:** bug.
-- **Status:** ◐ partly fixed by `ac69d7f`: the empty attribute of relation fields is no longer a selectable column, so a request without `?fields` returns the key. The inverted allow-list (scalar columns such as `name` are not selectable) is still open.
+- **Status:** ✅ fixed. `ac69d7f`: the empty attribute of relation fields is no longer a selectable column, so a request without `?fields` returns the key. Branch `fix/compact-columns` (v1.6.1): the allow-list is the key plus the columns the index selects (`fieldsForIndex()` fields applied in the index query, via `getColumnsForSelect()`), so `?fields=id,name` returns `name` and a field hidden from the index is not selectable.
 
 ### HTTP-006 — CRUD services mishandle exceptions thrown inside hooks
 - **Location:** `AbstractResourcePersistService::handle()`, `ResourceDestroyService`,

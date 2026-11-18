@@ -144,7 +144,15 @@ describe('data (compact)', function () {
         $this->getJson($this->apiUrl('student', 'data') . '?fields=id,name')
             ->assertOk()
             ->assertExactJson([['id' => 1, 'name' => 'Ana'], ['id' => 2, 'name' => 'Bob']]);
-    })->skip('ISSUE HTTP-005: compact() keeps the fields where isAppliedInIndexQuery() is false (multi-record relations), so scalar columns such as name are never selectable');
+    });
+
+    it('does not select a field the index hides', function () {
+        Student::query()->update(['website' => 'https://ana.example.com']);
+
+        $this->getJson($this->apiUrl('student', 'data') . '?fields=id,website')
+            ->assertOk()
+            ->assertExactJson([['id' => 1], ['id' => 2]]);
+    });
 
     it('selects real columns when no fields are requested', function () {
         $rows = $this->getJson($this->apiUrl('student', 'data'))->assertOk()->json();

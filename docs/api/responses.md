@@ -448,7 +448,7 @@ Attachment errors: field not found `404`; not attachable / unsupported type / sy
 
 ## Compact data
 
-`GET /{resourceKey}/resource/data` returns a plain array (no envelope):
+`GET /{resourceKey}/resource/data?fields=id,name` returns a plain array (no envelope):
 
 ```json
 [
@@ -456,6 +456,8 @@ Attachment errors: field not found `404`; not attachable / unsupported type / sy
   { "id": 2, "name": "Jane" }
 ]
 ```
+
+Rows come from `getQuery()` + `queryIndex()`, like the index. `fields` accepts the key and the columns the index selects for its visible fields; anything else is ignored, and without a valid column only the key is returned. Since 1.6.1 (in 1.6.0 only the key was selectable).
 
 ## Export config
 
