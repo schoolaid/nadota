@@ -8,7 +8,7 @@
 Nadota lets you build administrative interfaces for Eloquent models through **Resource** classes that declare how data is displayed, validated, filtered, related, and authorized. It exposes everything as a REST/JSON API your frontend consumes.
 
 - **Package:** `schoolaid/nadota`
-- **Version:** 1.6.0
+- **Version:** 1.6.1
 - **Namespace:** `SchoolAid\Nadota`
 
 ## Features

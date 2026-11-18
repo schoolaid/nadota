@@ -9,6 +9,8 @@ Versions not listed below shipped without changelog entries; see the git tags fo
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-11-18
+
 ### Fixed
 - `/data` (compact) returns the requested index columns again: `?fields=id,name` returned only `id`, because the allow-list kept the fields the index query does *not* apply (multi-record relations) instead of the ones it does. 1.6.0 dropped the fallback to every column, so the endpoint answered only keys. The allow-list is now the key plus the columns the index selects for its visible fields; a field hidden from the index is not selectable (HTTP-005).
 

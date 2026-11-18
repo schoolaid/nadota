@@ -2,7 +2,7 @@
 
 Nadota is a Laravel package that provides a resource-based, API-driven admin layer for Eloquent models (similar to Laravel Nova), designed for an Inertia/SPA frontend.
 
-**Package:** `schoolaid/nadota` · **Version:** 1.6.0 · **Namespace:** `SchoolAid\Nadota`
+**Package:** `schoolaid/nadota` · **Version:** 1.6.1 · **Namespace:** `SchoolAid\Nadota`
 
 This documentation is organized by audience and domain. Start with **Getting Started**, then dive into the area you need.
 
