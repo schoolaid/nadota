@@ -2,6 +2,7 @@
 
 namespace SchoolAid\Nadota\Http\Fields\Relations;
 
+use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -966,13 +967,67 @@ class BelongsToMany extends Field
     }
 
     /**
+     * The links the related model's global scopes hide (linked before a scope applied): the stock
+     * edit form never shows them, so it never sends them back. A form save and a sync keep them;
+     * nothing the user can't see is removed.
+     *
+     * @return array<int, mixed>
+     */
+    public function hiddenAttachedIds(Model $model): array
+    {
+        if (!$model->exists) {
+            return [];
+        }
+
+        $relation = $model->{$this->getRelation()}();
+        $key = $relation->getRelated()->qualifyColumn($relation->getRelatedKeyName());
+        $visible = $model->{$this->getRelation()}()->pluck($key)->map(fn ($id) => (string) $id)->all();
+
+        return $relation->withoutGlobalScopes()->pluck($key)
+            ->filter(fn ($id) => !in_array((string) $id, $visible, true))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * The application's own check, when it has one: fn (BelongsToMany $field, Request $request,
+     * Model $model, array $ids, Closure $default): array, where $default() runs the check below.
+     */
+    protected static ?Closure $rejectIdsCallback = null;
+
+    /**
+     * Replace the check of the ids attach, sync and the form send (null restores it). For an
+     * application that already checks them with its own rules, which must stay the authority.
+     *
+     * ⚠️ A callback must fall back to `$default()` whenever its own check did not run on these ids:
+     * returning `[]` accepts anything, ids that do not exist included.
+     */
+    public static function rejectIdsUsing(?Closure $callback): void
+    {
+        static::$rejectIdsCallback = $callback;
+    }
+
+    /**
      * The ids that are neither candidates nor already attached (a record that stopped being an
-     * option can stay). Ids that do not exist are rejected too.
+     * option can stay). Ids that do not exist are rejected too. rejectIdsUsing() can replace it.
      *
      * @param array<int, mixed> $ids
-     * @return string[]
+     * @return array<int, mixed>
      */
     public function rejectedIds(Request $request, Model $model, array $ids): array
+    {
+        if (static::$rejectIdsCallback) {
+            return (static::$rejectIdsCallback)($this, $request, $model, $ids, fn () => $this->defaultRejectedIds($request, $model, $ids));
+        }
+
+        return $this->defaultRejectedIds($request, $model, $ids);
+    }
+
+    /**
+     * @param array<int, mixed> $ids
+     * @return array<int, mixed>
+     */
+    protected function defaultRejectedIds(Request $request, Model $model, array $ids): array
     {
         $sent = array_filter($ids, fn ($id) => is_numeric($id) || is_string($id));
         $ids = array_values(array_unique(array_map('strval', $sent)));
@@ -984,8 +1039,10 @@ class BelongsToMany extends Field
         $relation = $model->{$this->getRelation()}();
         $relatedKey = $relation->getRelated()->qualifyColumn($relation->getRelatedKeyName());
 
+        // The links as stored: one the related model's global scopes hide (linked before the scope
+        // applied, another tenant's) is sent back by the edit form and is not a new id
         $attached = $model->exists
-            ? $relation->whereIn($relatedKey, $ids)->pluck($relatedKey)->map(fn ($id) => (string) $id)->all()
+            ? $relation->withoutGlobalScopes()->whereIn($relatedKey, $ids)->pluck($relatedKey)->map(fn ($id) => (string) $id)->all()
             : [];
 
         $candidates = $this->candidatesQuery($request, $model)
@@ -1036,14 +1093,20 @@ class BelongsToMany extends Field
             ]);
         }
 
+        // Links the scopes hide are not in the form: kept, untouched (an empty pivot updates nothing)
+        $hidden = $this->hiddenAttachedIds($model);
+
         // Check if values include pivot data
         if ($this->hasPivotData($values)) {
             // Sync with pivot data
             $syncData = $this->prepareSyncWithPivot($values);
+            foreach ($hidden as $id) {
+                $syncData[$id] ??= [];
+            }
             $model->{$relationName}()->sync($syncData);
         } else {
             // Simple sync without pivot data
-            $model->{$relationName}()->sync($values);
+            $model->{$relationName}()->sync(array_merge($values, $hidden));
         }
     }
 

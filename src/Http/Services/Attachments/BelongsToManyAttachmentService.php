@@ -147,7 +147,10 @@ class BelongsToManyAttachmentService extends AbstractAttachmentService
         $relatedModel = $relation->getRelated();
         $relatedTable = $relatedModel->getTable();
         $relatedKeyName = $relatedModel->getKeyName();
-        $alreadyAttached = $relation->pluck("{$relatedTable}.{$relatedKeyName}")->toArray();
+        // As stored, like rejectedIds(): a link the related model's global scopes hide is attached
+        // already, and attaching it again would write a second pivot row
+        $alreadyAttached = $parentModel->{$relationName}()->withoutGlobalScopes()
+            ->pluck("{$relatedTable}.{$relatedKeyName}")->toArray();
         $toAttach = array_diff($items, $alreadyAttached);
 
         if (empty($toAttach)) {
@@ -215,10 +218,10 @@ class BelongsToManyAttachmentService extends AbstractAttachmentService
             ->pluck($qualifiedKey)
             ->toArray();
 
-        // Detach items
+        // Only the links found through the scopes: one they hide is not this user's to remove
         $detached = 0;
-        $this->withHooks($request, 'Detach', $parentModel, $field, $actualIds, function () use ($relation, $items, $actualIds, &$detached) {
-            $detached = $relation->detach($items);
+        $this->withHooks($request, 'Detach', $parentModel, $field, $actualIds, function () use ($relation, $actualIds, &$detached) {
+            $detached = empty($actualIds) ? 0 : $relation->detach($actualIds);
 
             return $actualIds;
         });
@@ -288,7 +291,10 @@ class BelongsToManyAttachmentService extends AbstractAttachmentService
         // Check if detaching is enabled (default true for sync)
         $detaching = $request->get('detaching', true);
 
-        $changes = $this->withHooks($request, 'Sync', $parentModel, $field, array_values($items), function () use ($relation, $items, $pivotData, $detaching) {
+        // Links the scopes hide are kept, untouched: the user never saw them to leave them out
+        $hidden = $field instanceof BelongsToMany ? $field->hiddenAttachedIds($parentModel) : [];
+
+        $changes = $this->withHooks($request, 'Sync', $parentModel, $field, array_values($items), function () use ($relation, $items, $pivotData, $detaching, $hidden) {
             // Build sync data
             if (!empty($pivotData) && $this->isPivotKeyedById($pivotData)) {
                 // Pivot data keyed by ID
@@ -296,18 +302,20 @@ class BelongsToManyAttachmentService extends AbstractAttachmentService
                 foreach ($items as $id) {
                     $syncData[$id] = $pivotData[$id] ?? [];
                 }
-                $changes = $relation->sync($syncData, $detaching);
             } elseif (!empty($pivotData)) {
                 // Same pivot data for all
                 $syncData = [];
                 foreach ($items as $id) {
                     $syncData[$id] = $pivotData;
                 }
-                $changes = $relation->sync($syncData, $detaching);
             } else {
                 // No pivot data
-                $changes = $relation->sync($items, $detaching);
+                $syncData = array_fill_keys($items, []);
             }
+            foreach ($hidden as $id) {
+                $syncData[$id] ??= [];
+            }
+            $changes = $relation->sync($syncData, $detaching);
 
             // sync() keeps array_diff() keys on 'detached', which JSON-encode as an object
             return array_map('array_values', $changes);
