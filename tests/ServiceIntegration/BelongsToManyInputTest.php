@@ -266,6 +266,51 @@ describe('a link the related model\'s global scopes hide', function () {
             ->and($this->model->simpleTags()->withoutGlobalScopes()->where('tags.id', $this->scopedOut->id)->count())->toBe(1);
     });
 
+    // The stock edit form loads the relation through the scopes, so it never shows a hidden link
+    // and never sends it back: a save, a sync or a detach must not remove what the user can't see.
+    it('is kept when the edit form leaves it out', function () {
+        $response = (new ResourceUpdateService())->handle(btmRequest(['name' => 'Renamed', 'simpleTags' => [$this->visible->id]]), $this->model->id);
+
+        expect($response->getStatusCode())->toBe(200)
+            ->and($this->model->simpleTags()->withoutGlobalScopes()->orderBy('tags.id')->pluck('tags.id')->all())
+            ->toBe([$this->visible->id, $this->scopedOut->id]);
+    });
+
+    it('is kept when the edit form sends pivot items without it', function () {
+        $response = (new ResourceUpdateService())->handle(btmRequest(['name' => 'Renamed', 'simpleTags' => [['id' => $this->visible->id]]]), $this->model->id);
+
+        expect($response->getStatusCode())->toBe(200)
+            ->and($this->model->simpleTags()->withoutGlobalScopes()->orderBy('tags.id')->pluck('tags.id')->all())
+            ->toBe([$this->visible->id, $this->scopedOut->id]);
+    });
+
+    it('is kept by a sync that leaves it out', function () {
+        $field = BelongsToMany::make('Tags', 'simpleTags', TagResource::class)->attachable();
+
+        $response = (new BelongsToManyAttachmentService())->sync(btmRequest(['items' => [$this->visible->id]], $field), $this->model, $field);
+
+        expect($response->getStatusCode())->toBe(200)
+            ->and($response->getData(true)['data']['detached'] ?? $response->getData(true)['detached'] ?? [])->toBe([])
+            ->and($this->model->simpleTags()->withoutGlobalScopes()->where('tags.id', $this->scopedOut->id)->exists())->toBeTrue();
+    });
+
+    it('is not removed by a detach that names it', function () {
+        $field = BelongsToMany::make('Tags', 'simpleTags', TagResource::class)->attachable();
+
+        (new BelongsToManyAttachmentService())->detach(btmRequest(['items' => [$this->scopedOut->id]], $field), $this->model, $field);
+
+        expect($this->model->simpleTags()->withoutGlobalScopes()->where('tags.id', $this->scopedOut->id)->exists())->toBeTrue();
+    });
+
+    it('is not removed by a detach that also names a visible link', function () {
+        $this->model->simpleTags()->attach($this->visible->id);
+        $field = BelongsToMany::make('Tags', 'simpleTags', TagResource::class)->attachable();
+
+        (new BelongsToManyAttachmentService())->detach(btmRequest(['items' => [$this->visible->id, $this->scopedOut->id]], $field), $this->model, $field);
+
+        expect($this->model->simpleTags()->withoutGlobalScopes()->orderBy('tags.id')->pluck('tags.id')->all())->toBe([$this->scopedOut->id]);
+    });
+
     it('is still rejected once it is no longer linked', function () {
         $this->model->simpleTags()->withoutGlobalScopes()->detach($this->scopedOut->id);
 
@@ -295,6 +340,13 @@ describe('rejectIdsUsing()', function () {
             ->and($attach->getStatusCode())->toBe(200)
             ->and(tagIds($this->model))->toBe([$this->other->id, $this->hidden->id])
             ->and($seen)->toBe(['simpleTags', 'simpleTags']);
+    });
+
+    it('still rejects an id that does not exist when the callback falls back to the default', function () {
+        BelongsToMany::rejectIdsUsing(fn ($field, $request, $model, array $ids, Closure $default) => $default());
+
+        expect(fn () => (new ResourceUpdateService())->handle(btmRequest(['name' => 'Renamed', 'simpleTags' => [999999]]), $this->model->id))
+            ->toThrow(ValidationException::class);
     });
 
     it('hands the callback the default check', function () {

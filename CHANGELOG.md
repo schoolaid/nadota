@@ -11,9 +11,10 @@ Versions not listed below shipped without changelog entries; see the git tags fo
 
 ### Fixed
 - `BelongsToMany`: the ids attach, sync and the form send are checked against the links as stored, without the related model's global scopes. A record linked before a scope hid it (another tenant's, say), when a client sends it back, counted as a new id that is not an option: the save failed with 422 and `sync` refused the list. `attach` counts it as attached too, instead of writing a second pivot row. An id that is not linked is still checked as before.
+- `BelongsToMany`: a link the related model's global scopes hide is never removed by a user who can't see it. The stock edit form loads the relation through the scopes, so it never sent such a link back, and saving the record (or a `sync` without it) detached it silently. The form save and `sync` keep those links untouched, and `detach` removes only the links it finds through the scopes.
 
 ### Added
-- `BelongsToMany::rejectIdsUsing(?Closure)`: an application that checks these ids with its own rules can replace the check (it receives the field, request, model, ids and a closure that runs the default check); `null` restores it.
+- `BelongsToMany::rejectIdsUsing(?Closure)`: an application that checks these ids with its own rules can replace the check (it receives the field, request, model, ids and a closure that runs the default check); `null` restores it. A callback must fall back to `$default()` whenever its own check did not run on the ids: returning `[]` accepts anything, ids that do not exist included.
 
 ## [1.6.1] - 2026-11-18
 

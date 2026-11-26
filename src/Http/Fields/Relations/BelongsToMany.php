@@ -967,6 +967,29 @@ class BelongsToMany extends Field
     }
 
     /**
+     * The links the related model's global scopes hide (linked before a scope applied): the stock
+     * edit form never shows them, so it never sends them back. A form save and a sync keep them;
+     * nothing the user can't see is removed.
+     *
+     * @return array<int, mixed>
+     */
+    public function hiddenAttachedIds(Model $model): array
+    {
+        if (!$model->exists) {
+            return [];
+        }
+
+        $relation = $model->{$this->getRelation()}();
+        $key = $relation->getRelated()->qualifyColumn($relation->getRelatedKeyName());
+        $visible = $model->{$this->getRelation()}()->pluck($key)->map(fn ($id) => (string) $id)->all();
+
+        return $relation->withoutGlobalScopes()->pluck($key)
+            ->filter(fn ($id) => !in_array((string) $id, $visible, true))
+            ->values()
+            ->all();
+    }
+
+    /**
      * The application's own check, when it has one: fn (BelongsToMany $field, Request $request,
      * Model $model, array $ids, Closure $default): array, where $default() runs the check below.
      */
@@ -975,6 +998,9 @@ class BelongsToMany extends Field
     /**
      * Replace the check of the ids attach, sync and the form send (null restores it). For an
      * application that already checks them with its own rules, which must stay the authority.
+     *
+     * ⚠️ A callback must fall back to `$default()` whenever its own check did not run on these ids:
+     * returning `[]` accepts anything, ids that do not exist included.
      */
     public static function rejectIdsUsing(?Closure $callback): void
     {
@@ -1067,14 +1093,20 @@ class BelongsToMany extends Field
             ]);
         }
 
+        // Links the scopes hide are not in the form: kept, untouched (an empty pivot updates nothing)
+        $hidden = $this->hiddenAttachedIds($model);
+
         // Check if values include pivot data
         if ($this->hasPivotData($values)) {
             // Sync with pivot data
             $syncData = $this->prepareSyncWithPivot($values);
+            foreach ($hidden as $id) {
+                $syncData[$id] ??= [];
+            }
             $model->{$relationName}()->sync($syncData);
         } else {
             // Simple sync without pivot data
-            $model->{$relationName}()->sync($values);
+            $model->{$relationName}()->sync(array_merge($values, $hidden));
         }
     }
 
