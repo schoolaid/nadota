@@ -257,6 +257,15 @@ describe('a link the related model\'s global scopes hide', function () {
         expect($response->getStatusCode())->toBe(200);
     });
 
+    it('is not attached a second time by the attach endpoint', function () {
+        $field = BelongsToMany::make('Tags', 'simpleTags', TagResource::class)->attachable();
+
+        $response = (new BelongsToManyAttachmentService())->attach(btmRequest(['items' => [$this->scopedOut->id]], $field), $this->model, $field);
+
+        expect($response->getStatusCode())->toBe(200)
+            ->and($this->model->simpleTags()->withoutGlobalScopes()->where('tags.id', $this->scopedOut->id)->count())->toBe(1);
+    });
+
     it('is still rejected once it is no longer linked', function () {
         $this->model->simpleTags()->withoutGlobalScopes()->detach($this->scopedOut->id);
 

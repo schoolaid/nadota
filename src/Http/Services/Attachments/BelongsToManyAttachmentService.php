@@ -147,7 +147,10 @@ class BelongsToManyAttachmentService extends AbstractAttachmentService
         $relatedModel = $relation->getRelated();
         $relatedTable = $relatedModel->getTable();
         $relatedKeyName = $relatedModel->getKeyName();
-        $alreadyAttached = $relation->pluck("{$relatedTable}.{$relatedKeyName}")->toArray();
+        // As stored, like rejectedIds(): a link the related model's global scopes hide is attached
+        // already, and attaching it again would write a second pivot row
+        $alreadyAttached = $parentModel->{$relationName}()->withoutGlobalScopes()
+            ->pluck("{$relatedTable}.{$relatedKeyName}")->toArray();
         $toAttach = array_diff($items, $alreadyAttached);
 
         if (empty($toAttach)) {
