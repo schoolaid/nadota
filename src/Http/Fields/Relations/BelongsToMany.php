@@ -2,6 +2,7 @@
 
 namespace SchoolAid\Nadota\Http\Fields\Relations;
 
+use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -966,13 +967,41 @@ class BelongsToMany extends Field
     }
 
     /**
+     * The application's own check, when it has one: fn (BelongsToMany $field, Request $request,
+     * Model $model, array $ids, Closure $default): array, where $default() runs the check below.
+     */
+    protected static ?Closure $rejectIdsCallback = null;
+
+    /**
+     * Replace the check of the ids attach, sync and the form send (null restores it). For an
+     * application that already checks them with its own rules, which must stay the authority.
+     */
+    public static function rejectIdsUsing(?Closure $callback): void
+    {
+        static::$rejectIdsCallback = $callback;
+    }
+
+    /**
      * The ids that are neither candidates nor already attached (a record that stopped being an
-     * option can stay). Ids that do not exist are rejected too.
+     * option can stay). Ids that do not exist are rejected too. rejectIdsUsing() can replace it.
      *
      * @param array<int, mixed> $ids
-     * @return string[]
+     * @return array<int, mixed>
      */
     public function rejectedIds(Request $request, Model $model, array $ids): array
+    {
+        if (static::$rejectIdsCallback) {
+            return (static::$rejectIdsCallback)($this, $request, $model, $ids, fn () => $this->defaultRejectedIds($request, $model, $ids));
+        }
+
+        return $this->defaultRejectedIds($request, $model, $ids);
+    }
+
+    /**
+     * @param array<int, mixed> $ids
+     * @return array<int, mixed>
+     */
+    protected function defaultRejectedIds(Request $request, Model $model, array $ids): array
     {
         $sent = array_filter($ids, fn ($id) => is_numeric($id) || is_string($id));
         $ids = array_values(array_unique(array_map('strval', $sent)));
@@ -984,8 +1013,10 @@ class BelongsToMany extends Field
         $relation = $model->{$this->getRelation()}();
         $relatedKey = $relation->getRelated()->qualifyColumn($relation->getRelatedKeyName());
 
+        // The links as stored: one the related model's global scopes hide (linked before the scope
+        // applied, another tenant's) is sent back by the edit form and is not a new id
         $attached = $model->exists
-            ? $relation->whereIn($relatedKey, $ids)->pluck($relatedKey)->map(fn ($id) => (string) $id)->all()
+            ? $relation->withoutGlobalScopes()->whereIn($relatedKey, $ids)->pluck($relatedKey)->map(fn ($id) => (string) $id)->all()
             : [];
 
         $candidates = $this->candidatesQuery($request, $model)

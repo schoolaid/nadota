@@ -226,3 +226,72 @@ describe('options with resourceId', function () {
         expect($ids)->toBe([$this->visible->id]);
     });
 });
+
+describe('a link the related model\'s global scopes hide', function () {
+    // A record linked before a scope hid it (another tenant's, say): the edit form sends it back,
+    // so it must count as attached, not as a new id that is not an option.
+    beforeEach(function () {
+        $this->scopedOut = Tag::create(['name' => 'scoped out']);
+        $this->model->simpleTags()->attach($this->scopedOut->id);
+        Tag::addGlobalScope('hideScopedOut', fn ($query) => $query->where('tags.name', '!=', 'scoped out'));
+    });
+
+    afterEach(function () {
+        Tag::clearBootedModels();
+    });
+
+    it('is kept when the edit form sends it back', function () {
+        $response = (new ResourceUpdateService())->handle(btmRequest(['name' => 'Renamed', 'simpleTags' => [$this->scopedOut->id, $this->visible->id]]), $this->model->id);
+
+        expect($response->getStatusCode())->toBe(200)
+            ->and($this->model->simpleTags()->withoutGlobalScopes()->orderBy('tags.id')->pluck('tags.id')->all())
+            ->toBe([$this->visible->id, $this->scopedOut->id]);
+    });
+
+    it('is not rejected by sync', function () {
+        $field = BelongsToMany::make('Tags', 'simpleTags', TagResource::class)->attachable();
+        $request = btmRequest(['items' => [$this->scopedOut->id, $this->visible->id]], $field);
+
+        $response = (new BelongsToManyAttachmentService())->sync($request, $this->model, $field);
+
+        expect($response->getStatusCode())->toBe(200);
+    });
+
+    it('is still rejected once it is no longer linked', function () {
+        $this->model->simpleTags()->withoutGlobalScopes()->detach($this->scopedOut->id);
+
+        expect(fn () => (new ResourceUpdateService())->handle(btmRequest(['name' => 'Renamed', 'simpleTags' => [$this->scopedOut->id]]), $this->model->id))
+            ->toThrow(ValidationException::class);
+    });
+});
+
+describe('rejectIdsUsing()', function () {
+    afterEach(function () {
+        BelongsToMany::rejectIdsUsing(null);
+    });
+
+    it('lets the application decide the rejected ids, on the form and on attach', function () {
+        $seen = [];
+        BelongsToMany::rejectIdsUsing(function (BelongsToMany $field, $request, $model, array $ids, Closure $default) use (&$seen) {
+            $seen[] = $field->getRelation();
+
+            return [];
+        });
+
+        $form = (new ResourceUpdateService())->handle(btmRequest(['name' => 'Renamed', 'simpleTags' => [$this->hidden->id]]), $this->model->id);
+        $field = BelongsToMany::make('Tags', 'simpleTags', TagResource::class)->attachable();
+        $attach = (new BelongsToManyAttachmentService())->attach(btmRequest(['items' => [$this->other->id]], $field), $this->model, $field);
+
+        expect($form->getStatusCode())->toBe(200)
+            ->and($attach->getStatusCode())->toBe(200)
+            ->and(tagIds($this->model))->toBe([$this->other->id, $this->hidden->id])
+            ->and($seen)->toBe(['simpleTags', 'simpleTags']);
+    });
+
+    it('hands the callback the default check', function () {
+        BelongsToMany::rejectIdsUsing(fn ($field, $request, $model, array $ids, Closure $default) => $default());
+
+        expect(fn () => (new ResourceUpdateService())->handle(btmRequest(['name' => 'Renamed', 'simpleTags' => [$this->hidden->id]]), $this->model->id))
+            ->toThrow(ValidationException::class);
+    });
+});
