@@ -20,7 +20,8 @@ use SchoolAid\Nadota\Tests\Fixtures\Resources\GradeResource;
  */
 
 it('composes the select, relation-loading, visibility and transform traits', function () {
-    expect(class_uses(InteractsWithFields::class))->toEqualCanonicalizing([
+    // array_values: class_uses() is keyed by name, and PHPUnit 12 compares keys when canonicalizing.
+    expect(array_values(class_uses(InteractsWithFields::class)))->toEqualCanonicalizing([
         BuildsSelectColumns::class,
         ManagesRelationLoading::class,
         ManagesFieldVisibility::class,
